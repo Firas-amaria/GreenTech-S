@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Driver Registration - India</title>
+</head>
+
+<body>
+  <h2>Driver Registration (India)</h2>
+
+  <form id="driverForm">
+    
+
+    <div id="vehicles-container">
+      <div class="vehicle-group">
+        <label for="vehicle-type-1">Vehicle Type</label>
+        <select id="vehicle-type-1" name="vehicleType[]" required>
+          <option value="" disabled selected>Select vehicle type</option>
+          <option value="truck">Truck</option>
+          <option value="tempo">Tempo</option>
+          <option value="car">Car</option>
+          <option value="motorcycle">Motorcycle</option>
+          <option value="auto-rickshaw">Auto Rickshaw</option>
+        </select>
+
+        <label for="vehicle-capacity-1">Vehicle Capacity (tons)</label>
+        <input
+          type="number"
+          id="vehicle-capacity-1"
+          name="vehicleCapacity[]"
+          min="0"
+          step="0.1"
+          placeholder="Enter capacity"
+          required
+        />
+      </div>
+    </div>
+
+    <button type="button" onclick="addVehicle()">Add Another Vehicle</button>
+    <button type="submit">Register</button>
+  </form>
+
+</body>
+
+</html>

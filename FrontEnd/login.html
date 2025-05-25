@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="he">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+
+</head>
+
+<body>
+    <div class="wrapper">
+        <!-- Left Side - Form -->
+        <div class="form-container">
+            <div class="login-container">
+                <h2>Login</h2>
+                <form onsubmit="login(event)">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email" required
+                        pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$">
+
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required minlength="6">
+
+                    <button type="submit">Login</button>
+                </form>
+                <div class="menu">
+                    <a href="register.html">Don't have an account? Register</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Image -->
+        <div class="image-container"></div>
+    </div>
+
+    <script src="auth.js"></script>
+
+
+</body>
+
+</html>
