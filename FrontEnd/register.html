@@ -20,9 +20,11 @@
                     <label for="register-lastname">Last name</label>
                     <input type="text" id="register-lastname" placeholder="Enter your last name" required />
 
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" placeholder="Enter your email" required
-                        pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+                    <label for="register-email">Email (Gmail only)</label>
+                    <input type="email" id="register-email" placeholder="Enter your Gmail address" required
+                        pattern="[a-zA-Z0-9._%+-]+@gmail\.com$"
+                        title="Please enter a valid Gmail address (e.g., yourname@gmail.com)">
+
 
                     <label for="register-phone">Phone Number</label>
                     <input type="tel" id="register-phone" placeholder="Enter your phone number" required
@@ -42,10 +44,12 @@
                     </select>
 
                     <label for="register-password">Password</label>
-                    <input type="password" id="register-password" placeholder="Enter your password" required minlength="6" />
+                    <input type="password" id="register-password" placeholder="Enter your password" required
+                        minlength="6" />
 
                     <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" placeholder="Confirm your password" required minlength="6" />
+                    <input type="password" id="confirm-password" placeholder="Confirm your password" required
+                        minlength="6" />
 
                     <button type="submit">Register</button>
                 </form>
@@ -54,9 +58,6 @@
                 </div>
             </div>
         </div>
-
-
-    <script src="auth.js"></script>
 </body>
 
 </html>
