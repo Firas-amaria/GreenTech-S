@@ -15,21 +15,6 @@ A scalable, microservice-based logistics platform designed to connect farmers di
 
     🎮 Gamified worker experience with feedback and progress tracking.
 
-📐 System Architecture
-
-    Frontend: React Native
-
-    Backend: Node.js + TypeScript
-
-    Database: Firebase (live), SQL (historical backup)
-
-    Analytics: ElasticSearch
-
-    API Style: REST (Microservices)
-
-    Authentication: Role-based access
-
-    Session Handling: Stateful
 
 👥 User Roles
 Role	Description
