@@ -1,57 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Weekly Shift Scheduler</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px 5px;
-      text-align: center;
-      vertical-align: top;
-    }
-    th {
-      background-color: #f7f7f7;
-    }
-    .shift-label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 1rem;
-      cursor: pointer;
-      border-radius: 5px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
+  
   </style>
 </head>
+
+<!-- SideNote : Manager controles when the Shifts Starts and Ends -->
+<!--  -->
+
 <body>
 
   <h2>Weekly Shift Scheduler</h2>
@@ -71,83 +32,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Morning <br>(6 AM - 12 PM)</td>
-          <td><input type="checkbox" name="Sunday" value="Morning"></td>
-          <td><input type="checkbox" name="Monday" value="Morning"></td>
-          <td><input type="checkbox" name="Tuesday" value="Morning"></td>
-          <td><input type="checkbox" name="Wednesday" value="Morning"></td>
-          <td><input type="checkbox" name="Thursday" value="Morning"></td>
-          <td><input type="checkbox" name="Friday" value="Morning"></td>
-          <td><input type="checkbox" name="Saturday" value="Morning"></td>
-        </tr>
-        <tr>
-          <td>Afternoon <br>(12 PM - 6 PM)</td>
-          <td><input type="checkbox" name="Sunday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Monday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Tuesday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Wednesday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Thursday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Friday" value="Afternoon"></td>
-          <td><input type="checkbox" name="Saturday" value="Afternoon"></td>
-        </tr>
-        <tr>
-          <td>Night <br>(6 PM - 12 AM)</td>
-          <td><input type="checkbox" name="Sunday" value="Night"></td>
-          <td><input type="checkbox" name="Monday" value="Night"></td>
-          <td><input type="checkbox" name="Tuesday" value="Night"></td>
-          <td><input type="checkbox" name="Wednesday" value="Night"></td>
-          <td><input type="checkbox" name="Thursday" value="Night"></td>
-          <td><input type="checkbox" name="Friday" value="Night"></td>
-          <td><input type="checkbox" name="Saturday" value="Night"></td>
-        </tr>
-        <tr>
-          <td>Late Night <br>(12 AM - 6 AM)</td>
-          <td><input type="checkbox" name="Sunday" value="Late Night"></td>
-          <td><input type="checkbox" name="Monday" value="Late Night"></td>
-          <td><input type="checkbox" name="Tuesday" value="Late Night"></td>
-          <td><input type="checkbox" name="Wednesday" value="Late Night"></td>
-          <td><input type="checkbox" name="Thursday" value="Late Night"></td>
-          <td><input type="checkbox" name="Friday" value="Late Night"></td>
-          <td><input type="checkbox" name="Saturday" value="Late Night"></td>
-        </tr>
+        <!-- Shift rows will be generated dynamically by JS -->
       </tbody>
     </table>
 
     <button type="submit">Submit Schedule</button>
   </form>
 
-  <script>
-    document.getElementById('scheduleForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-
-      // Collect selected shifts grouped by day
-      const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-      const schedule = {};
-
-      days.forEach(day => {
-        const checkedShifts = Array.from(document.querySelectorAll(`input[name="${day}"]:checked`))
-          .map(cb => cb.value);
-        if (checkedShifts.length > 0) {
-          schedule[day] = checkedShifts;
-        }
-      });
-
-      if(Object.keys(schedule).length === 0) {
-        alert("Please select at least one shift.");
-        return;
-      }
-
-      // Format output nicely
-      let output = "Your selected schedule:\n";
-      for(const [day, shifts] of Object.entries(schedule)) {
-        output += `${day}: ${shifts.join(", ")}\n`;
-      }
-
-      alert(output);
-      // You can replace alert with sending data to server or storing it here
-    });
-  </script>
-
+  <script src="js/schedule.js"></script>
 </body>
+
 </html>

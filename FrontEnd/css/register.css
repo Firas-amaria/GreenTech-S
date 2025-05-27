@@ -1,0 +1,223 @@
+* {
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    position: relative;
+    justify-content: center;
+    /*background-image: ;  להוספת תמונות ברקע או בbackground כללי או ב.wrapper*/
+
+}
+
+h2 {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-family: cursive;
+
+}
+
+.wrapper {
+    display: flex;
+    border: silver 2px solid;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 350px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    top: -50%;
+    position: absolute;
+    transform: translate(+10%, +10%);
+    z-index: 1;
+}
+
+
+
+/* כללי */
+.form-container {
+    padding: 20px;
+}
+
+.login-container h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* עיצוב לשדות input לפי המחלקה הקיימת */
+.input {
+    font-size: 16px;
+    padding: 10px 10px 10px 5px;
+    display: block;
+    width: 250px;
+    border: none;
+    border-bottom: 1px solid #515151;
+    background: transparent;
+}
+
+.input:focus {
+    outline: none;
+}
+
+/* תווית (label) תעבוד עם input */
+form label {
+    color: #999;
+    font-size: 18px;
+    font-weight: normal;
+    display: block;
+    margin-top: 20px;
+    transition: 0.2s ease all;
+}
+
+/* תזוזת תווית כשיש פוקוס */
+.input:focus+.highlight+.bar+label,
+.input:valid+.highlight+.bar+label {
+    margin-top: 0px;
+    font-size: 14px;
+    color: #5264AE;
+}
+
+/* highlight */
+.highlight {
+    position: relative;
+    height: 60%;
+    width: 100px;
+    top: -40px;
+    left: 0;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.input:focus+.highlight {
+    animation: inputHighlighter 0.3s ease;
+}
+
+@keyframes inputHighlighter {
+    from {
+        background: #5264AE;
+    }
+
+    to {
+        width: 0;
+        background: transparent;
+    }
+}
+
+/* bar אנימציה מתחת לשדה */
+.bar {
+    position: relative;
+    display: block;
+    width: 250px;
+    height: 2px;
+    background: #ccc;
+    margin-bottom: 10px;
+}
+
+.input:focus+.highlight+.bar {
+    background: linear-gradient(to right, #5264AE 50%, #5264AE 50%);
+}
+
+/* כפתור התחברות */
+button[type="submit"] {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #5264AE;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+button[type="submit"]:hover {
+    background-color: #3949ab;
+}
+
+/* קישור לתפריט הרשמה */
+.menu {
+    margin-top: 15px;
+}
+
+.menu a {
+    color: #5264AE;
+    text-decoration: none;
+}
+
+.menu a:hover {
+    text-decoration: underline;
+}
+
+/* === הגדרות כלליות ל-input === */
+.input,
+#password {
+    font-size: 16px;
+    padding: 10px 10px 10px 5px;
+    display: block;
+    width: 250px;
+    border: none;
+    border-bottom: 1px solid #515151;
+    background: transparent;
+}
+
+.input:focus,
+#password:focus {
+    outline: none;
+}
+
+/* === תווית של כל שדה כולל password === */
+form label {
+    color: #999;
+    font-size: 18px;
+    font-weight: normal;
+    display: block;
+    margin-top: 20px;
+    transition: 0.2s ease all;
+}
+
+/* === highlight animation (אם תוסיף אלמנט כזה ליד password) === */
+.highlight {
+    position: relative;
+    height: 60%;
+    width: 100px;
+    top: -40px;
+    left: 0;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+#password:focus+.highlight {
+    animation: inputHighlighter 0.3s ease;
+}
+
+@keyframes inputHighlighter {
+    from {
+        background: #5264AE;
+    }
+
+    to {
+        width: 0;
+        background: transparent;
+    }
+}
+
+/* === bar אנימציה מתחת לשדה === */
+.bar {
+    position: relative;
+    display: block;
+    width: 250px;
+    height: 2px;
+    background: #ccc;
+    margin-bottom: 10px;
+}
+
+#password:focus+.highlight+.bar {
+    background: linear-gradient(to right, #5264AE 50%, #5264AE 50%);
+}
+
+/* === אפקט תזוזת label על focus או valid === */
+#password:focus~label,
+#password:valid~label {
+    margin-top: 0px;
+    font-size: 14px;
+    color: #5264AE;
+}
