@@ -1,51 +1,72 @@
-
-import { getAuth, onAuthStateChanged } from 
-  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { initSchedule, getScheduleData } from './schedule.js'; // schedule widget helpers
+import {
+  getAuth,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initSchedule, getScheduleData } from "./schedule.js"; // schedule widget helpers
 
 const auth = getAuth();
 
 // List of positions — replace or fetch from your DB as needed
 const positions = [
-  { displayName: 'Farmer',           role: 'Farmer',          description: 'Grow crops and raise livestock on our partner farms.' },
-  { displayName: 'Delivery Driver',  role: 'Driver',          description: 'Transport fresh produce to customers safely and on time.' },
-  { displayName: 'Industrial Truck Driver', role: 'Industrial',  description: 'Operate and maintain heavy-duty delivery vehicles.' },
-  { displayName: 'Warehouse Worker', role: 'WarehouseWorker', description: 'Manage inventory, sorting and storing incoming goods.' },
-  { displayName: 'Picker',           role: 'Picker',          description: 'Select produce items according to quality standards.' }
+  {
+    displayName: "Farmer",
+    role: "Farmer",
+    description: "Grow crops and raise livestock on our partner farms.",
+  },
+  {
+    displayName: "Delivery Driver",
+    role: "Driver",
+    description: "Transport fresh produce to customers safely and on time.",
+  },
+  {
+    displayName: "Industrial Truck Driver",
+    role: "Industrial",
+    description: "Operate and maintain heavy-duty delivery vehicles.",
+  },
+  {
+    displayName: "Warehouse Worker",
+    role: "WarehouseWorker",
+    description: "Manage inventory, sorting and storing incoming goods.",
+  },
+  {
+    displayName: "Picker",
+    role: "Picker",
+    description: "Select produce items according to quality standards.",
+  },
 ];
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener("DOMContentLoaded", () => {
   // --- DOM references ---
-  const positionList = document.getElementById('position-list');
-  const jobInfo      = document.getElementById('job-info');
-  const jobTitle     = document.getElementById('job-info-title');
-  const jobDesc      = document.getElementById('job-info-desc');
-  const applyBtn     = document.getElementById('apply-btn');
-  const authModal    = document.getElementById('auth-modal');
-  const jobForm      = document.getElementById('job-form');
-  const positionSel  = document.getElementById('position');
-  const extraFields  = document.getElementById('extra-fields');
-  const errorMsg     = document.getElementById('job-error-message');
+  const positionList = document.getElementById("position-list");
+  const jobInfo = document.getElementById("job-info");
+  const jobTitle = document.getElementById("job-info-title");
+  const jobDesc = document.getElementById("job-info-desc");
+  const applyBtn = document.getElementById("apply-btn");
+  const authModal = document.getElementById("auth-modal");
+  const jobForm = document.getElementById("job-form");
+  const positionSel = document.getElementById("position");
+  const extraFields = document.getElementById("extra-fields");
+  const errorMsg = document.getElementById("job-error-message");
 
   let selectedRole = null;
 
   // --- 1) Populate the list of jobs ---
   positions.forEach(({ displayName, role }) => {
-    const li = document.createElement('li');
+    const li = document.createElement("li");
     li.textContent = displayName;
     li.dataset.role = role;
-    li.addEventListener('click', () => jobDescription(role));
+    li.addEventListener("click", () => jobDescription(role));
     positionList.appendChild(li);
   });
 
   // --- 2) Show description + Apply button ---
   function jobDescription(role) {
-    const pos = positions.find(p => p.role === role);
+    const pos = positions.find((p) => p.role === role);
     if (!pos) return;
     selectedRole = role;
 
     jobTitle.textContent = pos.displayName;
-    jobDesc.textContent  = pos.description;
+    jobDesc.textContent = pos.description;
 
     // Pre-select this role in the hidden form
     positionSel.innerHTML = `
@@ -53,29 +74,29 @@ window.addEventListener('DOMContentLoaded', () => {
       <option value="${role}" selected>${pos.displayName}</option>
     `;
 
-    jobInfo.classList.remove('hidden');
-    authModal.classList.add('hidden');
-    jobForm.classList.add('hidden');
-    applyBtn.classList.remove('hidden');
+    jobInfo.classList.remove("hidden");
+    authModal.classList.add("hidden");
+    jobForm.classList.add("hidden");
+    applyBtn.classList.remove("hidden");
   }
 
   // --- 3) Apply Now click handler ---
-  applyBtn.addEventListener('click', () => {
+  applyBtn.addEventListener("click", () => {
     if (!auth.currentUser) {
-      authModal.classList.remove('hidden');
+      authModal.classList.remove("hidden");
     } else {
-      jobForm.classList.remove('hidden');
-      applyBtn.classList.add('hidden');
+      jobForm.classList.remove("hidden");
+      applyBtn.classList.add("hidden");
     }
   });
 
   // --- 4) Inject extra fields based on selectedRole ---
-  positionSel.addEventListener('change', async () => {
-    extraFields.innerHTML = '';
-    let html = '';
+  positionSel.addEventListener("change", async () => {
+    extraFields.innerHTML = "";
+    let html = "";
 
     switch (selectedRole) {
-      case 'Farmer':
+      case "Farmer":
         html = `
           <label>
             <input type="checkbox" name="agriculturalInsurance" required />
@@ -96,7 +117,7 @@ window.addEventListener('DOMContentLoaded', () => {
         `;
         break;
 
-      case 'Driver':
+      case "Driver":
         html = `
           <label>
             License Type
@@ -144,7 +165,7 @@ window.addEventListener('DOMContentLoaded', () => {
         `;
         break;
 
-      case 'Industrial':
+      case "Industrial":
         html = `
           <label>
             License Type
@@ -193,8 +214,8 @@ window.addEventListener('DOMContentLoaded', () => {
         `;
         break;
 
-      case 'WarehouseWorker':
-      case 'Picker':
+      case "WarehouseWorker":
+      case "Picker":
         html = `<p>No additional information required for this role.</p>`;
         break;
 
@@ -215,20 +236,21 @@ window.addEventListener('DOMContentLoaded', () => {
     extraFields.innerHTML = `<h3>Additional Information</h3>${html}`;
 
     // Initialize schedule if present
-    const schedEl = document.getElementById('schedule-container');
+    const schedEl = document.getElementById("schedule-container");
     if (schedEl) initSchedule(schedEl);
   });
 
   // --- 5) Form submission for all roles ---
-  jobForm.addEventListener('submit', async e => {
+  jobForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    errorMsg.textContent = '';
+    errorMsg.textContent = "";
 
     const formData = new FormData(jobForm);
 
     // Check agreement
-    if (!formData.get('agreement')) {
-      return errorMsg.textContent = 'You must accept the employment agreement.';
+    if (!formData.get("agreement")) {
+      return (errorMsg.textContent =
+        "You must accept the employment agreement.");
     }
 
     // Build payload object from form entries
@@ -244,50 +266,59 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // Include schedule data if exists
-    const schedEl = document.getElementById('schedule-container');
+    const schedEl = document.getElementById("schedule-container");
     if (schedEl) payload.schedule = getScheduleData(schedEl);
 
-
-     //FOR B.E. CHANGE ACCORDING TO UR API PATHS IF U HAVE EXISTING ONES
+    //FOR B.E. CHANGE ACCORDING TO UR API PATHS IF U HAVE EXISTING ONES
     // Select endpoint based on role
     let endpoint;
     switch (selectedRole) {
-      case 'Farmer':          endpoint = '/api/apply-farmer'; break;
-      case 'Driver':          endpoint = '/api/apply-delivery'; break;
-      case 'Industrial':      endpoint = '/api/apply-truckdriver'; break;
-      case 'WarehouseWorker': endpoint = '/api/apply-warehouseworker'; break;
-      case 'Picker':          endpoint = '/api/apply-picker'; break;
+      case "Farmer":
+        endpoint = "/api/apply-farmer";
+        break;
+      case "Driver":
+        endpoint = "/api/apply-delivery";
+        break;
+      case "Industrial":
+        endpoint = "/api/apply-truckdriver";
+        break;
+      case "WarehouseWorker":
+        endpoint = "/api/apply-warehouseworker";
+        break;
+      case "Picker":
+        endpoint = "/api/apply-picker";
+        break;
       default:
-        return errorMsg.textContent = 'Invalid position selected.';
+        return (errorMsg.textContent = "Invalid position selected.");
     }
 
     try {
       const token = await auth.currentUser.getIdToken();
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Submission failed');
+      if (!res.ok) throw new Error(result.message || "Submission failed");
 
-      alert('Your application is now pending.');
+      alert("Your application is now pending.");
       jobForm.reset();
-      jobInfo.classList.add('hidden');
+      jobInfo.classList.add("hidden");
     } catch (err) {
       errorMsg.textContent = err.message;
     }
   });
 
   // --- 6) Auto‐open form if redirected after login/register ---
-  onAuthStateChanged(auth, user => {
+  onAuthStateChanged(auth, (user) => {
     const params = new URLSearchParams(location.search);
-    if (user && params.get('returnTo') === 'job.html') {
-      jobForm.classList.remove('hidden');
-      applyBtn.classList.add('hidden');
+    if (user && params.get("returnTo") === "job.html") {
+      jobForm.classList.remove("hidden");
+      applyBtn.classList.add("hidden");
     }
   });
 });
