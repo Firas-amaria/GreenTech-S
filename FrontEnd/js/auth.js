@@ -131,23 +131,23 @@ document.getElementById("register-form").addEventListener("submit", register);
 document.getElementById("login-form").addEventListener("submit", login);
 
 // Adding event listeners for job selection buttons
-function selectJob(position) {
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+// function selectJob(position) {
+//   const user = JSON.parse(localStorage.getItem("loggedInUser"));
 
-  if (!user) {
-    // User not logged in, send to registration with selected position
+//   if (!user) {
+//     // User not logged in, send to registration with selected position
 
-    window.location.href = `register.html?position=${encodeURIComponent(
-      position
-    )}`;
-  } else {
-    // User logged in, redirect based on the selected position
-    if (position === "Farmer") {
-      window.location.href = "farmerreg.html";
-    } else if (position === "Driver") {
-      window.location.href = ".html";
-    } else {
-      // General positions can be redirected to a generic page
-    }
-  }
-}
+//     window.location.href = `register.html?position=${encodeURIComponent(
+//       position
+//     )}`;
+//   } else {
+//     // User logged in, redirect based on the selected position
+//     if (position === "Farmer") {
+//       window.location.href = "farmerreg.html";
+//     } else if (position === "Driver") {
+//       window.location.href = ".html";
+//     } else {
+//       // General positions can be redirected to a generic page
+//     }
+//   }
+// }
