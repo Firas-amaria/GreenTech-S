@@ -53,10 +53,47 @@
             <li onclick="selectJob('Picker')">Picker</li>
         </ul>
     </div>
-    <script src="auth.js">
-        //job postions we will get in the future from the db
-        //later on it will open a new page with job descreption and a button to aply now
 
-     </script>
+      <script src="auth.js">
+        addEventListener('DOMContentLoaded', function() {
+
+    const panels=document.querySelectorAll('.panel');
+    panels.forEach(p => p.style.display = 'none');
+    panels.document.getElementById('registerion').style.display = 'block';
+    });
+
+      </script>
+      <script>
+        // Function to handle job selection and redirect to the appropriate registration page    
+function selectJob(jobType) {
+            // Redirect to the appropriate registration page based on job type
+            switch (jobType) {
+                case 'Farmer':
+                    addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('farmer-register').style.display = 'block';
+                    });
+                break;
+                case 'Driver':
+                    addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('driver-register').style.display = 'block';
+                    });
+                    break;
+                case 'Industrial':
+                    addEventListener('DOMContentLoaded', function() {
+                        document.getElementById('truck-register').style.display = 'block';
+                    });
+                    break;
+                case 'WarehouseWorker':
+                    window.location.href = 'registrations/warehouseworkerreg.html';
+                    break;
+                case 'Picker':
+                    window.location.href = 'registrations/pickerreg.html';
+                    break;
+                default:
+                    alert('Job type not recognized.');
+            }
+        }
+
+      </script>
 </body>
 </html>
