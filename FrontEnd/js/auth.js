@@ -32,7 +32,8 @@ async function register(event) {
 
     if (emailCheckResult.exists) {
       errorMessage.textContent =
-        "Email already exists. Please use a different email.";
+        "Email already exists. Please login first "+
+        <a href='login.html'>ok</a>;
       return;
     }
 
