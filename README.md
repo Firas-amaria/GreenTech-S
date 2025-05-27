@@ -27,7 +27,7 @@ summary :-
 if u have a problem making this file contact me
 
 then open terminal in vsCode (Ctrl + Shift + ` )  
-and enter these comand in order one after the other:-
+and enter these comand in order one after the other:
 
     cd backend
     npm install
