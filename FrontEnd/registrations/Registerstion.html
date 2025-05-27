@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
     <title>Register</title>
 </head>
 
@@ -26,6 +27,11 @@
                         pattern="[a-zA-Z0-9._%+-]+@gmail\.com$"
                         title="Please enter a valid Gmail address (e.g., yourname@gmail.com)">
 
+                    <label for="register-firstname">First name</label>
+                    <input type="text" id="register-firstname" placeholder="Enter your first name" required />
+
+                    <label for="register-lastname">Last name</label>
+                    <input type="text" id="register-lastname" placeholder="Enter your last name" required />
 
                     <label for="register-phone">Phone Number</label>
                     <input type="tel" id="register-phone" placeholder="Enter your phone number" required
@@ -51,6 +57,7 @@
 
 
                     <button type="submit">Register</button>
+                    <p id="email-error-message" class="error-message"></p>
                 </form>
                 <div class="menu">
                     <a href="login.html">Already have an account? Login</a>
