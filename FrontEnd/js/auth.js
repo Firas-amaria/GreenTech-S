@@ -9,7 +9,8 @@ async function register(event) {
 
   // Validate email immediately
   if (!gmailRegex.test(email)) {
-    errorMessage.textContent = "Email must be a valid Gmail address (e.g. example@gmail.com).";
+    errorMessage.textContent =
+      "Email must be a valid Gmail address (e.g. example@gmail.com).";
     return;
   } else {
     errorMessage.textContent = "";
@@ -30,12 +31,15 @@ async function register(event) {
     const emailCheckResult = await response.json();
 
     if (emailCheckResult.exists) {
-      errorMessage.textContent = "Email already exists. Please use a different email.";
+      errorMessage.textContent =
+        "Email already exists. Please use a different email.";
       return;
     }
 
     // Collect other form inputs after validation
-    const firstName = document.getElementById("register-firstname").value.trim();
+    const firstName = document
+      .getElementById("register-firstname")
+      .value.trim();
     const lastName = document.getElementById("register-lastname").value.trim();
     const phone = document.getElementById("register-phone").value.trim();
     const birthday = document.getElementById("register-birthday").value.trim();
@@ -61,7 +65,7 @@ async function register(event) {
       phone,
       birthday,
       address,
-      password
+      password,
     };
 
     console.log("Sending user data:", userData);
@@ -84,7 +88,6 @@ async function register(event) {
     } else {
       alert(registerResult.message || "Registration failed. Please try again.");
     }
-
   } catch (error) {
     console.error("Error during registration:", error);
     alert("An error occurred during registration. Please try again later.");
@@ -94,7 +97,6 @@ async function register(event) {
 // Login function
 async function login(event) {
   event.preventDefault();
-  
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("password").value;
 
@@ -112,12 +114,11 @@ async function login(event) {
     const loginResult = await response.json();
 
     if (loginResult.success) {
-      alert(`Welcome, ${loginResult.firstName || 'User'}!`);
-      window.location.href = "dashboard.html";  // redirect after login
+      alert(`Welcome, ${loginResult.firstName || "User"}!`);
+      window.location.href = "dashboard.html"; // redirect after login
     } else {
       alert(loginResult.message || "Invalid email or password.");
     }
-
   } catch (error) {
     console.error("Error during login:", error);
     alert("An error occurred during login. Please try again later.");
@@ -128,24 +129,24 @@ async function login(event) {
 document.getElementById("register-form").addEventListener("submit", register);
 document.getElementById("login-form").addEventListener("submit", login);
 
-
 // Adding event listeners for job selection buttons
- function selectJob(position) {
-            const user = JSON.parse(localStorage.getItem("loggedInUser"));
+function selectJob(position) {
+  const user = JSON.parse(localStorage.getItem("loggedInUser"));
 
-            if (!user) {
-                // User not logged in, send to registration with selected position
-                
-                window.location.href = `register.html?position=${encodeURIComponent(position)}`;
-            } else {
-                // User logged in, redirect based on the selected position
-                if (position === "Farmer") {
-                    window.location.href = "farmerreg.html";
-                } else if (position === "Driver") {
-                    window.location.href = ".html";
-                } else {
-                    // General positions can be redirected to a generic page
-                   
-                }
-            }
-        }
+  if (!user) {
+    // User not logged in, send to registration with selected position
+
+    window.location.href = `register.html?position=${encodeURIComponent(
+      position
+    )}`;
+  } else {
+    // User logged in, redirect based on the selected position
+    if (position === "Farmer") {
+      window.location.href = "farmerreg.html";
+    } else if (position === "Driver") {
+      window.location.href = ".html";
+    } else {
+      // General positions can be redirected to a generic page
+    }
+  }
+}
