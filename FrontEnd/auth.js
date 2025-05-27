@@ -2,14 +2,14 @@
 function register(event) {
   event.preventDefault();
 
-  const firstName = document.getElementById('register-firstname').value.trim();
-  const lastName = document.getElementById('register-lastname').value.trim();
-  const email = document.getElementById('register-email').value.trim();
-  const phone = document.getElementById('register-phone').value.trim();
-  const address = document.getElementById('register-address').value.trim();
-  const userType = document.getElementById('register-usertype').value;
-  const password = document.getElementById('register-password').value;
-  const confirmPassword = document.getElementById('confirm-password').value;
+  const firstName = document.getElementById("register-firstname").value.trim();
+  const lastName = document.getElementById("register-lastname").value.trim();
+  const email = document.getElementById("register-email").value.trim();
+  const phone = document.getElementById("register-phone").value.trim();
+  const address = document.getElementById("register-address").value.trim();
+  const userType = document.getElementById("register-usertype").value;
+  const password = document.getElementById("register-password").value;
+  const confirmPassword = document.getElementById("confirm-password").value;
 
   const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
@@ -17,7 +17,6 @@ function register(event) {
     alert("Email must be a valid Gmail address (e.g., yourname@gmail.com).");
     return;
   }
-  
 
   if (password.length < 6) {
     alert("Password must be at least 6 characters long.");
@@ -49,8 +48,8 @@ function register(event) {
 function login(event) {
   event.preventDefault();
 
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('password').value;
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("password").value;
 
   const storedData = localStorage.getItem("registeredUser");
 
@@ -67,4 +66,17 @@ function login(event) {
   }
 
   alert(`Welcome, ${user.firstName}!`);
+}
+
+async function login(event) {
+  event.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("password").value;
+  const body = { email, password };
+  console.log("Sending to /login:", body);
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
