@@ -7,7 +7,7 @@ function register(event) {
   const email = document.getElementById("register-email").value.trim();
   const phone = document.getElementById("register-phone").value.trim();
   const address = document.getElementById("register-address").value.trim();
-  const userType = document.getElementById("register-usertype").value;
+
   const password = document.getElementById("register-password").value;
   const confirmPassword = document.getElementById("confirm-password").value;
 
@@ -45,28 +45,28 @@ function register(event) {
 }
 
 // Login Function
-function login(event) {
-  event.preventDefault();
+// function login(event) {
+//   event.preventDefault();
 
-  const email = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("password").value;
+//   const email = document.getElementById("login-email").value.trim();
+//   const password = document.getElementById("password").value;
 
-  const storedData = localStorage.getItem("registeredUser");
+//   const storedData = localStorage.getItem("registeredUser");
 
-  if (!storedData) {
-    alert("No user registered yet.");
-    return;
-  }
+//   if (!storedData) {
+//     alert("No user registered yet.");
+//     return;
+//   }
 
-  const user = JSON.parse(storedData);
+//   const user = JSON.parse(storedData);
 
-  if (user.email !== email || user.password !== password) {
-    alert("Invalid email or password.");
-    return;
-  }
+//   if (user.email !== email || user.password !== password) {
+//     alert("Invalid email or password.");
+//     return;
+//   }
 
-  alert(`Welcome, ${user.firstName}!`);
-}
+//   alert(`Welcome, ${user.firstName}!`);
+// }
 
 async function login(event) {
   event.preventDefault();
