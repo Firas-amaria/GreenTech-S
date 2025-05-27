@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Available Jobs</title>
@@ -10,22 +11,26 @@
             margin: 0;
             padding: 0;
         }
+
         .container {
             max-width: 600px;
             margin: 40px auto;
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
             padding: 32px;
         }
+
         h1 {
             text-align: center;
             color: #2e7d32;
         }
+
         ul {
             list-style: none;
             padding: 0;
         }
+
         li {
             background: #e8f5e9;
             margin: 16px 0;
@@ -35,51 +40,51 @@
             color: #333;
             transition: background 0.2s;
         }
+
         li:hover {
             background: #c8e6c9;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Available Jobs</h1>
         <ul>
-            <li onclick="selectJob('Farmer')">Farmer</li>
-            
-
-            <li onclick="selectJob('Driver')">Delivery Driver</li>
-            <li onclick="selectJob('Industrial')">Industrial</li>
-            <li onclick="selectJob('WarehouseWorker')">Warehouse Worker</li>
-            <li onclick="selectJob('Picker')">Picker</li>
+            <li onclick="jobDescription('Farmer')">Farmer</li>
+            <li onclick="jobDescription('Driver')">Delivery Driver</li>
+            <li onclick="jobDescription('Industrial')">Industrial</li>
+            <li onclick="jobDescription('WarehouseWorker')">Warehouse Worker</li>
+            <li onclick="jobDescription('Picker')">Picker</li>
         </ul>
     </div>
 
-      <script src="auth.js">
-        addEventListener('DOMContentLoaded', function() {
+    <script src="auth.js">
+        addEventListener('DOMContentLoaded', function () {
 
-    const panels=document.querySelectorAll('.panel');
-    panels.forEach(p => p.style.display = 'none');
-    panels.document.getElementById('registerion').style.display = 'block';
-    });
+            const panels = document.querySelectorAll('.panel');
+            panels.forEach(p => p.style.display = 'none');
+            panels.document.getElementById('registerion').style.display = 'block';
+        });
 
-      </script>
-      <script>
+    </script>
+    <script>
         // Function to handle job selection and redirect to the appropriate registration page    
-function selectJob(jobType) {
+        function selectJob(jobType) {
             // Redirect to the appropriate registration page based on job type
             switch (jobType) {
                 case 'Farmer':
-                    addEventListener('DOMContentLoaded', function() {
+                    addEventListener('DOMContentLoaded', function () {
                         document.getElementById('farmer-register').style.display = 'block';
                     });
-                break;
+                    break;
                 case 'Driver':
-                    addEventListener('DOMContentLoaded', function() {
+                    addEventListener('DOMContentLoaded', function () {
                         document.getElementById('driver-register').style.display = 'block';
                     });
                     break;
                 case 'Industrial':
-                    addEventListener('DOMContentLoaded', function() {
+                    addEventListener('DOMContentLoaded', function () {
                         document.getElementById('truck-register').style.display = 'block';
                     });
                     break;
@@ -94,6 +99,33 @@ function selectJob(jobType) {
             }
         }
 
-      </script>
+        function jobDescription(jobType) {
+            let description = '';
+
+            switch (jobType) {
+                case 'Farmer':
+                    description = 'Farmers are responsible for growing crops and raising livestock.';
+                    description += ' <input type="button" value="Apply" onclick="selectJob(\'Farmer\')">';
+                    break;
+                case 'Driver':
+                    description = 'Delivery drivers transport goods to various locations.';
+                    description += ' <input type="button" value="Apply" onclick="selectJob(\'Driver\')">';
+                    break;
+                case 'Industrial':
+                    description = 'Industrial drivers operate heavy and large  delivery.';
+                    description += ' <input type="button" value="Apply" onclick="selectJob(\'Industrial\')">';
+                    break;
+                case 'WarehouseWorker':
+                    description = 'Warehouse workers handle inventory and manage stock.';
+                    break;
+                case 'Picker':
+                    description = 'Pickers select items from inventory for orders.';
+                    break;
+                default:
+                    description = 'Job type not recognized.';
+            }
+        }
+    </script>
 </body>
+
 </html>
