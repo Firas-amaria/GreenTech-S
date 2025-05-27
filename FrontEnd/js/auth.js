@@ -68,17 +68,34 @@ function register(event) {
 //   alert(`Welcome, ${user.firstName}!`);
 // }
 
+
+
 async function login(event) {
   event.preventDefault();
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("password").value;
-  const body = { email, password };
-  console.log("Sending to /login:", body);
   const res = await fetch("/api/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ email, password }),
   });
 
-  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Login failed:", errorText);
+    // show error to user…
+    //sent error msg if user doesnt exist or incorrect password
+    return;
+  }
+
+  const data = await res.json();
+  console.log("Logged in user data:", data);
+  // e.g. data.token, data.user
+  localStorage.setItem("token", data.token);
+  // redirect or update UI
+  window.location.href = "/home";
 }
+
+
+
+
