@@ -1,153 +1,147 @@
-// Register function
-async function register(event) {
+
+
+// js/auth.js
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+// — 1) Your Firebase config (fill in your values) —
+const firebaseConfig = {
+  apiKey: 'YOUR_API_KEY',
+  authDomain: 'YOUR_AUTH_DOMAIN',
+  projectId: 'YOUR_PROJECT_ID',
+  // …etc…
+};
+
+// — 2) Initialize Firebase & Auth —
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// — 3) Login function —  
+window.login = async function login(event) {
   event.preventDefault();
 
-  const emailInput = document.getElementById("register-email");
-  const email = emailInput.value.trim();
-  const errorMessage = document.getElementById("email-error-message");
-  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-  // Validate email immediately
-  if (!gmailRegex.test(email)) {
-    errorMessage.textContent =
-      "Email must be a valid Gmail address (e.g. example@gmail.com).";
-    return;
-  } else {
-    errorMessage.textContent = "";
-  }
+  // grab the inputs by their IDs
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('password').value;
 
   try {
-    // Check if email already exists
-    let response = await fetch("http://localhost:4000/api/auth/check-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    // attempt sign-in
+    await signInWithEmailAndPassword(auth, email, password);
 
-    if (!response.ok) {
-      throw new Error("Network error during email check.");
-    }
-
-    const emailCheckResult = await response.json();
-
-    if (emailCheckResult.exists) {
-      errorMessage.textContent =
-        "Email already exists. Please login first "+
-        <a href='login.html'>ok</a>;
-      return;
-    }
-
-    // Collect other form inputs after validation
-    const firstName = document
-      .getElementById("register-firstname")
-      .value.trim();
-    const lastName = document.getElementById("register-lastname").value.trim();
-    const phone = document.getElementById("register-phone").value.trim();
-    const birthday = document.getElementById("register-birthday").value.trim();
-    const address = document.getElementById("register-address").value.trim();
-    const password = document.getElementById("register-password").value;
-    const confirmPassword = document.getElementById("confirm-password").value;
-
-    // Validate password
-    if (password.length < 6) {
-      alert("Password must be at least 6 characters long.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    const userData = {
-      firstName,
-      lastName,
-      email,
-      phone,
-      birthday,
-      address,
-      password,
-    };
-
-    console.log("Sending user data:", userData);
-
-    response = await fetch("http://localhost:4000/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      throw new Error("Registration request failed.");
-    }
-
-    const registerResult = await response.json();
-
-    if (registerResult.success) {
-      alert("Registration successful!");
-      window.location.href = "login.html";
-    } else {
-      alert(registerResult.message || "Registration failed. Please try again.");
-    }
-  } catch (error) {
-    console.error("Error during registration:", error);
-    alert("An error occurred during registration. Please try again later.");
+    // on success, redirect wherever you like
+    window.location.href = '../index.html';
+  } catch (err) {
+    // display the error message in your page
+    // make sure you have: <p id="login-error-message" class="error-message"></p> in login.html
+    document.getElementById('login-error-message').textContent = err.message;
   }
-}
+};
 
-// Login function
-async function login(event) {
-  event.preventDefault();
-  const email = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("password").value;
+// — 4) Optional: react to auth state changes globally —
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.body.setAttribute('data-user-logged-in', 'true');
+  } else {
+    document.body.removeAttribute('data-user-logged-in');
+  }
+});
+
+
+
+window.register = async function register(e) {
+  e.preventDefault();
+  const form = document.getElementById('register-form');
+  const data = Object.fromEntries(new FormData(form));
+  
+  // optional re-check
+  const check = await fetch(`/api/check-email?email=${encodeURIComponent(data.email)}`);
+  if ((await check.json()).exists) {
+    return alert('That email is already in use. Please log in.');
+  }
+
+
+  // POST to your backend
+  const res = await fetch('http://localhost:4000/api/auth/register-customer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    // registration succeeded
+    window.location.href = 'login.html';
+  } else {
+    // show backend error
+    document.getElementById('email-error-message').textContent = result.message;
+  }
+};
+
+
+/// FOR BACKEND 
+
+//ADD TO ROUTES/AUTHROUTS.JS  OR WHATEVER YOU CALLED THE FILE 
+/*
+
+router.get('/check-email', async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ message: 'Missing email' });
 
   try {
-    const response = await fetch("http://localhost:4000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+    // if this resolves, user exists
+    await admin.auth().getUserByEmail(email);
+    return res.json({ exists: true });
+  } catch (err) {
+    if (err.code === 'auth/user-not-found') {
+      return res.json({ exists: false });
+    }
+    console.error('Error checking user by email:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+*/
+
+
+// In controllers/authController.js, at the top of registerController:
+/*
+exports.registerController = async (req, res) => {
+  const { email, firstName, lastName, phone, address, birthdate, password } = req.body;
+
+  // 1) pre-flight duplicate check
+  try {
+    await admin.auth().getUserByEmail(email);
+    return res
+      .status(409)
+      .json({ message: 'Email already in use. Please log in instead.' });
+  } catch (err) {
+    if (err.code !== 'auth/user-not-found') {
+      console.error('Error looking up user:', err);
+      return res.status(500).json({ message: 'Server error' });
+    }
+    // user-not-found → OK to proceed
+  }
+
+  // 2) now createUser…
+  try {
+    const userRecord = await admin.auth().createUser({
+      email, password, displayName: `${firstName} ${lastName}`, phoneNumber: phone
     });
-
-    if (!response.ok) {
-      throw new Error("Login request failed.");
-    }
-
-    const loginResult = await response.json();
-
-    if (loginResult.success) {
-      alert(`Welcome, ${loginResult.firstName || "User"}!`);
-      window.location.href = "dashboard.html"; // redirect after login
-    } else {
-      alert(loginResult.message || "Invalid email or password.");
-    }
+    // …and store profile in Firestore as before…
+    await firestore.collection('users').doc(userRecord.uid).set({
+      firstName, lastName, address, birthdate,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return res.status(201).json({ uid: userRecord.uid });
   } catch (error) {
-    console.error("Error during login:", error);
-    alert("An error occurred during login. Please try again later.");
+    console.error('Registration error:', error);
+    return res.status(400).json({ message: error.message });
   }
-}
+};
 
-// Adding event listeners properly
-document.getElementById("register-form").addEventListener("submit", register);
-document.getElementById("login-form").addEventListener("submit", login);
-
-// Adding event listeners for job selection buttons
-function selectJob(position) {
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
-
-  if (!user) {
-    // User not logged in, send to registration with selected position
-
-    window.location.href = `register.html?position=${encodeURIComponent(
-      position
-    )}`;
-  } else {
-    // User logged in, redirect based on the selected position
-    if (position === "Farmer") {
-      window.location.href = "farmerreg.html";
-    } else if (position === "Driver") {
-      window.location.href = ".html";
-    } else {
-      // General positions can be redirected to a generic page
-    }
-  }
-}
+*/
