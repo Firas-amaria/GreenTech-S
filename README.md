@@ -28,9 +28,10 @@ if u have a problem making this file contact me
 
 then open terminal in vsCode (Ctrl + Shift + ` )  
 and enter these comand in order one after the other:-
-cd backend
-npm install
-npm start
+
+    cd backend
+    npm install
+    npm start
 
 the webiste should open if all the step where folowed
 
