@@ -5,10 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-
-</head>
-
-<body>
   <style>
     * {
       margin: 0;
@@ -235,17 +231,20 @@
       color: #5264AE;
     }
   </style>
+</head>
+
+<body>
+
   <div class="wrapper">
     <div class="form-container">
       <div class="login-container">
         <h2>Login</h2>
-        <form onsubmit="login(event)">
+        <form id="login-form" onsubmit="login(event)">
           <label for="login-email">Email</label>
           <input type="email" id="login-email" placeholder="Enter your email" required
             pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" class="input">
           <span class="highlight"></span>
-          <span class="bar">
-          </span>
+          <span class="bar"></span>
 
           <label for="password">Password</label>
           <input type="password" id="password" placeholder="Enter your password" required minlength="6">
@@ -257,12 +256,15 @@
         </div>
       </div>
     </div>
+  </div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
 
-
-    <script src="auth.js"></script>
-
-
+  <!-- Your JS files -->
+  <script src="js/auth.js"></script>
 </body>
+
 
 </html>

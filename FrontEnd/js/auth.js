@@ -68,15 +68,17 @@ function register(event) {
 //   alert(`Welcome, ${user.firstName}!`);
 // }
 
-async function login(event) {
-  event.preventDefault();
-  const email = document.getElementById("login-email").value;
-  const password = document.getElementById("password").value;
-  const body = { email, password };
-  console.log("Sending to /login:", body);
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
+//TODO: fix the login function for it to work with firebase sdk
+
+// async function login(event) {
+//   event.preventDefault();
+//   const email = document.getElementById("login-email").value;
+//   const password = document.getElementById("password").value;
+//   const body = { email, password };
+//   console.log("Sending to /login:", body);
+//   const res = await fetch("/api/login", {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(body),
+//   });
+// }
