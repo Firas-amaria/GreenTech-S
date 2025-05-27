@@ -44,11 +44,11 @@
     <div class="container">
         <h1>Available Jobs</h1>
         <ul>
-            <li onclick="selectJob('Farmer')">Farmer</li>
-            <li onclick="selectJob('Driver')">Delivery Driver</li>
-            <li onclick="selectJob('Industrial')">Industrial</li>
-            <li onclick="selectJob('WarehouseWorker')">Warehouse Worker</li>
-            <li onclick="selectJob('Picker')">Picker</li>
+            <li onclick="jobDescription('Farmer')">Farmer</li>
+            <li onclick="jobDescription('Driver')">Delivery Driver</li>
+            <li onclick="jobDescription('Industrial')">Industrial</li>
+            <li onclick="jobDescription('WarehouseWorker')">Warehouse Worker</li>
+            <li onclick="jobDescription('Picker')">Picker</li>
         </ul>
     </div>
 
@@ -92,6 +92,32 @@ function selectJob(jobType) {
             }
         }
 
+function jobDescription(jobType) {
+    let description = '';
+
+    switch (jobType) {
+        case 'Farmer':
+            description = 'Farmers are responsible for growing crops and raising livestock.';
+            description += ' <input type="button" value="Apply" onclick="selectJob(\'Farmer\')">';
+            break;
+        case 'Driver':
+            description = 'Delivery drivers transport goods to various locations.';
+            description += ' <input type="button" value="Apply" onclick="selectJob(\'Driver\')">';
+            break;
+        case 'Industrial':
+            description = 'Industrial drivers operate heavy and large  delivery.';
+            description += ' <input type="button" value="Apply" onclick="selectJob(\'Industrial\')">';
+            break;
+        case 'WarehouseWorker':
+            description = 'Warehouse workers handle inventory and manage stock.';
+            break;
+        case 'Picker':
+            description = 'Pickers select items from inventory for orders.';
+            break;
+        default:
+            description = 'Job type not recognized.';
+    }
+}
       </script>
 </body>
 </html>
