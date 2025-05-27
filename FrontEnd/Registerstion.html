@@ -34,14 +34,9 @@
                     <label for="register-address">Address</label>
                     <input type="text" id="register-address" placeholder="Enter your address" required />
 
-                    <label for="register-usertype">User Type</label>
-                    <select id="register-usertype" required>
-                        <option value="" disabled selected>Select user type</option>
-                        <option value="customer">Customer</option>
-                        <option value="farmer">Farmer</option>
-                        <option value="driver">Driver</option>
-                        <option value="collector">Collector</option>
-                    </select>
+                    <label for="register-birthdate">Birthdate</label>
+                    <input type="date" id="register-birthdate" required
+                        title="Please select your birthdate (format: YYYY-MM-DD)" />
 
                     <label for="register-password">Password</label>
                     <input type="password" id="register-password" placeholder="Enter your password" required
@@ -50,6 +45,9 @@
                     <label for="confirm-password">Confirm Password</label>
                     <input type="password" id="confirm-password" placeholder="Confirm your password" required
                         minlength="6" />
+                    <input type="checkbox" id="terms-checkbox" required />
+                    <label for="terms-checkbox">I agree to the <a href="#">Terms and Conditions</a></label>
+
 
                     <button type="submit">Register</button>
                 </form>
@@ -58,6 +56,9 @@
                 </div>
             </div>
         </div>
+
+        <script src="auth.js"></script>
+
 </body>
 
 </html>
