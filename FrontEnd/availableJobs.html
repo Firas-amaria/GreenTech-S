@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Available Jobs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f8f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 32px;
+        }
+        h1 {
+            text-align: center;
+            color: #2e7d32;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #e8f5e9;
+            margin: 16px 0;
+            padding: 18px 24px;
+            border-radius: 6px;
+            font-size: 1.2em;
+            color: #333;
+            transition: background 0.2s;
+        }
+        li:hover {
+            background: #c8e6c9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Available Jobs</h1>
+        <ul>
+            <li onclick="selectJob('Farmer')">Farmer</li>
+            <li onclick="selectJob('Driver')">Delivery Driver</li>
+            <li onclick="selectJob('Industrial')">Industrial</li>
+            <li onclick="selectJob('WarehouseWorker')">Warehouse Worker</li>
+            <li onclick="selectJob('Picker')">Picker</li>
+        </ul>
+    </div>
+      <script src="auth.js"></script>
+</body>
+</html>
