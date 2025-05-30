@@ -1,0 +1,393 @@
+{
+  "info": {
+    "name": "Farmer API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "12345678-90ab-cdef-1234-567890abcdef"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/farmer"
+    },
+    {
+      "key": "token",
+      "value": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ.eyJyb2xlIjoiYWRtaW4iLCJuYW1lIjoiUm9uZW4iLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vZGZjcC1zeXN0ZW0iLCJhdWQiOiJkZmNwLXN5c3RlbSIsImF1dGhfdGltZSI6MTc0ODYxNDg3NSwidXNlcl9pZCI6IkdDQVlQTFNTclNQRTJKNzQzc1pGVXFtS2ozMzIiLCJzdWIiOiJHQ0FZUExTU3JTUEUySjc0M3NaRlVxbUtqMzMyIiwiaWF0IjoxNzQ4NjE0ODc1LCJleHAiOjE3NDg2MTg0NzUsImVtYWlsIjoicm9uZW40QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJyb25lbjRAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.fIXDFXF5w5aU8Qvj4D9wdN2v6UjmV5Z0tqIClE-xu0x28oGDOXKG3TW05UotiMEaPbnqvy44vKaKLHNGePIRrvYedFQ1PhqwpLmTsDqElFVSNDfzEexYjFHj-rIQ3aTOHTMMZjbhxXb8XWCN52SlUoTWw0X4CpcIq4gh1KieJ54sKIUwRZtHsdzIgCOeiT783TOF-x7mL1Djr8UpelQNCNFqriJRervDtAP60UEj2c35xJHpf9QNv4P2JnpRT6D8NYFY5i689xoFApSd5Hr9Xnxu85g5jgGmqCXLE_3Xo79dt1hdSOuquD7pZSlDZFL_S4FvBJosJTcL38Eb973m4w"
+    }
+  ],
+  "item": [
+    {
+      "name": "List Farms",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/farms", "host": ["http://localhost:4000/api/farmer"], "path": ["farms"] }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"List Farms returns 200\", function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response is array\", function() {",
+              "  pm.expect(pm.response.json()).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Farm By ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/farms/farm1",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["farms", "farm1"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Get Farm returns 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Has id field\", () => pm.expect(pm.response.json()).to.have.property('id'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Crops",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/farms/farm1/crops",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["farms", "farm1", "crops"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"List Crops returns 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Response is array\", () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Crop By ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/farms/farm1/crops/crop2",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["farms", "farm1", "crops", "crop2"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Crop returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Report Crop",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"farmId\": \"farm1\",\n  \"itemId\": \"item123\",\n  \"status\": \"growing\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/farmer/report-crop", "host": ["http://localhost:4000/api/farmer"], "path": ["report-crop"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Report Crop returns 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Returns cropId\", () => pm.expect(pm.response.json()).to.have.property('cropId'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update Crop",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"harvested\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/crops/crop2",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["crops", "crop2"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Update Crop returns 204\", () => pm.response.to.have.status(204));"] }
+        }
+      ]
+    },
+    {
+      "name": "Delete Crop",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/crops/crop2",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["crops", "crop2"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Delete Crop returns 204\", () => pm.response.to.have.status(204));"] }
+        }
+      ]
+    },
+    {
+      "name": "Get Crop Report DTO",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/crops/crop2/report",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["crops", "crop2", "report"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Crop Report returns itemId and status\", () => {","  const body = pm.response.json();","  pm.expect(body).to.have.property('itemId');","  pm.expect(body).to.have.property('status');","});"] }
+        }
+      ]
+    },
+    {
+      "name": "List Shipments",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/shipments", "host": ["http://localhost:4000/api/farmer"], "path": ["shipments"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"List Shipments returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Get Shipment By ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/shipments/{{shipmentId}}",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["shipments", "{{shipmentId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Shipment returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Create Shipment",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"farmId\": \"farm1\",\n  \"items\": [{ \"itemId\": \"item123\", \"weight\": 10, \"volume\": 0.5 }]\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/farmer/shipments", "host": ["http://localhost:4000/api/farmer"], "path": ["shipments"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Create Shipment returns 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Returns shipmentId\", () => pm.expect(pm.response.json()).to.have.property('shipmentId'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generate Shipment Barcode",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/shipments/{{shipmentId}}/barcode",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["shipments", "{{shipmentId}}", "barcode"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Barcode endpoint returns 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns barcodeUrl\", () => pm.expect(pm.response.json()).to.have.property('barcodeUrl'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Items",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/items", "host": ["http://localhost:4000/api/farmer"], "path": ["items"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"List Items returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Get Item By ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/items/x5l5dmZUJs4mNXJFdS5o",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["items", "x5l5dmZUJs4mNXJFdS5o"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Item returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "List Ratings",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/ratings", "host": ["http://localhost:4000/api/farmer"], "path": ["ratings"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {"exec":["pm.test(\"List Ratings returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Get Rating By ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": {
+          "raw": "http://localhost:4000/api/farmer/ratings/{{ratingId}}",
+          "host": ["http://localhost:4000/api/farmer"],
+          "path": ["ratings", "{{ratingId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {"exec":["pm.test(\"Get Rating returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Create Rating",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"targetId\": \"XC1AFi6Ic9D2jv497UjP\",\n  \"stars\": 5,\n  \"comment\": \"Great produce!\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/farmer/ratings", "host": ["http://localhost:4000/api/farmer"], "path": ["ratings"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Create Rating returns 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Returns ratingId\", () => pm.expect(pm.response.json()).to.have.property('ratingId'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/dashboard", "host": ["http://localhost:4000/api/farmer"], "path": ["dashboard"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Dashboard returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    },
+    {
+      "name": "Get Performance",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImZlNjVjY2I4ZWFkMGJhZWY1ZmQzNjE5NWQ2NTI4YTA1NGZiYjc2ZjMiLCJ0eXAiOiJKV1QifQ" }],
+        "url": { "raw": "http://localhost:4000/api/farmer/performance", "host": ["http://localhost:4000/api/farmer"], "path": ["performance"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": { "exec": ["pm.test(\"Get Performance returns 200\", () => pm.response.to.have.status(200));"] }
+        }
+      ]
+    }
+  ]
+}
