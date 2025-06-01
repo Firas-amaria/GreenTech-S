@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Dashboard</title>
+  <script type="module" src="\FrontEnd\js\farmer_dashboard"></script>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <h2>Farmer Menu</h2>
+      <ul>
+        <li><button id="viewMarketBtn">🛒 View Market</button></li>
+        <li><button id="shipmentRequestsBtn">📦 Shipment Requests</button></li>
+        <li><button id="myRatingsBtn">⭐ My Ratings</button></li>
+        <li><button id="shipmentHistoryBtn">🕓 Shipment History</button></li>
+        <li><button id="logoutBtn">🚪 Logout</button></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <h2>My Crops</h2>
+      <button id="addCropBtn">➕ Add Crop</button>
+      <table id="cropTable">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Status</th>
+            <th>Planted Date</th>
+            <th>Amount</th>
+            <th>Est. Harvest</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Dynamic rows will go here -->
+        </tbody>
+      </table>
+    </main>
+  </div>
+</body>
+</html>

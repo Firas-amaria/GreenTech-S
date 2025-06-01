@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Delivery Form</title>
+  <script type="module" src="js/farmer_delivery.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+    }
+    input, select {
+      padding: 8px;
+      width: 300px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+    #barcode {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Report New Delivery</h2>
+  <form id="deliveryForm">
+    <label for="produceType">Produce Type:</label>
+    <input type="text" id="produceType" name="produceType" required />
+
+    <label for="weight">Weight (kg):</label>
+    <input type="number" id="weight" name="weight" required />
+
+    <label for="volume">Volume (liters):</label>
+    <input type="number" id="volume" name="volume" />
+
+    <label for="packaging">Packaging:</label>
+    <select id="packaging" name="packaging" required>
+      <option value="">-- Select Packaging --</option>
+      <option value="crate">Crate</option>
+      <option value="box">Box</option>
+      <option value="basket">Basket</option>
+    </select>
+
+    <button type="submit">Submit and Generate Barcode</button>
+  </form>
+
+  <div id="barcode">
+    <!-- ברקוד מוצג כאן לאחר שליחה -->
+  </div>
+</body>
+</html>
