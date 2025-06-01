@@ -8,6 +8,17 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
+// — 1) Your Firebase config (fill in your values) —
+const firebaseConfig = {
+  apiKey: "AIzaSyAhjN9W_65iyf_Y-6Mi-Tk05hiaq5PGkkQ",
+  authDomain: "dfcp-system.firebaseapp.com",
+  projectId: "dfcp-system",
+  storageBucket: "dfcp-system.firebasestorage.app",
+  messagingSenderId: "479660967900",
+  appId: "1:479660967900:web:85f5e3544ea451bee93119",
+  measurementId: "G-GWNNJKVF43",
+};
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
@@ -40,12 +51,13 @@ window.register = async (event) => {
     const user = userCredential.user;
 
     // Send user data to backend
-    await fetch("http://localhost:4000/api/auth/register-customer", {
+    const res = await fetch("http://localhost:4000/api/auth/register-customer", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        uid:user.uid,
         firstName,
         lastName,
         email,
@@ -57,6 +69,9 @@ window.register = async (event) => {
       }),
     });
 
+    const data = await res.json()
+    console.log(data);
+    
     alert("Registration successful!");
     window.location.href = "login.html";
   } catch (error) {

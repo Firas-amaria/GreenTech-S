@@ -3,6 +3,7 @@ const { admin, db } = require("../firebaseConfig");
 // Register a customer with basic details and default 'customer' role
 const registerCustomer = async (req, res) => {
   const {
+    uid,
     firstName,
     lastName,
     email,
@@ -19,15 +20,15 @@ const registerCustomer = async (req, res) => {
 
   try {
     // Create Firebase Auth user
-    const userRecord = await admin.auth().createUser({ email, password });
+    // const userRecord = await admin.auth().createUser({ email, password });
 
     // Set custom claim 'role' to 'customer'
     await admin
       .auth()
-      .setCustomUserClaims(userRecord.uid, { role: "customer" });
+      .setCustomUserClaims(uid, { role: "customer" });
 
     // Store customer details in Firestore
-    await db.collection("users").doc(userRecord.uid).set({
+    await db.collection("users").doc(uid).set({
       role: "customer",
       firstName,
       lastName,
