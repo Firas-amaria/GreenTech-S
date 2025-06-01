@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Dashboard</title>
+  <script type="module" src="./js/farmer_dashboard.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f8f4;
+      margin: 0;
+      padding: 0;
+    }
+    .dashboard {
+      display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background-color: #d9e8d6;
+      padding: 20px;
+    }
+    .main-content {
+      flex: 1;
+      padding: 20px;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 400px;
+      position: relative;
+    }
+    .hidden {
+      display: none;
+    }
+    #cropSuggestions {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      width: calc(100% - 40px);
+      z-index: 1000;
+      margin-top: 4px;
+    }
+    .suggestions-ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .suggestion-item {
+      padding: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .suggestion-item:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <h2>Farmer Menu</h2>
+      <ul>
+        <li><button id="viewMarketBtn">🛒 View Market</button></li>
+        <li><button id="shipmentRequestsBtn">📦 Shipment Requests</button></li>
+        <li><button id="myRatingsBtn">⭐ My Ratings</button></li>
+        <li><button id="shipmentHistoryBtn">🕓 Shipment History</button></li>
+        <li><button id="logoutBtn">🚪 Logout</button></li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <h2>My Crops</h2>
+      <button id="addCropBtn">➕ Add Crop</button>
+      <table id="cropTable" style="border:2px solid black; width: 100%;">
+        <thead></thead>
+        <tbody id="cropTableBody">
+          <!-- Dynamic rows go here -->
+        </tbody>
+      </table>
+    </main>
+
+    <div id="cropModal" class="modal hidden">
+      <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2 id="modalTitle">Add Crop</h2>
+        <form id="cropForm">
+          <label for="cropSearch">Search crop:</label>
+          <input type="text" id="cropSearch" placeholder="Type a crop…" autocomplete="off" />
+          <div id="cropSuggestions"></div>
+
+          <label for="quantity">Quantity:</label>
+          <input type="number" id="quantity" name="quantity" required />
+
+          <label for="harvestDate">Harvest Date:</label>
+          <input type="date" id="harvestDate" name="harvestDate" required />
+
+          <label for="cropStatus">Status:</label>
+          <select id="cropStatus" required>
+            <option value="">-- Select status --</option>
+            <!-- Status options populated by JS -->
+          </select>
+
+          <button type="submit" id="saveCropBtn">Save</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
