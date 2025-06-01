@@ -102,7 +102,7 @@ window.login = async (event) => {
       case "admin":
         window.location.href = "admin-dashboard.html";
         break;
-      case "employee":
+      case "employee":///add for all types of roles that we have a dashboard for 
         window.location.href = "employee-dashboard.html";
         break;
       case "customer":
