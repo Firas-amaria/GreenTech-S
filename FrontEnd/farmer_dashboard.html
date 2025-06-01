@@ -39,7 +39,6 @@
       padding: 20px;
       border-radius: 8px;
       width: 400px;
-      position: relative;
     }
     .hidden {
       display: none;
@@ -50,19 +49,13 @@
       border: 1px solid #ccc;
       max-height: 150px;
       overflow-y: auto;
-      width: calc(100% - 40px);
-      z-index: 1000;
+      width: calc(100% - 20px);
+      z-index: 10;
       margin-top: 4px;
-    }
-    .suggestions-ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
     }
     .suggestion-item {
       padding: 8px;
       cursor: pointer;
-      font-size: 16px;
     }
     .suggestion-item:hover {
       background-color: #f0f0f0;
@@ -87,9 +80,7 @@
       <button id="addCropBtn">➕ Add Crop</button>
       <table id="cropTable" style="border:2px solid black; width: 100%;">
         <thead></thead>
-        <tbody id="cropTableBody">
-          <!-- Dynamic rows go here -->
-        </tbody>
+        <tbody id="cropTableBody"></tbody>
       </table>
     </main>
 
@@ -99,7 +90,7 @@
         <h2 id="modalTitle">Add Crop</h2>
         <form id="cropForm">
           <label for="cropSearch">Search crop:</label>
-          <input type="text" id="cropSearch" placeholder="Type a crop…" autocomplete="off" />
+          <input type="text" id="cropSearch" placeholder="Search crop..." autocomplete="off" />
           <div id="cropSuggestions"></div>
 
           <label for="quantity">Quantity:</label>
@@ -109,10 +100,7 @@
           <input type="date" id="harvestDate" name="harvestDate" required />
 
           <label for="cropStatus">Status:</label>
-          <select id="cropStatus" required>
-            <option value="">-- Select status --</option>
-            <!-- Status options populated by JS -->
-          </select>
+          <select id="cropStatus" required></select>
 
           <button type="submit" id="saveCropBtn">Save</button>
         </form>

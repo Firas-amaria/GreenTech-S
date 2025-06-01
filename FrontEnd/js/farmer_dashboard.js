@@ -1,4 +1,4 @@
- document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
       const cropTable = document.getElementById("cropTable");
       const cropTableBody = document.getElementById("cropTableBody");
       const modal = document.getElementById("cropModal");
@@ -7,11 +7,10 @@
       const cropForm = document.getElementById("cropForm");
       const cropStatusDropdown = document.getElementById("cropStatus");
 
-      // get data from the database for the crops
-
-      const crops = [];  
+      const crops = [];
       let selectedCrop = "";
-// get data from the database for the items
+      let editingCropId = null;
+
       const itemsList = [
         "Tomato", "Cucumber", "Carrot", "Lettuce",
         "Spinach", "Potato", "Onion", "Pepper"
@@ -51,7 +50,20 @@
       }
 
       window.editCrop = function (id) {
-        alert("Edit crop " + id);
+        const crop = crops.find(c => c.id === id);
+        if (!crop) return;
+        editingCropId = id;
+        document.getElementById("modalTitle").textContent = "Update Crop Status";
+        modal.classList.remove("hidden");
+        cropSearch.value = crop.item;
+        document.getElementById("quantity").value = crop.amount;
+        document.getElementById("harvestDate").value = crop.plantedDate;
+
+        cropSearch.disabled = true;
+        document.getElementById("quantity").disabled = true;
+        document.getElementById("harvestDate").disabled = true;
+
+        populateStatusDropdown(crop.status);
       };
 
       window.deleteCrop = function (id) {
@@ -63,6 +75,12 @@
       };
 
       document.getElementById("addCropBtn").addEventListener("click", () => {
+        editingCropId = null;
+        cropForm.reset();
+        cropSearch.disabled = false;
+        document.getElementById("quantity").disabled = false;
+        document.getElementById("harvestDate").disabled = false;
+        document.getElementById("modalTitle").textContent = "Add Crop";
         modal.classList.remove("hidden");
         populateStatusDropdown();
       });
@@ -71,14 +89,20 @@
         modal.classList.add("hidden");
       });
 
-      function populateStatusDropdown() {
+      function populateStatusDropdown(currentStatus = null) {
         cropStatusDropdown.innerHTML = `<option value="">-- Select status --</option>`;
-        cropStatusOptions.forEach(status => {
+        let startIndex = 0;
+        if (currentStatus) {
+          startIndex = cropStatusOptions.findIndex(s => s.toLowerCase().replace(/\s+/g, "_") === currentStatus);
+          startIndex = Math.max(startIndex + 1, 0);
+        }
+        for (let i = startIndex; i < cropStatusOptions.length; i++) {
+          const status = cropStatusOptions[i];
           const option = document.createElement("option");
           option.value = status.toLowerCase().replace(/\s+/g, "_");
           option.textContent = status;
           cropStatusDropdown.appendChild(option);
-        });
+        }
       }
 
       cropSearch.addEventListener("input", (e) => {
@@ -124,16 +148,23 @@
           return;
         }
 
-        const newCrop = {
-          id: "crop" + Date.now(),
-          item,
-          status,
-          plantedDate,
-          timeStamp: new Date().toISOString(),
-          amount
-        };
+        if (editingCropId) {
+          const crop = crops.find(c => c.id === editingCropId);
+          if (crop) {
+            crop.status = status;
+          }
+        } else {
+          const newCrop = {
+            id: "crop" + Date.now(),
+            item,
+            status,
+            plantedDate,
+            timeStamp: new Date().toISOString(),
+            amount
+          };
+          crops.push(newCrop);
+        }
 
-        crops.push(newCrop);
         renderTable();
         cropForm.reset();
         modal.classList.add("hidden");
