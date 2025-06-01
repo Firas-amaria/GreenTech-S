@@ -133,13 +133,13 @@ const registerEmployee = async (req, res) => {
       .collection("employmentApplications")
       .doc(userRecord.uid)
       .set({
-        firstName, 
-        lastName, 
-        email, 
-        phone, 
-        address, 
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
         birthDate,
-        position, 
+        position,
         ...extraFields,
       });
 
@@ -148,7 +148,6 @@ const registerEmployee = async (req, res) => {
     res.status(400).send({ error: error.message });
   }
 };
-
 
 module.exports = {
   registerCustomer,

@@ -28,7 +28,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/farmer", farmerRoutes);
 
-
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
