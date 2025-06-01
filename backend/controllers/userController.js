@@ -1,4 +1,5 @@
 const { admin, db } = require("../firebaseConfig");
+const { emailDocuments } = require("../info/contactInfo");
 
 // Get  user's profile from Firestore
 
@@ -27,6 +28,21 @@ const filterFields = (data) => {
   return rest;
 };
 
+
+
+const getEmailDocumnets = async (req, res) => {
+  try {
+    return res.send({ emailDocuments });
+  } catch (error) {
+    return res.status(500).send({ error: error.message });
+  }
+};
+
+
+
+
 module.exports = {
   getProfile,
+  getEmailDocumnets
+  
 };
