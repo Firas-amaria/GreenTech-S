@@ -25,14 +25,56 @@ window.register = async (event) => {
   event.preventDefault();
 
   const form = document.getElementById("register-form");
-  const firstName = form["register-firstname"].value;
-  const lastName = form["register-lastname"].value;
+ const firstName = form["register-fullname"].value.split(" ")[0];
+  const lastName = form["register-lastname"].value.split(" ")[1] || "";
+  
   const email = form["register-email"].value;
   const phone = form["register-phone"].value;
   const address = form["register-address"].value;
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
   const confirmPassword = form["confirm-password"].value;
+
+if (!firstName) {
+    document.getElementById("email-error-message").innerText =
+      "First name is required.";
+    return;
+  }
+if (!lastName) {
+    document.getElementById("email-error-message").innerText =
+      "Last name is required.";
+    return;
+  }
+  if (!email) {
+    document.getElementById("email-error-message").innerText =
+      "Email is required.";
+    return;
+  }
+  if (!phone) {
+    document.getElementById("email-error-message").innerText =
+      "Phone number is required.";
+    return;
+  }
+  if (!address) {
+    document.getElementById("email-error-message").innerText =
+      "Address is required.";
+    return;
+  }
+  if (!birthDate) {
+    document.getElementById("email-error-message").innerText =
+      "Birth date is required.";
+    return;
+  }
+  if (!password) {
+    document.getElementById("email-error-message").innerText =
+      "Password is required.";
+    return;
+  }
+  if (!confirmPassword) {
+    document.getElementById("email-error-message").innerText =
+      "Please confirm your password.";
+    return;
+  }
 
   if (password !== confirmPassword) {
     document.getElementById("email-error-message").innerText =
