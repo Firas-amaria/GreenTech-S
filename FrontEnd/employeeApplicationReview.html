@@ -1,0 +1,50 @@
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Employee Application Review</title>
+
+</head>
+<body>
+  <div id="header"></div>
+
+  <main class="container">
+    <h1>Employee Applications</h1>
+    <ul id="application-list">
+      <!-- JS will inject:
+           <li data-id="12345">John Doe - Farmer</li>
+           <li data-id="67890">Jane Smith - Driver</li>
+           …etc.
+      -->
+    </ul>
+
+    <!-- Application details + Review buttons -->
+    <div id="application-info" class="hidden">
+      <h2 id="applicant-name"></h2>
+      <p id="applicant-role"></p>
+      <p id="applicant-details"></p>
+
+      <button id="approve-btn">Approve</button>
+      <button id="reject-btn">Reject</button>
+    </div>
+
+    <!-- Auth modal: shown if user not logged in -->
+    <div id="auth-modal" class="modal hidden">
+      <div class="modal-content">
+        <p>To review applications, please 
+          <a href="login.html?returnTo=employeeApplicationReview.html">log in</a> or 
+          <a href="register.html?returnTo=employeeApplicationReview.html">sign up</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- Success message after action -->
+    <p id="action-message" class="success-message hidden"></p>
+  </main>
+
+  <div id="footer"></div>
+
+  <script type="module" src="../js/auth.js"></script>
+  <script type="module" src="../js/employeeApplicationReview.js"></script>
+</html>
