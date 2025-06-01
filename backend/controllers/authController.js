@@ -23,9 +23,7 @@ const registerCustomer = async (req, res) => {
     // const userRecord = await admin.auth().createUser({ email, password });
 
     // Set custom claim 'role' to 'customer'
-    await admin
-      .auth()
-      .setCustomUserClaims(uid, { role: "customer" });
+    await admin.auth().setCustomUserClaims(uid, { role: "customer" });
 
     // Store customer details in Firestore
     await db.collection("users").doc(uid).set({
@@ -42,6 +40,37 @@ const registerCustomer = async (req, res) => {
     res.status(201).send({ firstName, lastName });
   } catch (error) {
     res.status(400).send({ error: error.message });
+  }
+};
+
+// Get role from custom claims or Firestore
+const getUserRole = async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).send({ error: "Missing or invalid token" });
+  }
+
+  const idToken = authHeader.split(" ")[1];
+
+  try {
+    // 1. Verify the token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // 2. Check Firestore for user's role (preferred)
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists) {
+      return res.status(404).send({ error: "User not found in Firestore" });
+    }
+
+    const userData = userDoc.data();
+    const role = userData.role || decodedToken.role || "unknown";
+
+    return res.status(200).send({ role });
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return res.status(401).send({ error: "Unauthorized" });
   }
 };
 
@@ -153,4 +182,5 @@ const registerEmployee = async (req, res) => {
 module.exports = {
   registerCustomer,
   registerEmployee,
+  getUserRole,
 };
