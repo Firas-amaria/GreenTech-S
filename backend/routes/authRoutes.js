@@ -3,7 +3,6 @@ const router = express.Router();
 const {
   registerCustomer,
   registerEmployee,
-  login,
 } = require("../controllers/authController");
 
 // Customer and employee registration routes
