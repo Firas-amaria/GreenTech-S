@@ -121,7 +121,7 @@
       margin-bottom: 2rem;
     }
 
-    /* ===== Inline‐Edit Styling ===== */
+    /* ===== Inline-Edit Styling ===== */
     .inline-edit {
       display: flex;
       align-items: center;
@@ -216,7 +216,7 @@
 
   <script>
     /*******************************************************
-     * In‐Memory Demo Data (same as Crops & Shipments pages)
+     * In-Memory Demo Data (same as Crops & Shipments pages)
      * You’ll replace these with fetch(...) calls later.
      *******************************************************/
     let approvedShipments = [
@@ -266,14 +266,24 @@
       "Field Clearing"
     ];
 
-    // ===== Utility: Format Date‐Time =====
+    // ===== Utility: Format Date-Time =====
     function formatDateTimeLocal(dtLocal) {
       const d = new Date(dtLocal);
       if (isNaN(d)) return dtLocal;
       return d.toLocaleString();
     }
 
-    // ===== Populate Dashboard Tables =====
+    // ===== Utility: Format Date Only (dd/mm/yyyy) =====
+    function formatDateOnly(isoString) {
+      const d = new Date(isoString);
+      if (isNaN(d)) return isoString;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // ===== Populate Approved Shipments =====
     function populateApprovedDash() {
       approvedShipments.sort(
         (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
@@ -296,6 +306,7 @@
       });
     }
 
+    // ===== Populate Shipment Requests =====
     function populateRequestsDash() {
       const tbody = document.querySelector('#tblRequestsDash tbody');
       tbody.innerHTML = '';
@@ -315,16 +326,36 @@
       });
     }
 
-    function populateCropsDash() {
+    // ===== Populate Crops Status Summary =====
+    function populateCropsTable() {
       const tbody = document.querySelector('#tblCropsDash tbody');
       tbody.innerHTML = '';
       cropsData.forEach(crop => {
         const tr = document.createElement('tr');
+        const currentIndex = cropStatusOptions.indexOf(crop.status);
+        const isFinal = currentIndex === cropStatusOptions.length - 1; // "Field Clearing"
+
+        let statusCell = '';
+        if (!isFinal) {
+          const nextStatus = cropStatusOptions[currentIndex + 1];
+          statusCell = `
+            <td class="inline-edit">
+              <select data-id="${crop.id}" onchange="advanceCropStatus(${crop.id}, this.value)">
+                <option value="${crop.status}" disabled selected>${crop.status}</option>
+                <option value="${nextStatus}">${nextStatus}</option>
+              </select>
+            </td>
+          `;
+        } else {
+          statusCell = `<td>${crop.status}</td>`;
+        }
+
         tr.innerHTML = `
           <td>${crop.item}</td>
           <td>${crop.plantedAmount}</td>
-          <td>${formatDateTimeLocal(crop.plantedOn)}</td>
-          <td>${crop.status}</td>
+          <!-- Only show the date (no time) in dd/mm/yyyy format -->
+          <td>${formatDateOnly(crop.plantedOn)}</td>
+          ${statusCell}
         `;
         tbody.appendChild(tr);
       });
@@ -357,6 +388,14 @@
       window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
     }
 
+    // ===== Advance Crop Status (optional on dashboard) =====
+    function advanceCropStatus(cropId, chosenStatus) {
+      const idx = cropsData.findIndex(c => c.id === cropId);
+      if (idx < 0) return;
+      cropsData[idx].status = chosenStatus;
+      populateCropsTable();
+    }
+
     // ===== Logout Link =====
     document.getElementById('logoutLink').addEventListener('click', e => {
       e.preventDefault();
@@ -369,7 +408,7 @@
     window.addEventListener('load', () => {
       populateApprovedDash();
       populateRequestsDash();
-      populateCropsDash();
+      populateCropsTable(); 
     });
   </script>
 </body>

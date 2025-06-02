@@ -177,7 +177,7 @@
   <nav class="sidebar">
     <h2>Farmer App</h2>
     <ul>
-      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="farmer-dashboard.html">Dashboard</a></li>
       <li><a href="crops.html" style="background-color:#1a2733;">Crops</a></li>
       <li><a href="shipments.html">Shipments</a></li>
       <li><a href="#" id="logoutLink2">Logout</a></li>
@@ -212,7 +212,7 @@
 
       <div class="form-row">
         <label for="inputPlantedOn">Planted On:</label>
-        <input type="datetime-local" id="inputPlantedOn" />
+        <input type="date" id="inputPlantedOn" />
       </div>
 
       <button class="btn-primary" id="btnAddCrop">Add Crop</button>
@@ -297,6 +297,13 @@
       return d.toLocaleString();
     }
 
+    // ===== Utility: Format Date‐Only =====
+    function formatDateOnly(isoString) {
+    const d = new Date(isoString);
+    if (isNaN(d)) return isoString;
+    return d.toLocaleDateString();
+  }
+
     // ===== Populate Crops Table =====
     function populateCropsTable() {
       const tbody = document.querySelector('#tblCrops tbody');
@@ -324,7 +331,7 @@
         tr.innerHTML = `
           <td>${crop.item}</td>
           <td>${crop.plantedAmount}</td>
-          <td>${formatDateTimeLocal(crop.plantedOn)}</td>
+          <td>${formatDateOnly(crop.plantedOn)}</td>
           ${statusCell}
         `;
         tbody.appendChild(tr);
