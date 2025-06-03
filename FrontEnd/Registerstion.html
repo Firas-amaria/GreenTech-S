@@ -5,6 +5,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href=".\css\register.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/css/intlTelInput.css" />
+  <style>
+    .container {
+      width: 300px;
+      margin: 20px auto;
+    }
+
+    .iti {
+      width: 100%;
+    }
+
+    #validationResult {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
   <title>Register</title>
 </head>
 
@@ -18,11 +34,8 @@
       <div class="form-container">
         <h2>Register</h2>
         <form id="register-form" onsubmit="register(event)">
-          <label for="register-firstname">First name</label>
-          <input type="text" id="register-firstname" name="firstName" placeholder="Enter your first name" required />
-
-          <label for="register-lastname">Last name</label>
-          <input type="text" id="register-lastname" name="lastName" placeholder="Enter your last name" required />
+          <label for="register-fullname">Full name</label>
+          <input type="text" id="register-fullname" name="fullName" placeholder="Enter your last name" required />
 
           <label for="register-email">Email (Gmail only)</label>
           <input type="email" id="register-email" name="email" placeholder="Enter your Gmail address" required
@@ -30,8 +43,8 @@
             title="Please enter a valid Gmail address (e.g., yourname@gmail.com)" />
 
           <label for="register-phone">Phone Number</label>
-          <input type="tel" id="register-phone" name="phone" placeholder="Enter your phone number" required
-            pattern="^\+?\d{7,15}$" title="7–15 digits, optional leading +" />
+          <input type="tel" id="phone" placeholder="Enter phone number" />
+
 
           <label for="register-address">Address</label>
           <input type="text" id="register-address" name="address" placeholder="Enter your address" required />
@@ -70,6 +83,26 @@
 
   <!-- your Firebase + form logic -->
   <script type="module" src="./js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/intlTelInput.min.js"></script>
+
+  <script>
+    const phoneInput = document.querySelector("#phone");
+    const validationResult = document.getElementById("validationResult");
+
+    const iti = intlTelInput(phoneInput, {
+      initialCountry: "auto",
+      separateDialCode: true,
+      geoIpLookup: (success, failure) => {
+        fetch("https://ipapi.co/json/")
+          .then(res => res.json())
+          .then(data => success(data.country_code))
+          .catch(() => success("us"));
+      },
+      utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
+    });
+
+  </script>
+
 </body>
 
 </html>
