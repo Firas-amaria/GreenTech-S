@@ -4,3 +4,10 @@ node_modules/
 package-lock.json
 
 .vscode
+
+/backend/node_modules
+/backend/.env
+.env
+
+/backend/serviceAccountKey.json
+/backend/scripts

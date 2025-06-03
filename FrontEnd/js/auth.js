@@ -7,16 +7,6 @@ import {
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// — 1) Your Firebase config (fill in your values) —
-const firebaseConfig = {
-  apiKey: "AIzaSyAhjN9W_65iyf_Y-6Mi-Tk05hiaq5PGkkQ",
-  authDomain: "dfcp-system.firebaseapp.com",
-  projectId: "dfcp-system",
-  storageBucket: "dfcp-system.firebasestorage.app",
-  messagingSenderId: "479660967900",
-  appId: "1:479660967900:web:85f5e3544ea451bee93119",
-  measurementId: "G-GWNNJKVF43",
-};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -91,65 +81,3 @@ window.login = async (event) => {
   }
 };
 
-/// FOR BACKEND
-
-//ADD TO ROUTES/AUTHROUTS.JS  OR WHATEVER YOU CALLED THE FILE
-/*
-
-router.get('/check-email', async (req, res) => {
-  const { email } = req.query;
-  if (!email) return res.status(400).json({ message: 'Missing email' });
-
-  try {
-    // if this resolves, user exists
-    await admin.auth().getUserByEmail(email);
-    return res.json({ exists: true });
-  } catch (err) {
-    if (err.code === 'auth/user-not-found') {
-      return res.json({ exists: false });
-    }
-    console.error('Error checking user by email:', err);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-*/
-
-// In controllers/authController.js, at the top of registerController:
-/*
-exports.registerController = async (req, res) => {
-  const { email, firstName, lastName, phone, address, birthdate, password } = req.body;
-
-  // 1) pre-flight duplicate check
-  try {
-    await admin.auth().getUserByEmail(email);
-    return res
-      .status(409)
-      .json({ message: 'Email already in use. Please log in instead.' });
-  } catch (err) {
-    if (err.code !== 'auth/user-not-found') {
-      console.error('Error looking up user:', err);
-      return res.status(500).json({ message: 'Server error' });
-    }
-    // user-not-found → OK to proceed
-  }
-
-  // 2) now createUser…
-  try {
-    const userRecord = await admin.auth().createUser({
-      email, password, displayName: `${firstName} ${lastName}`, phoneNumber: phone
-    });
-    // …and store profile in Firestore as before…
-    await firestore.collection('users').doc(userRecord.uid).set({
-      firstName, lastName, address, birthdate,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    return res.status(201).json({ uid: userRecord.uid });
-  } catch (error) {
-    console.error('Registration error:', error);
-    return res.status(400).json({ message: error.message });
-  }
-};
-
-*/
