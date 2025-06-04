@@ -22,7 +22,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "packer",
+    name: "picker",
     description: "Packages and labels containers before shipping.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -67,11 +67,17 @@ const mockRoles = [
 ];
 // jobs.js
 
+import { auth, getCurrentUserToken , signOut} from "./firebase-init.js";
 console.log("jobs.js loaded");   // <-- add this line temporarily
 
+document.getElementById("logOut").addEventListener("click", () => {
+  signOut(auth);
+  alert('loged out');
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded");  // <-- another check
+  
 
   const container = document.getElementById("jobs-container");
   if (!container) {
@@ -92,7 +98,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = document.createElement("button");
     button.textContent = "Apply Now";
     button.addEventListener("click", () => {
+      console.log(auth.currentUser)
+      if(auth.currentUser){
       window.location.href = `employmentApplication.html?role=${encodeURIComponent(role.name)}`;
+      }
+      else{
+        alert('please login')
+        window.location.href= 'login.html';
+      }
+      
     });
 
     card.appendChild(title);

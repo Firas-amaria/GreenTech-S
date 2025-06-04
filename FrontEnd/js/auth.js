@@ -11,7 +11,7 @@ import { auth, getCurrentUserToken } from "./firebase-init.js";
 window.register = async (event) => {
   event.preventDefault();
 
- 
+
 
   const form = document.getElementById("register-form");
   const firstName = form["register-fullname"].value.split(" ")[0];
@@ -225,42 +225,45 @@ window.login = async (event) => {
       password
     );
     const user = userCredential.user;
-    console.log(user.getCurrentUserToken)
+    console.log(user)
     
     // Get token using shared utility
-  //  const token = await getCurrentUserToken();
-/*
+   const token = await getCurrentUserToken();
+console.log(user.uid)
     // Fetch user role from backend
-    const res = await fetch("http://localhost:4000/api/auth/get-role", {
+    const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      body:  JSON.stringify({uid: user.uid}),
+      
     });
 
     const data = await res.json();
-    console.log("User role:", data.role);
-
-    // Optional: save token
-    // localStorage.setItem("firebaseToken", token);
+    
+    const role= data.message
+console.log("User role:", role);
 
     // Redirect based on role
-    switch (data.role) {
+    switch (role) {
       case "admin":
         window.location.href = "admin-dashboard.html";
         break;
       case "employee": ///add for all types of roles that we have a dashboard for
         window.location.href = "employee-dashboard.html";
         break;
-      case "customer":
-        window.location.href = "customer-home.html";
+      case "costumer":
+        window.location.href = "index.html";
         break;
       default:
         alert("Unknown role. Contact support.");
+
         break;
     }
-        */
-        window.location.href = "index.html";
+        
+        //window.location.href = "index.html";
 
     
   } catch (error) {

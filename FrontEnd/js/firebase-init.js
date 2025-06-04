@@ -4,6 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   onAuthStateChanged,
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // — Your Firebase config —
@@ -36,4 +37,4 @@ export async function getCurrentUserToken() {
   });
 }
 
-export { auth };
+export { auth, signOut };

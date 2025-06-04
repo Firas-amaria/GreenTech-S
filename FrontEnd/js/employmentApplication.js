@@ -16,7 +16,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "packer",
+    name: "picker",
     description: "Packages and labels containers before shipping.",
     fields: [
       { label: "Full Name", type: "text" },
