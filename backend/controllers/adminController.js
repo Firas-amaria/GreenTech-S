@@ -149,5 +149,5 @@ module.exports = {
   updateUser,
   deleteUser,
   getAllUsers,
-  getAllApplications,
+ 
 };

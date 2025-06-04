@@ -1,6 +1,6 @@
 const { admin, db } = require("../firebaseConfig");
 
-// Register a customer with basic details and default 'customer' role
+// Register a costumer with basic details and default 'costumer' role
 const registerCustomer = async (req, res) => {
   const {
     uid,
@@ -22,14 +22,14 @@ const registerCustomer = async (req, res) => {
     // Create Firebase Auth user
     // const userRecord = await admin.auth().createUser({ email, password });
 
-    // Set custom claim 'role' to 'customer'
+    // Set custom claim 'role' to 'costumer'
     await admin
       .auth()
-      .setCustomUserClaims(uid, { role: "customer" });
+      .setCustomUserClaims(uid, { role: "costumer" });
 
-    // Store customer details in Firestore
+    // Store costumer details in Firestore
     await db.collection("users").doc(uid).set({
-      role: "customer",
+      role: "costumer",
       firstName,
       lastName,
       email,
@@ -159,7 +159,7 @@ const login = async (req,res)=>{
     return res.status(404).json({message:"User of this id is not exist!!!"});
   }
   //fetched user object 
-  const user = doc.data();
+  const user = user_docuement.data();
   res.status(200).json({"message":user.role})
   }catch(err){
     console.error("something went wrong",err);
