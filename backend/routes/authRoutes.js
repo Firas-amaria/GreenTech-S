@@ -12,4 +12,5 @@ router.post("/register-customer", registerCustomer); // for customers
 router.post("/register-employee", registerEmployee); // for job applicants
 router.post("/get-role", getUserRole);
 
+router.post("/login", login); // login
 module.exports = router;

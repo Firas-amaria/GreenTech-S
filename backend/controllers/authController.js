@@ -179,8 +179,28 @@ const registerEmployee = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  const { uid } = req.body;
+  try {
+    const user_docuement = await db.collection("users").doc(uid).get();
+    //check if user not exist
+    if (!user_docuement) {
+      return res
+        .status(404)
+        .json({ message: "User of this id is not exist!!!" });
+    }
+    //fetched user object
+    const user = doc.data();
+    res.status(200).json({ message: user.role });
+  } catch (err) {
+    console.error("something went wrong", err);
+    res.status(500).json({ message: "something went wrong!!!" });
+  }
+};
+
 module.exports = {
   registerCustomer,
   registerEmployee,
   getUserRole,
+  login,
 };

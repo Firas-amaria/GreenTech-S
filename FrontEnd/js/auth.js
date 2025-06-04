@@ -11,8 +11,6 @@ import { auth, getCurrentUserToken } from "./firebase-init.js";
 window.register = async (event) => {
   event.preventDefault();
 
-
-
   const form = document.getElementById("register-form");
   const firstName = form["register-fullname"].value.split(" ")[0];
   const lastName = form["register-fullname"].value.split(" ")[1] || "";
@@ -30,9 +28,9 @@ window.register = async (event) => {
     form["register-fullname"].style.borderColor = "red";
     return;
   }
-   console.log(firstName.length) 
+  console.log(firstName.length);
   if (firstName.length < 2) {
-     console.log("aaa")
+    console.log("aaa");
     document.getElementById("error-message").innerText =
       "First name must be at least 2 characters long.";
     form["register-fullname"].style.borderColor = "red";
@@ -72,8 +70,7 @@ window.register = async (event) => {
   }
 
   if (!email) {
-    document.getElementById("error-message").innerText =
-      "Email is required.";
+    document.getElementById("error-message").innerText = "Email is required.";
     form["register-email"].style.borderColor = "red";
     return;
   }
@@ -96,8 +93,7 @@ window.register = async (event) => {
   // check if the phone number is vaild according to the country code
 
   if (!address) {
-    document.getElementById("error-message").innerText =
-      "Address is required.";
+    document.getElementById("error-message").innerText = "Address is required.";
     form["register-address"].style.borderColor = "red";
     return;
   }
@@ -185,25 +181,28 @@ window.register = async (event) => {
     const user = userCredential.user;
 
     // Send user data to backend
-    const res= await fetch("http://localhost:4000/api/auth/register-customer", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        uid: user.uid,
-        firstName,
-        lastName,
-        email,
-        phone,
-        birthDate,
-        address,
-        password,
-        confirmPassword,
-      }),
-    });
-    const data= await res.json()
-console.log(data)
+    const res = await fetch(
+      "http://localhost:4000/api/auth/register-customer",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          firstName,
+          lastName,
+          email,
+          phone,
+          birthDate,
+          address,
+          password,
+          confirmPassword,
+        }),
+      }
+    );
+    const data = await res.json();
+    console.log(data);
     alert("Registration successful!");
     window.location.href = "login.html";
   } catch (error) {
@@ -225,26 +224,25 @@ window.login = async (event) => {
       password
     );
     const user = userCredential.user;
-    console.log(user)
-    
+    console.log(user);
+
     // Get token using shared utility
-   const token = await getCurrentUserToken();
-console.log(user.uid)
+    const token = await getCurrentUserToken();
+    console.log(user.uid);
     // Fetch user role from backend
-    const res = await fetch("http://localhost:4000/api/auth/login", {
+    const res = await fetch("http://localhost:4000/api/auth/get-role", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body:  JSON.stringify({uid: user.uid}),
-      
+      body: JSON.stringify({ uid: user.uid }),
     });
 
     const data = await res.json();
-    
-    const role= data.message
-console.log("User role:", role);
+
+    const role = data.message;
+    console.log("User role:", role);
 
     // Redirect based on role
     switch (role) {
@@ -262,14 +260,10 @@ console.log("User role:", role);
 
         break;
     }
-        
-        //window.location.href = "index.html";
 
-    
+    //window.location.href = "index.html";
   } catch (error) {
     console.error(error);
     document.getElementById("login-error-message").innerText = error.message;
   }
 };
-
-
