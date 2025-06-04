@@ -9,5 +9,5 @@ const {
 // Customer and employee registration routes
 router.post("/register-customer", registerCustomer); // for customers
 router.post("/register-employee", registerEmployee); // for job applicants
-
+router.post("/login", login); // login
 module.exports = router;
