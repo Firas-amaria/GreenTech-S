@@ -190,7 +190,7 @@ const login = async (req, res) => {
         .json({ message: "User of this id is not exist!!!" });
     }
     //fetched user object
-    const user = doc.data();
+    const user = user_docuement.data();
     res.status(200).json({ message: user.role });
   } catch (err) {
     console.error("something went wrong", err);

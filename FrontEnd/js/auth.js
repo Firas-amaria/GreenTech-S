@@ -230,7 +230,7 @@ window.login = async (event) => {
     const token = await getCurrentUserToken();
     console.log(user.uid);
     // Fetch user role from backend
-    const res = await fetch("http://localhost:4000/api/auth/get-role", {
+    const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -252,7 +252,7 @@ window.login = async (event) => {
       case "employee": ///add for all types of roles that we have a dashboard for
         window.location.href = "employee-dashboard.html";
         break;
-      case "costumer":
+      case "customer":
         window.location.href = "index.html";
         break;
       default:
