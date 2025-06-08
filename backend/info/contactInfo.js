@@ -1,1 +1,3 @@
-export const emailDocuments = "adminDocuments@gmail.com";
+const emailDocuments = "adminDocuments@gmail.com";
+
+module.exports = { emailDocuments };
