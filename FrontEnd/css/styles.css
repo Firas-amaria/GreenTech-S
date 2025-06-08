@@ -214,3 +214,22 @@ button {
 button:hover {
   opacity: 0.9;
 }
+
+
+
+/* Inline-style any label that contains only a checkbox + text */
+#extra-fields label:has(> input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;            /* space between box & text */
+  margin-bottom: 12px;
+  flex-direction: row;  /* override the column layout */
+}
+
+/* Ensure agreement checkbox appears the same way */
+.agreement label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
