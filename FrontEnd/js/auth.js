@@ -249,11 +249,20 @@ window.login = async (event) => {
       case "admin":
         window.location.href = "admin-dashboard.html";
         break;
-      case "employee": ///add for all types of roles that we have a dashboard for
-        window.location.href = "employee-dashboard.html";
+      case "farmer":
+        window.location.href = "farmer-dashboard.html";
+        break;
+      case "Operation-Maneger":
+        window.location.href = "index.html";
+        break;
+      case "picker":
+        window.location.href = "picker-dashboard.html";
         break;
       case "customer":
         window.location.href = "index.html";
+        break;
+      case "deliverer":
+        window.location.href = "deliverer-dashboard.html";
         break;
       default:
         alert("Unknown role. Contact support.");
