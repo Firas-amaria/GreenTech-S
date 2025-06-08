@@ -4,135 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard | Farmer App</title>
-  <style>
-    /* ===== Reset & Base Styles ===== */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
-    body {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-    }
-    h1, h2 {
-      color: #2b3e50;
-    }
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-    }
-    h2 {
-      font-size: 1.25rem;
-      margin-bottom: 0.75rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 1.5rem;
-      background: #fff;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px 12px;
-      text-align: left;
-      font-size: 0.95rem;
-    }
-    th {
-      background-color: #2b3e50;
-      color: #fff;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    button, select {
-      cursor: pointer;
-    }
-    button.small {
-      padding: 4px 8px;
-      font-size: 0.85rem;
-    }
-    .btn-primary {
-      background-color: #2b3e50;
-      color: #fff;
-      border: none;
-      padding: 6px 10px;
-      font-size: 0.9rem;
-    }
-    .btn-primary:hover {
-      background-color: #1a2733;
-    }
-    .btn-success {
-      background-color: #27ae60;
-      color: #fff;
-      border: none;
-      padding: 6px 10px;
-      font-size: 0.9rem;
-    }
-    .btn-success:hover {
-      background-color: #1e8449;
-    }
-
-    /* ===== Sidebar ===== */
-    .sidebar {
-      width: 200px;
-      background-color: #2b3e50;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      padding-top: 20px;
-      flex-shrink: 0;
-    }
-    .sidebar h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      font-size: 1.2rem;
-      letter-spacing: 1px;
-    }
-    .sidebar ul {
-      list-style: none;
-      width: 100%;
-    }
-    .sidebar li {
-      width: 100%;
-    }
-    .sidebar a {
-      display: block;
-      padding: 12px 20px;
-      color: #fff;
-      text-decoration: none;
-      font-size: 1rem;
-      transition: background 0.2s;
-    }
-    .sidebar a:hover {
-      background-color: #1a2733;
-    }
-
-    /* ===== Main Content ===== */
-    .main {
-      flex-grow: 1;
-      background-color: #f4f7f9;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    .section {
-      margin-bottom: 2rem;
-    }
-
-    /* ===== Inline-Edit Styling ===== */
-    .inline-edit {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .inline-edit select,
-    .inline-edit input {
-      padding: 4px 6px;
-      font-size: 0.9rem;
-    }
-  </style>
+  <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/farmer-dashboard.css" />
 </head>
 <body>
   <!-- ===== Sidebar ===== -->
@@ -202,6 +75,7 @@
             <th>Planted Amount (kg)</th>
             <th>Planted Time</th>
             <th>Status</th>
+           
           </tr>
         </thead>
         <tbody>
@@ -214,7 +88,7 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
     /*******************************************************
      * In-Memory Demo Data (same as Crops & Shipments pages)
      * You’ll replace these with fetch(...) calls later.
@@ -236,21 +110,26 @@
         item: 'Tomato',
         plantedAmount: 10,
         plantedOn: '2025-05-01T07:00',
-        status: 'Planting'
+        status: 'Planting',
+        lastUpdated: '2025-05-01T07:00',
+         percentage: '50%'
       },
       {
         id: 2,
         item: 'Lettuce',
         plantedAmount: 5,
         plantedOn: '2025-05-10T06:00',
-        status: 'Growing'
+        status: 'Growing',
+        lastUpdated: '2025-05-11T07:00',
+         percentage: '90%'
       },
       {
         id: 3,
         item: 'Potato',
         plantedAmount: 8,
         plantedOn: '2025-04-20T06:30',
-        status: 'Harvesting'
+        status: 'Harvesting',
+         percentage: '85%'
       }
     ];
 
@@ -353,6 +232,7 @@
         tr.innerHTML = `
           <td>${crop.item}</td>
           <td>${crop.plantedAmount}</td>
+          
           <!-- Only show the date (no time) in dd/mm/yyyy format -->
           <td>${formatDateOnly(crop.plantedOn)}</td>
           ${statusCell}
