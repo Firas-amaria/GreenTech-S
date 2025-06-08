@@ -23,7 +23,7 @@ let mockCustomers = [
 const allRoles = [
   // Existing roles (match those used elsewhere)
   "driver",
-  "packer",
+  "picker",
   "supervisor",
   "farmer",
   // New managerial roles
