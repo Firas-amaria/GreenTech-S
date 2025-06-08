@@ -1,10 +1,8 @@
 const { admin, db } = require("../firebaseConfig");
 
-
-
 // Admin API to approve pending employee and assign a new role
 const approveEmployee = async (req, res) => {
-  const { uid, Employee  } = req.body;
+  const { uid, Employee } = req.body;
 
   try {
     // Update custom claim with new role
@@ -22,8 +20,6 @@ const approveEmployee = async (req, res) => {
   }
 };
 
-
-
 // Allows an admin to update another user's role in Firebase Authentication and Firestore
 // Requires admin authentication via middleware
 // Expected body: { uid: string, role: 'customer' | 'employee' | 'admin' | 'pendingEmployee' }
@@ -35,7 +31,7 @@ const setRole = async (req, res) => {
     await admin.auth().setCustomUserClaims(uid, { role });
 
     // Update the user's role in Firestore document
-    await db.collection('users').doc(uid).update({
+    await db.collection("users").doc(uid).update({
       role,
     });
 
@@ -45,7 +41,6 @@ const setRole = async (req, res) => {
   }
 };
 
-
 // Get employment application from 'employmentApplications/{uid}' for admin
 // Returns only relevant fields (excludes createdAt, uid)
 const getApplication = async (req, res) => {
@@ -53,10 +48,14 @@ const getApplication = async (req, res) => {
 
   try {
     // Fetch application document from 'employmentApplications' collection
-    const applicationDoc = await db.collection('employmentApplications').doc(uid).get();
+    const applicationDoc = await db
+      .collection("employmentApplications")
+      .doc(uid)
+      .get();
 
     // If the document doesn't exist, return 404
-    if (!applicationDoc.exists) return res.status(404).send({ error: 'Application not found' });
+    if (!applicationDoc.exists)
+      return res.status(404).send({ error: "Application not found" });
 
     // Return the full application data without filtering
     res.send(applicationDoc.data());
@@ -65,18 +64,17 @@ const getApplication = async (req, res) => {
   }
 };
 
-
 // Fetch any user's profile by UID (admin-only route)
 const getProfileById = async (req, res) => {
   const uid = req.params.id;
 
   try {
     // Get the user document from Firestore
-    const userDoc = await db.collection('users').doc(uid).get();
+    const userDoc = await db.collection("users").doc(uid).get();
 
     // If user doesn't exist
     if (!userDoc.exists) {
-      return res.status(404).send({ error: 'User not found' });
+      return res.status(404).send({ error: "User not found" });
     }
 
     // Return user data (including createdAt, role, etc.)
@@ -86,18 +84,19 @@ const getProfileById = async (req, res) => {
   }
 };
 
-
 // Fetch all employment applications from Firestore (admin only)
 const getAllApplications = async (req, res) => {
   try {
-    const snapshot = await db.collection('employmentApplications').get();
-    const applications = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    const snapshot = await db.collection("employmentApplications").get();
+    const applications = snapshot.docs.map((doc) => ({
+      uid: doc.id,
+      ...doc.data(),
+    }));
     res.send(applications);
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
 };
-
 
 // Update a specific user's profile fields (admin only)
 const updateUser = async (req, res) => {
@@ -105,13 +104,12 @@ const updateUser = async (req, res) => {
   const updates = req.body;
 
   try {
-    await db.collection('users').doc(uid).update(updates);
+    await db.collection("users").doc(uid).update(updates);
     res.send({ message: `User ${uid} updated.` });
   } catch (error) {
     res.status(400).send({ error: error.message });
   }
 };
-
 
 // Delete a user from Firebase Auth and Firestore (admin only)
 const deleteUser = async (req, res) => {
@@ -122,8 +120,8 @@ const deleteUser = async (req, res) => {
     await admin.auth().deleteUser(uid);
 
     // Delete from Firestore
-    await db.collection('users').doc(uid).delete();
-    await db.collection('employmentApplications').doc(uid).delete();
+    await db.collection("users").doc(uid).delete();
+    await db.collection("employmentApplications").doc(uid).delete();
 
     res.send({ message: `User ${uid} deleted.` });
   } catch (error) {
@@ -131,32 +129,25 @@ const deleteUser = async (req, res) => {
   }
 };
 
-
 // Fetch all users from 'users' collection (admin only)
 const getAllUsers = async (req, res) => {
   try {
-    const snapshot = await db.collection('users').get();
-    const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    const snapshot = await db.collection("users").get();
+    const users = snapshot.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
     res.send(users);
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
 };
 
-
-
-
 module.exports = {
- approveEmployee,
- setRole,
- getApplication,
- getProfileById,
- getAllApplications,
- updateUser,
- deleteUser,
- getAllUsers,
- getAllApplications
- 
- 
-
+  approveEmployee,
+  setRole,
+  getApplication,
+  getProfileById,
+  getAllApplications,
+  updateUser,
+  deleteUser,
+  getAllUsers,
+  getAllApplications,
 };

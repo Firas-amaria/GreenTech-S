@@ -1,60 +1,18 @@
+<!-- jobs.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Jobs</title>
-  <link rel="stylesheet" href="../css/globals.css" />
-  <link rel="stylesheet" href="../css/job.css" />
+  <link rel="stylesheet" href="css/jobs.css" />
 </head>
 <body>
-  <div id="header"></div>
+  <h1>Available Positions</h1>
+   <button id="logOut" class="button">Log Out</button>
+  <!-- This div must have exactly this ID: -->
+  <div id="jobs-container"></div>
 
-  <main class="container">
-    <h1>Available Positions</h1>
-    <ul id="position-list">
-      <!-- JS will inject:
-           <li data-role="Farmer">Farmer</li>
-           <li data-role="Driver">Delivery Driver</li>
-           …etc.
-      -->
-    </ul>
-
-    <!-- Job description + Apply button -->
-    <div id="job-info" class="hidden">
-      <h2 id="job-info-title"></h2>
-      <p id="job-info-desc"></p>
-      <button id="apply-btn">Apply Now</button>
-    </div>
-
-    <!-- Auth modal: shown if user not logged in -->
-    <div id="auth-modal" class="modal hidden">
-      <div class="modal-content">
-        <p>To apply, please 
-          <a href="login.html?returnTo=job.html">log in</a> or 
-          <a href="register.html?returnTo=job.html">sign up</a>.
-        </p>
-      </div>
-    </div>
-
-    <!-- Application form: shown after clicking Apply & if logged in -->
-    <form id="job-form" class="hidden">
-      <label for="position">Position</label>
-      <select id="position" name="position" required>
-        <option value="">Select…</option>
-        <!-- JS will pre-select the clicked role -->
-      </select>
-
-      <div id="extra-fields"></div>
-
-      <button type="submit">Submit Application</button>
-      <p id="job-error-message" class="error-message"></p>
-    </form>
-  </main>
-
-  <div id="footer"></div>
-
-  <script type="module" src="../js/auth.js"></script>
-  <script type="module" src="../js/jobApply.js"></script>
+  <!-- Include the script AFTER the container div, and make sure the path is correct: -->
+  <script type="module" src="js/jobs.js" ></script>
 </body>
 </html>

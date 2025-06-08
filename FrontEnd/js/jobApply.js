@@ -1,43 +1,51 @@
+
 import {
   getAuth,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initSchedule, getScheduleData } from "./schedule.js"; // schedule widget helpers
+import { auth, getCurrentUserToken  } from "./firebase-init.js";
 
-const auth = getAuth();
 
-// List of positions — replace or fetch from your DB as needed
-const positions = [
-  {
-    displayName: "Farmer",
-    role: "Farmer",
-    description: "Grow crops and raise livestock on our partner farms.",
-  },
-  {
-    displayName: "Delivery Driver",
-    role: "Driver",
-    description: "Transport fresh produce to customers safely and on time.",
-  },
-  {
-    displayName: "Industrial Truck Driver",
-    role: "Industrial",
-    description: "Operate and maintain heavy-duty delivery vehicles.",
-  },
-  {
-    displayName: "Warehouse Worker",
-    role: "WarehouseWorker",
-    description: "Manage inventory, sorting and storing incoming goods.",
-  },
-  {
-    displayName: "Picker",
-    role: "Picker",
-    description: "Select produce items according to quality standards.",
-  },
-];
 
-window.addEventListener("DOMContentLoaded", () => {
+
+async function getCurrentUserProfile() {
+  const token = await getCurrentUserToken();
+  if (!token) return null;
+
+  console.log(token)
+
+  try {
+    const res = await fetch("http://localhost:4000/api/user/profile", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) throw new Error("Not authenticated");
+    console.log(res)
+    return await res.json();
+  } catch (err) {
+    console.warn("getCurrentUserProfile error:", err);
+    return null;
+  }
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  // --- Prefill name/email if logged in via backend API ---
+  const userProfile = await getCurrentUserProfile();
+  if (userProfile) {
+    document.querySelectorAll(".panel").forEach((panel) => {
+      const nameInput = panel.querySelector('input[name="fullName"]');
+      if (nameInput) nameInput.value = userProfile.fullName || "";
+
+      const emailInput = panel.querySelector('input[name="email"]');
+      if (emailInput) emailInput.value = userProfile.email || "";
+    });
+  }
+
   // --- DOM references ---
-  const positionList = document.getElementById("position-list");
+  const positionList = document.getElementById("positionList");
   const jobInfo = document.getElementById("job-info");
   const jobTitle = document.getElementById("job-info-title");
   const jobDesc = document.getElementById("job-info-desc");
@@ -50,14 +58,51 @@ window.addEventListener("DOMContentLoaded", () => {
 
   let selectedRole = null;
 
+  // --- List of positions ---
+  const positions = [
+    {
+      displayName: "Farmer",
+      role: "Farmer",
+      description: "Grow crops and raise livestock on our partner farms.",
+    },
+    {
+      displayName: "Delivery Driver",
+      role: "Driver",
+      description: "Transport fresh produce to customers safely and on time.",
+    },
+    {
+      displayName: "Industrial Truck Driver",
+      role: "Industrial",
+      description: "Operate and maintain heavy-duty delivery vehicles.",
+    },
+    {
+      displayName: "Warehouse Worker",
+      role: "WarehouseWorker",
+      description: "Manage inventory, sorting and storing incoming goods.",
+    },
+    {
+      displayName: "Picker",
+      role: "Picker",
+      description: "Select produce items according to quality standards.",
+    },
+  ];
+
   // --- 1) Populate the list of jobs ---
   positions.forEach(({ displayName, role }) => {
     const li = document.createElement("li");
     li.textContent = displayName;
     li.dataset.role = role;
-    li.addEventListener("click", () => jobDescription(role));
+    li.addEventListener("click", () => {
+      // Highlight selected item
+      document
+        .querySelectorAll("#position-list li")
+        .forEach((el) => el.classList.remove("active"));
+      li.classList.add("active");
+      jobDescription(role);
+    });
     positionList.appendChild(li);
   });
+
 
   // --- 2) Show description + Apply button ---
   function jobDescription(role) {
@@ -80,7 +125,7 @@ window.addEventListener("DOMContentLoaded", () => {
     applyBtn.classList.remove("hidden");
   }
 
-  // --- 3) Apply Now click handler ---
+  // --- 3) "Apply Now" click handler ---
   applyBtn.addEventListener("click", () => {
     if (!auth.currentUser) {
       authModal.classList.remove("hidden");
@@ -103,7 +148,7 @@ window.addEventListener("DOMContentLoaded", () => {
             Agricultural Insurance
           </label>
           <label>
-            Field Area (hectares)
+            Field Area (aceres)
             <input type="number" name="fieldArea" min="0" step="0.1" required />
           </label>
           <label>
@@ -223,7 +268,7 @@ window.addEventListener("DOMContentLoaded", () => {
         html = `<p>Please select a valid position.</p>`;
     }
 
-    // Append the employment agreement
+    // Employment agreement appended for every role
     html += `
       <div class="agreement">
         <label>
@@ -235,25 +280,25 @@ window.addEventListener("DOMContentLoaded", () => {
 
     extraFields.innerHTML = `<h3>Additional Information</h3>${html}`;
 
-    // Initialize schedule if present
+    // If schedule widget exists, initialize it
     const schedEl = document.getElementById("schedule-container");
     if (schedEl) initSchedule(schedEl);
   });
 
-  // --- 5) Form submission for all roles ---
+  // --- 5) Handle form submission for all roles ---
   jobForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorMsg.textContent = "";
 
     const formData = new FormData(jobForm);
 
-    // Check agreement
+    // Ensure agreement box was checked
     if (!formData.get("agreement")) {
-      return (errorMsg.textContent =
-        "You must accept the employment agreement.");
+      errorMsg.textContent = "You must accept the employment agreement.";
+      return;
     }
 
-    // Build payload object from form entries
+    // Build payload from form entries
     const payload = {};
     for (let [key, value] of formData.entries()) {
       if (payload[key]) {
@@ -265,12 +310,11 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Include schedule data if exists
+    // Attach schedule data if present
     const schedEl = document.getElementById("schedule-container");
     if (schedEl) payload.schedule = getScheduleData(schedEl);
-
-    //FOR B.E. CHANGE ACCORDING TO UR API PATHS IF U HAVE EXISTING ONES
-    // Select endpoint based on role
+console.log(paylload);
+    // Choose endpoint based on role
     let endpoint;
     switch (selectedRole) {
       case "Farmer":
@@ -289,19 +333,23 @@ window.addEventListener("DOMContentLoaded", () => {
         endpoint = "/api/apply-picker";
         break;
       default:
-        return (errorMsg.textContent = "Invalid position selected.");
+        errorMsg.textContent = "Invalid position selected.";
+        return;
     }
 
     try {
-      const token = await auth.currentUser.getIdToken();
+      // Get Firebase ID token for Authorization
+      const idToken = await auth.currentUser.getIdToken();
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify(payload),
       });
+
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Submission failed");
 

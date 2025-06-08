@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard | Farmer App</title>
+  <style>
+    /* ===== Reset & Base Styles ===== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    h1, h2 {
+      color: #2b3e50;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #2b3e50;
+      color: #fff;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    button, select {
+      cursor: pointer;
+    }
+    button.small {
+      padding: 4px 8px;
+      font-size: 0.85rem;
+    }
+    .btn-primary {
+      background-color: #2b3e50;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+    }
+    .btn-primary:hover {
+      background-color: #1a2733;
+    }
+    .btn-success {
+      background-color: #27ae60;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+    }
+    .btn-success:hover {
+      background-color: #1e8449;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      width: 200px;
+      background-color: #2b3e50;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+      flex-shrink: 0;
+    }
+    .sidebar h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+    }
+    .sidebar ul {
+      list-style: none;
+      width: 100%;
+    }
+    .sidebar li {
+      width: 100%;
+    }
+    .sidebar a {
+      display: block;
+      padding: 12px 20px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .sidebar a:hover {
+      background-color: #1a2733;
+    }
+
+    /* ===== Main Content ===== */
+    .main {
+      flex-grow: 1;
+      background-color: #f4f7f9;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+
+    /* ===== Inline-Edit Styling ===== */
+    .inline-edit {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .inline-edit select,
+    .inline-edit input {
+      padding: 4px 6px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== Sidebar ===== -->
+  <nav class="sidebar">
+    <h2>Farmer App</h2>
+    <ul>
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="crops.html">Crops</a></li>
+      <li><a href="shipments.html">Shipments</a></li>
+      <li><a href="#" id="logoutLink">Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== Main Content ===== -->
+  <div class="main">
+    <h1>Dashboard Overview</h1>
+
+    <!-- ===== Approved Shipments ===== -->
+    <div class="section">
+      <h2>Approved Shipments (Next Pickup First)</h2>
+      <table id="tblApprovedDash">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Pickup Time</th>
+            <th>Item</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='shipments.html'">
+        View All Shipments
+      </button>
+    </div>
+
+    <!-- ===== Shipment Requests ===== -->
+    <div class="section">
+      <h2>Pending Shipment Requests</h2>
+      <table id="tblRequestsDash">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Amount (kg)</th>
+            <th>Pickup Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='shipments.html'">
+        View All Shipments
+      </button>
+    </div>
+
+    <!-- ===== Crops Status Summary ===== -->
+    <div class="section">
+      <h2>My Crops Status</h2>
+      <table id="tblCropsDash">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Planted Amount (kg)</th>
+            <th>Planted Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='crops.html'">
+        Manage Crops
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /*******************************************************
+     * In-Memory Demo Data (same as Crops & Shipments pages)
+     * You’ll replace these with fetch(...) calls later.
+     *******************************************************/
+    let approvedShipments = [
+      { id: 301, item: 'Tomato', amount: 120, pickupTime: '2025-06-02T08:00' },
+      { id: 302, item: 'Lettuce', amount: 80, pickupTime: '2025-06-01T09:30' },
+      { id: 303, item: 'Potato', amount: 200, pickupTime: '2025-06-04T11:00' }
+    ];
+
+    let shipmentRequests = [
+      { id: 1, item: 'Carrot', amount: 50, pickupTime: '2025-06-03T10:00' },
+      { id: 2, item: 'Spinach', amount: 40, pickupTime: '2025-06-05T13:30' }
+    ];
+
+    let cropsData = [
+      {
+        id: 1,
+        item: 'Tomato',
+        plantedAmount: 10,
+        plantedOn: '2025-05-01T07:00',
+        status: 'Planting'
+      },
+      {
+        id: 2,
+        item: 'Lettuce',
+        plantedAmount: 5,
+        plantedOn: '2025-05-10T06:00',
+        status: 'Growing'
+      },
+      {
+        id: 3,
+        item: 'Potato',
+        plantedAmount: 8,
+        plantedOn: '2025-04-20T06:30',
+        status: 'Harvesting'
+      }
+    ];
+
+    const cropStatusOptions = [
+      "Planting",
+      "Growing",
+      "Crop Maintenance",
+      "Blooming",
+      "Fruit Set",
+      "Ripening",
+      "Harvesting",
+      "Harvested",
+      "Field Clearing"
+    ];
+
+    // ===== Utility: Format Date-Time =====
+    function formatDateTimeLocal(dtLocal) {
+      const d = new Date(dtLocal);
+      if (isNaN(d)) return dtLocal;
+      return d.toLocaleString();
+    }
+
+    // ===== Utility: Format Date Only (dd/mm/yyyy) =====
+    function formatDateOnly(isoString) {
+      const d = new Date(isoString);
+      if (isNaN(d)) return isoString;
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // ===== Populate Approved Shipments =====
+    function populateApprovedDash() {
+      approvedShipments.sort(
+        (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
+      );
+      const tbody = document.querySelector('#tblApprovedDash tbody');
+      tbody.innerHTML = '';
+      approvedShipments.forEach(sh => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${sh.id}</td>
+          <td>${formatDateTimeLocal(sh.pickupTime)}</td>
+          <td>${sh.item}</td>
+          <td>
+            <button class="small btn-primary" onclick="goToReport(${sh.id})">
+              Shipment Report
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Populate Shipment Requests =====
+    function populateRequestsDash() {
+      const tbody = document.querySelector('#tblRequestsDash tbody');
+      tbody.innerHTML = '';
+      shipmentRequests.forEach(req => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${req.item}</td>
+          <td>${req.amount}</td>
+          <td>${formatDateTimeLocal(req.pickupTime)}</td>
+          <td>
+            <button class="small btn-success" onclick="approveDash(${req.id})">
+              Approve
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Populate Crops Status Summary =====
+    function populateCropsTable() {
+      const tbody = document.querySelector('#tblCropsDash tbody');
+      tbody.innerHTML = '';
+      cropsData.forEach(crop => {
+        const tr = document.createElement('tr');
+        const currentIndex = cropStatusOptions.indexOf(crop.status);
+        const isFinal = currentIndex === cropStatusOptions.length - 1; // "Field Clearing"
+
+        let statusCell = '';
+        if (!isFinal) {
+          const nextStatus = cropStatusOptions[currentIndex + 1];
+          statusCell = `
+            <td class="inline-edit">
+              <select data-id="${crop.id}" onchange="advanceCropStatus(${crop.id}, this.value)">
+                <option value="${crop.status}" disabled selected>${crop.status}</option>
+                <option value="${nextStatus}">${nextStatus}</option>
+              </select>
+            </td>
+          `;
+        } else {
+          statusCell = `<td>${crop.status}</td>`;
+        }
+
+        tr.innerHTML = `
+          <td>${crop.item}</td>
+          <td>${crop.plantedAmount}</td>
+          <!-- Only show the date (no time) in dd/mm/yyyy format -->
+          <td>${formatDateOnly(crop.plantedOn)}</td>
+          ${statusCell}
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== Dashboard: Approve + Add to Approved =====
+    function approveDash(requestId) {
+      const idx = shipmentRequests.findIndex(r => r.id === requestId);
+      if (idx < 0) return;
+      const req = shipmentRequests.splice(idx, 1)[0];
+      const newShipmentId = (approvedShipments.length
+        ? Math.max(...approvedShipments.map(s => s.id)) + 1
+        : 301
+      );
+      approvedShipments.push({
+        id: newShipmentId,
+        item: req.item,
+        amount: req.amount,
+        pickupTime: req.pickupTime
+      });
+      populateApprovedDash();
+      populateRequestsDash();
+      alert(`Request #${requestId} approved as Shipment #${newShipmentId}.`);
+      // BACKEND: Call POST /api/shipments/requests/{id}/approve, then re-fetch if desired.
+    }
+
+    // ===== Dashboard: Navigate to Report =====
+    function goToReport(shipmentId) {
+      // Simply open shipment-report.html with query param
+      window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
+    }
+
+    // ===== Advance Crop Status (optional on dashboard) =====
+    function advanceCropStatus(cropId, chosenStatus) {
+      const idx = cropsData.findIndex(c => c.id === cropId);
+      if (idx < 0) return;
+      cropsData[idx].status = chosenStatus;
+      populateCropsTable();
+    }
+
+    // ===== Logout Link =====
+    document.getElementById('logoutLink').addEventListener('click', e => {
+      e.preventDefault();
+      alert('Logging out... (placeholder)');
+      // BACKEND: POST /api/logout → then redirect to login page.
+      // window.location.href = '/login.html';
+    });
+
+    // ===== Initial Render on window.load =====
+    window.addEventListener('load', () => {
+      populateApprovedDash();
+      populateRequestsDash();
+      populateCropsTable(); 
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>Job Application Review | Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/jobApplications.css" />
+</head>
+<body>
+  <!-- ===== Main Navigation Bar ===== -->
+  <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
+<header>
+  <nav id="main-nav">
+    <ul>
+      <li><a href="admin-dashboard.html">Dashboard</a></li>
+      <li><a href="shipments.html">Shipments</a></li>
+      <li><a href="job-applications.html">Job Application Review</a></li>
+      <li><a href="schedule.html">Schedule</a></li>
+      <li><a href="reports.html">Reports</a></li>
+      <li><a href="manage-users.html">Manage Users</a></li>
+      <li class="logout"><a href="#" id="logout-link">Logout</a></li>
+    </ul>
+  </nav>
+
+
+  <!-- ===== Sub-Navigation Bar ===== -->
+  <nav id="sub-nav">
+    <ul>
+      <li><a href="#" id="tab-review" class="sub-active">Review</a></li>
+      <li><a href="#" id="tab-jobs">Jobs</a></li>
+    </ul>
+  </nav>
+
+</header>
+
+
+
+
+
+  <!-- ===== Main Content ===== -->
+  <main id="applications-content">
+    <!-- ===== Review Section ===== -->
+    <section id="review-section">
+      <h1>Application Review</h1>
+
+      <!-- Filter by Role -->
+      <div id="application-filters">
+        <label for="filter-role">Filter by Role:</label>
+        <select id="filter-role">
+          <option value="">All Roles</option>
+          <!-- JS will inject role options here -->
+        </select>
+        <button id="apply-app-filters">Apply Filters</button>
+      </div>
+
+      <!-- Applications List -->
+      <section id="applications-list-section">
+        <div id="applications-list">
+          <!-- JS will inject mock application cards here -->
+        </div>
+      </section>
+    </section>
+
+    <!-- ===== Jobs (Roles Management) Section ===== -->
+    <section id="jobs-section" style="display: none;">
+      <h1>Jobs (Roles Management)</h1>
+
+      <h2>Existing Roles</h2>
+      <table id="roles-table" class="roles-table">
+        <thead>
+          <tr>
+            <th>Title &amp; Job Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock roles here -->
+        </tbody>
+      </table>
+
+      <h3>Add New Role</h3>
+      <form id="add-role-form">
+        <input
+          type="text"
+          id="new-role-name"
+          placeholder="Role title"
+          required
+        />
+        <input
+          type="text"
+          id="new-role-desc"
+          placeholder="Job description"
+          required
+        />
+        <button type="submit" class="add-role-btn">Add Role</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="js/jobApplications.js"></script>
+</body>
+</html>
