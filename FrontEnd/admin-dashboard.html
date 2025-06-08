@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>Logistics Center Manager Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ===== Navigation Bar ===== -->
+ <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
+<header>
+  <nav id="main-nav">
+    <ul>
+      <li><a href="admin-dashboard.html">Dashboard</a></li>
+      <li><a href="shipments.html">Shipments</a></li>
+      <li><a href="job-applications.html">Job Application Review</a></li>
+      <li><a href="schedule.html">Schedule</a></li>
+      <li><a href="reports.html">Reports</a></li>
+      <li><a href="manage-users.html">Manage Users</a></li>
+      <li class="logout"><a href="#" id="logout-link">Logout</a></li>
+    </ul>
+  </nav>
+</header>
+
+
+
+
+  <!-- ===== Main Content ===== -->
+  <main id="dashboard-content">
+    <h1>Dashboard</h1>
+
+    <!-- Statistics / KPIs Section -->
+    <section id="stats-section">
+      <h2>Key Statistics</h2>
+      <div class="stats-cards">
+        <div class="stat-card" id="total-shipments-today">
+          <h3>Shipments Today</h3>
+          <p class="stat-value">--</p>
+        </div>
+        <div class="stat-card" id="pending-applications">
+          <h3>Pending Job Applications</h3>
+          <p class="stat-value">--</p>
+        </div>
+        <div class="stat-card" id="upcoming-schedule">
+          <h3>Events This Week</h3>
+          <p class="stat-value">--</p>
+        </div>
+        <div class="stat-card" id="open-reports">
+          <h3>Open Reports</h3>
+          <p class="stat-value">--</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Latest Notifications Section -->
+    <section id="notifications-section">
+      <h2>Latest Notifications</h2>
+      <ul id="notifications-list">
+        <!-- JS will inject fake notifications here -->
+      </ul>
+    </section>
+
+    <!-- Shipments for Today Section -->
+    <section id="today-shipments-section">
+      <h2>Shipments Scheduled for Today</h2>
+      <table id="today-shipments-table">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Origin</th>
+            <th>Destination</th>
+            <th>Status</th>
+            <th>ETA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock rows here -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Recent Job Applications Section -->
+    <section id="recent-applications-section">
+      <h2>Recent Job Applications</h2>
+      <table id="recent-applications-table">
+        <thead>
+          <tr>
+            <th>Applicant Name</th>
+            <th>Position</th>
+            <th>Date Applied</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock rows here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="js/admin-dashboard.js"></script>
+</body>
+</html>

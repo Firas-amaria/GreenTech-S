@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>Manage Users | Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ===== Main Navigation Bar ===== -->
+  <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
+<header>
+  <nav id="main-nav">
+    <ul>
+      <li><a href="admin-dashboard.html">Dashboard</a></li>
+      <li><a href="shipments.html">Shipments</a></li>
+      <li><a href="job-applications.html">Job Application Review</a></li>
+      <li><a href="schedule.html">Schedule</a></li>
+      <li><a href="reports.html">Reports</a></li>
+      <li><a href="manage-users.html">Manage Users</a></li>
+      <li class="logout"><a href="#" id="logout-link">Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===== Sub-Navigation Bar ===== -->
+  <nav id="sub-nav">
+    <ul>
+      <li><a href="#" id="tab-employees" class="sub-active">Employees</a></li>
+      <li><a href="#" id="tab-customers">Customers</a></li>
+    </ul>
+  </nav>
+
+</header>
+
+
+
+
+
+  <!-- ===== Main Content ===== -->
+  <main id="manage-users-content">
+    <!-- ===== Employees Section ===== -->
+    <section id="employees-section">
+      <h1>Employees</h1>
+      <table id="employees-table" class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock employees here -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== Customers Section ===== -->
+    <section id="customers-section" style="display: none;">
+      <h1>Customers</h1>
+      <table id="customers-table" class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock customers here -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="js/manageUsers.js"></script>
+</body>
+</html>

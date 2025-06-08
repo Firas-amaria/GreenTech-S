@@ -1,0 +1,120 @@
+/* ===== SHIPMENT CARD ===== */
+.shipment-card {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Highlight cards with a problem */
+.shipment-card.problem-flag {
+  border-color: #e74c3c;       /* red border */
+  background-color: #fdecea;   /* light red background */
+}
+
+/* Header row (ID / origin / destination + button) */
+.shipment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.shipment-info {
+  font-size: 0.95rem;
+}
+
+.full-report-btn {
+  background-color: #2980b9;  /* blue button */
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.full-report-btn:hover {
+  background-color: #1c5980;
+}
+
+/* Timeline container */
+.shipment-timeline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+/* Each stage box */
+.stage {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+/* The dot/circle */
+.stage-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin: 0 auto;
+  margin-bottom: 4px;
+  border: 2px solid #bdc3c7; /* default gray border */
+  background-color: #ecf0f1;  /* default gray fill */
+}
+
+/* Label below the dot */
+.stage-label {
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+/* Timestamp below the label */
+.stage-timestamp {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+}
+
+/* STAGE STATE STYLES */
+/* Completed: green dot */
+.stage.completed .stage-dot {
+  background-color: #27ae60;  /* green */
+  border-color: #27ae60;
+}
+
+/* Current: blue dot */
+.stage.current .stage-dot {
+  background-color: #2980b9;  /* blue */
+  border-color: #2980b9;
+}
+
+/* Problem: red dot */
+.stage.problem .stage-dot {
+  background-color: #e74c3c;  /* red */
+  border-color: #e74c3c;
+}
+
+/* Upcoming: keep default gray; optionally make it lighter */
+.stage.upcoming .stage-dot {
+  background-color: #ecf0f1;  /* light gray */
+  border-color: #bdc3c7;
+}
+
+/* (Optional) If you want a horizontal line connecting dots: */
+.shipment-timeline::before {
+  content: "";
+  position: absolute;
+  top: 9px; /* adjust to align with the middle of each dot */
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background-color: #bdc3c7;
+  z-index: 0;
+}
+
+.shipment-timeline .stage {
+  position: relative;
+  z-index: 1; /* so the dots sit above the horizontal line */
+}

@@ -148,7 +148,7 @@ window.addEventListener("DOMContentLoaded", async () => {
             Agricultural Insurance
           </label>
           <label>
-            Field Area (hectares)
+            Field Area (aceres)
             <input type="number" name="fieldArea" min="0" step="0.1" required />
           </label>
           <label>
@@ -313,7 +313,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Attach schedule data if present
     const schedEl = document.getElementById("schedule-container");
     if (schedEl) payload.schedule = getScheduleData(schedEl);
-
+console.log(paylload);
     // Choose endpoint based on role
     let endpoint;
     switch (selectedRole) {
