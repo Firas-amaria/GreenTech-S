@@ -37,4 +37,4 @@ export async function getCurrentUserToken() {
   });
 }
 
-export { auth, signOut };
+export { auth, signOut ,onAuthStateChanged};

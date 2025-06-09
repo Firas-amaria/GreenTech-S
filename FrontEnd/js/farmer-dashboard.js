@@ -22,29 +22,37 @@ let shipmentRequests = [
   { id: 2, item: 'Spinach', amount: 40, pickupTime: '2025-06-05T13:30' }
 ];
 
-let cropsData = [
-  {
-    id: 1,
-    item: 'Tomato',
-    plantedAmount: 10,              // kg of seed/plants
-    plantedOn: '2025-05-01T07:00',
-    status: 'Planting'
-  },
-  {
-    id: 2,
-    item: 'Lettuce',
-    plantedAmount: 5,
-    plantedOn: '2025-05-10T06:00',
-    status: 'Growing'
-  },
-  {
-    id: 3,
-    item: 'Potato',
-    plantedAmount: 8,
-    plantedOn: '2025-04-20T06:30',
-    status: 'Harvesting'
-  }
-];
+let cropsData = 
+ [
+      {
+        id: 1,
+        item: 'Tomato',
+        plantedAmount: 10,
+        plantedOn: '2025-05-01T07:00',
+        status: 'Planting',
+        lastUpdated: '2025-05-01T07:00',
+         percentage: '50%'
+      },
+      {
+        id: 2,
+        item: 'Lettuce',
+        plantedAmount: 5,
+        plantedOn: '2025-05-10T06:00',
+        status: 'Growing',
+        lastUpdated: '2025-05-11T07:00',
+         percentage: '90%'
+      },
+      {
+        id: 3,
+        item: 'Potato',
+        plantedAmount: 8,
+        plantedOn: '2025-04-20T06:30',
+        status: 'Harvesting',
+         percentage: '85%'
+      }
+    ];
+
+
 
 // ===== Possible Crop Status Stages in Order =====
 const cropStatusOptions = [

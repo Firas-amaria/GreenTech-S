@@ -67,10 +67,23 @@ const mockRoles = [
 ];
 // jobs.js
 
-import { auth, getCurrentUserToken , signOut} from "./firebase-init.js";
+import { auth, getCurrentUserToken ,onAuthStateChanged, signOut} from "./firebase-init.js";
 console.log("jobs.js loaded");   // <-- add this line temporarily
 
-document.getElementById("logOut").addEventListener("click", () => {
+
+
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("User is logged in:", user);
+    // You can store user details in localStorage/sessionStorage if needed
+  } else {
+    console.log("No user logged in, redirecting...");
+    window.location.href = "login.html"; // Redirect to login page
+  }
+});
+
+document.getElementById("logout-link").addEventListener("click", () => {
   signOut(auth);
   alert('loged out');
 });

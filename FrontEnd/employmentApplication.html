@@ -6,13 +6,27 @@
 
   <!-- Main form CSS -->
   <link rel="stylesheet" href="css/employmentApplication.css" />
-
+<link rel="stylesheet" href="css/styles.css" />
   <!-- Schedule styling (for the embedded schedule table) -->
   <link rel="stylesheet" href="css/schedule.css" />
 </head>
 <body>
+  <header>
+  <nav id="main-nav">
+    <ul>
+      <li><a href="index.html">home</a></li>
+      <li><a href="favorites.html">Shipments</a></li>
+      
+      <li class="logout"><a href="#" id="logout-link">Logout</a></li>
+    </ul>
+  </nav>
+</header>
   <h1>Job Application</h1>
-  <div id="application-form-container"></div>
+  <div id="application-form-container">
+    <p>Please check that your personal details we already have are up to date if not sign up with the up to date information.</p>
+    <p>This is the mail and phone number we will be using to contact you.</p>
+
+  </div>
 
   <!--
     We only need one module script here. employmentApplication.js
