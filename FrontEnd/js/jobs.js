@@ -7,7 +7,7 @@
 // Mock roles data
 const mockRoles = [
   {
-    name: "driver",
+    name: "deliverer",
     description: "Responsible for transporting shipments.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -36,7 +36,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "supervisor",
+    name: "Industrial-driver",
     description: "Oversees operations and staff.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -67,11 +67,13 @@ const mockRoles = [
 ];
 // jobs.js
 
-import { auth, getCurrentUserToken ,onAuthStateChanged, signOut} from "./firebase-init.js";
-console.log("jobs.js loaded");   // <-- add this line temporarily
-
-
-
+import {
+  auth,
+  getCurrentUserToken,
+  onAuthStateChanged,
+  signOut,
+} from "./firebase-init.js";
+console.log("jobs.js loaded"); // <-- add this line temporarily
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -85,12 +87,11 @@ onAuthStateChanged(auth, (user) => {
 
 document.getElementById("logout-link").addEventListener("click", () => {
   signOut(auth);
-  alert('loged out');
+  alert("loged out");
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM fully loaded");  // <-- another check
-  
+  console.log("DOM fully loaded"); // <-- another check
 
   const container = document.getElementById("jobs-container");
   if (!container) {
@@ -111,15 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = document.createElement("button");
     button.textContent = "Apply Now";
     button.addEventListener("click", () => {
-      console.log(auth.currentUser)
-      if(auth.currentUser){
-      window.location.href = `employmentApplication.html?role=${encodeURIComponent(role.name)}`;
+      console.log(auth.currentUser);
+      if (auth.currentUser) {
+        window.location.href = `employmentApplication.html?role=${encodeURIComponent(
+          role.name
+        )}`;
+      } else {
+        alert("please login");
+        window.location.href = "login.html";
       }
-      else{
-        alert('please login')
-        window.location.href= 'login.html';
-      }
-      
     });
 
     card.appendChild(title);

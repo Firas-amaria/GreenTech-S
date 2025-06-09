@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,59 +13,74 @@
       padding: 0;
       font-family: Arial, sans-serif;
     }
+
     body {
       display: flex;
       height: 100vh;
       overflow: hidden;
     }
-    h1, h2 {
+
+    h1,
+    h2 {
       color: #2b3e50;
     }
+
     h1 {
       font-size: 1.5rem;
       margin-bottom: 1rem;
     }
+
     h2 {
       font-size: 1.25rem;
       margin-bottom: 0.75rem;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 1.5rem;
       background: #fff;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #ddd;
       padding: 8px 12px;
       text-align: left;
       font-size: 0.95rem;
     }
+
     th {
       background-color: #2b3e50;
       color: #fff;
     }
+
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
+
     button {
       cursor: pointer;
       padding: 6px 10px;
       font-size: 0.9rem;
     }
+
     .btn-primary {
       background-color: #2b3e50;
       color: #fff;
       border: none;
     }
+
     .btn-primary:hover {
       background-color: #1a2733;
     }
+
     .btn-success {
       background-color: #27ae60;
       color: #fff;
       border: none;
     }
+
     .btn-success:hover {
       background-color: #1e8449;
     }
@@ -79,19 +95,23 @@
       padding-top: 20px;
       flex-shrink: 0;
     }
+
     .sidebar h2 {
       text-align: center;
       margin-bottom: 1.5rem;
       font-size: 1.2rem;
       letter-spacing: 1px;
     }
+
     .sidebar ul {
       list-style: none;
       width: 100%;
     }
+
     .sidebar li {
       width: 100%;
     }
+
     .sidebar a {
       display: block;
       padding: 12px 20px;
@@ -100,6 +120,7 @@
       font-size: 1rem;
       transition: background 0.2s;
     }
+
     .sidebar a:hover {
       background-color: #1a2733;
     }
@@ -111,11 +132,13 @@
       overflow-y: auto;
       padding: 20px;
     }
+
     .section {
       margin-bottom: 2rem;
     }
   </style>
 </head>
+
 <body>
   <!-- ===== Sidebar ===== -->
   <nav class="sidebar">
@@ -264,7 +287,7 @@
 
     // ===== Go to Shipment Report =====
     function goToReport(shipmentId) {
-      window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
+      window.location.href = `farmer-shipment-report.html?shipmentId=${shipmentId}`;
     }
 
     // ===== Logout Link =====
@@ -281,4 +304,5 @@
     });
   </script>
 </body>
+
 </html>

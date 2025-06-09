@@ -1,5 +1,5 @@
 const { db, admin } = require("../firebaseConfig");
-const QRCode = require("qrcode");
+//const QRCode = require("qrcode");
 
 // --- Farm Handlers ---
 async function listFarms(req, res) {

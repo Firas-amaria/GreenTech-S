@@ -3,32 +3,32 @@
 // Builds a dynamic form based on role, with extra HTML injected.
 // All backend calls are commented out and replaced with mock data.
 
-import { initSchedule, getScheduleData } from './schedule.js';
+import { initSchedule, getScheduleData } from "./schedule.js";
 import {
   auth,
   getCurrentUserToken,
   onAuthStateChanged,
-  signOut
-} from './firebase-init.js';
+  signOut,
+} from "./firebase-init.js";
 
 console.log("employmentApplication.js loaded");
 
 // Log out link
 document.getElementById("logout-link").addEventListener("click", () => {
   signOut(auth);
-  alert('Logged out');
-  window.location.href = 'login.html';
+  alert("Logged out");
+  window.location.href = "login.html";
 });
 
 // Mock roles definition
 const mockRoles = [
   {
-    name: "driver",
+    name: "deliverer",
     description: "Responsible for transporting shipments.",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" }
+      { label: "Phone", type: "tel" },
     ],
   },
   {
@@ -83,7 +83,7 @@ function getQueryParam(name) {
 }
 
 function capitalize(word) {
-  return word ? word[0].toUpperCase() + word.slice(1) : '';
+  return word ? word[0].toUpperCase() + word.slice(1) : "";
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -92,7 +92,7 @@ onAuthStateChanged(auth, async (user) => {
   // 1) Not logged in → redirect to login
   if (!user) {
     alert("You need to log in first!");
-    return window.location.href = 'login.html';
+    return (window.location.href = "login.html");
   }
 
   // 2) Fetch user profile from backend
@@ -108,13 +108,13 @@ onAuthStateChanged(auth, async (user) => {
     fullName: "John Doe",
     email: "john.doe@example.com",
     phone: "+1234567890",
-    role: "customer"  // the only role allowed to apply
+    role: "customer", // the only role allowed to apply
   };
 
   // 3) If they already have a role ≠ "customer", block them
-  if (profile.role && (profile.role !== "customer")) {
+  if (profile.role && profile.role !== "customer") {
     alert("You already submitted for a role, you can’t have different roles");
-    return window.location.href = 'index.html';
+    return (window.location.href = "index.html");
   }
 
   // 4) Determine which role they're applying for
@@ -123,13 +123,13 @@ onAuthStateChanged(auth, async (user) => {
     container.innerHTML = "<p>No role specified in URL.</p>";
     return;
   }
-  const roleObj = mockRoles.find(r => r.name === roleParam.toLowerCase());
+  const roleObj = mockRoles.find((r) => r.name === roleParam.toLowerCase());
   if (!roleObj) {
     container.innerHTML = `<p>Role "${roleParam}" not found.</p>`;
     return;
   }
 
-    // Clear any existing content
+  // Clear any existing content
   container.innerHTML = "";
 
   // 1️⃣ Insert the info paragraphs
@@ -141,35 +141,36 @@ onAuthStateChanged(auth, async (user) => {
   `;
   container.appendChild(info);
 
-
-
   // 5) Build the form
   const form = document.createElement("form");
   form.id = "application-form";
 
   // 5a) Display static user info + hidden inputs
-  [["Full Name", profile.fullName], ["Email", profile.email], ["Phone", profile.phone]]
-    .forEach(([label, value]) => {
-      const wrapper = document.createElement("div");
-      wrapper.className = "form-group";
+  [
+    ["Full Name", profile.fullName],
+    ["Email", profile.email],
+    ["Phone", profile.phone],
+  ].forEach(([label, value]) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-group";
 
-      const lab = document.createElement("label");
-      lab.textContent = label;
-      wrapper.appendChild(lab);
+    const lab = document.createElement("label");
+    lab.textContent = label;
+    wrapper.appendChild(lab);
 
-      const span = document.createElement("div");
-      span.className = "static-field";
-      span.textContent = value;
-      wrapper.appendChild(span);
+    const span = document.createElement("div");
+    span.className = "static-field";
+    span.textContent = value;
+    wrapper.appendChild(span);
 
-      const hidden = document.createElement("input");
-      hidden.type = "hidden";
-      hidden.name = label.replace(/\s+/g, "").toLowerCase();
-      hidden.value = value;
-      wrapper.appendChild(hidden);
+    const hidden = document.createElement("input");
+    hidden.type = "hidden";
+    hidden.name = label.replace(/\s+/g, "").toLowerCase();
+    hidden.value = value;
+    wrapper.appendChild(hidden);
 
-      form.appendChild(wrapper);
-    });
+    form.appendChild(wrapper);
+  });
 
   // Then append the form
   container.appendChild(form);
@@ -298,14 +299,17 @@ onAuthStateChanged(auth, async (user) => {
     // Mock response from backend:
     const applyResult = {
       success: true,
-      message: "Application submitted successfully. We will contact you shortly."
+      message:
+        "Application submitted successfully. We will contact you shortly.",
     };
 
     if (applyResult.success) {
       container.innerHTML = `<p class="success-message">${applyResult.message}</p>
         <button onclick="window.location.href='index.html'">Home</button>`;
     } else {
-      container.innerHTML = `<p>${applyResult.message || "Submission failed."}</p>`;
+      container.innerHTML = `<p>${
+        applyResult.message || "Submission failed."
+      }</p>`;
     }
   });
 });
