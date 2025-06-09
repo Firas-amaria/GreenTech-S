@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard | Farmer App</title>
   <link rel="stylesheet" href="css/styles.css" />
-    <link rel="stylesheet" href="css/farmer-dashboard.css" />
+  <link rel="stylesheet" href="css/farmer-dashboard.css" />
 </head>
 <body>
   <!-- ===== Sidebar ===== -->
@@ -35,13 +35,9 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Injected by JS -->
-        </tbody>
+        <tbody></tbody>
       </table>
-      <button class="btn-primary" onclick="location.href='shipments.html'">
-        View All Shipments
-      </button>
+      <button class="btn-primary" onclick="location.href='shipments.html'">View All Shipments</button>
     </div>
 
     <!-- ===== Shipment Requests ===== -->
@@ -56,13 +52,9 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Injected by JS -->
-        </tbody>
+        <tbody></tbody>
       </table>
-      <button class="btn-primary" onclick="location.href='shipments.html'">
-        View All Shipments
-      </button>
+      <button class="btn-primary" onclick="location.href='shipments.html'">View All Shipments</button>
     </div>
 
     <!-- ===== Crops Status Summary ===== -->
@@ -73,222 +65,182 @@
           <tr>
             <th>Item</th>
             <th>Planted Amount (kg)</th>
-            <th>Planted Time</th>
+            <th>Planted On</th>
             <th>Status</th>
-           
+            <th>Percentage</th>
+            <th>Image</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Injected by JS -->
-        </tbody>
+        <tbody></tbody>
       </table>
-      <button class="btn-primary" onclick="location.href='crops.html'">
-        Manage Crops
-      </button>
+      <button class="btn-primary" onclick="location.href='crops.html'">Manage Crops</button>
     </div>
   </div>
 
+  <!-- ===== Script Section ===== -->
   <script type="module">
-    /*******************************************************
-     * In-Memory Demo Data (same as Crops & Shipments pages)
-     * You’ll replace these with fetch(...) calls later.
-     *******************************************************/
-    let approvedShipments = [
+    // Sample data
+    const approvedShipments = [
       { id: 301, item: 'Tomato', amount: 120, pickupTime: '2025-06-02T08:00' },
       { id: 302, item: 'Lettuce', amount: 80, pickupTime: '2025-06-01T09:30' },
       { id: 303, item: 'Potato', amount: 200, pickupTime: '2025-06-04T11:00' }
     ];
 
-    let shipmentRequests = [
+    const shipmentRequests = [
       { id: 1, item: 'Carrot', amount: 50, pickupTime: '2025-06-03T10:00' },
       { id: 2, item: 'Spinach', amount: 40, pickupTime: '2025-06-05T13:30' }
     ];
 
-    let cropsData = [
+    const realCropImages = [
+      'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?auto=format&fit=crop&w=50&q=80', // Tomato
+      'https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=50&q=80', // Lettuce
+      'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=50&q=80', // Potato
+      'https://images.unsplash.com/photo-1574226516831-e1dff420e43e?auto=format&fit=crop&w=50&q=80', // Carrots
+      'https://images.unsplash.com/photo-1567306301408-9b74779a11af?auto=format&fit=crop&w=50&q=80'  // Peppers
+    ];
+
+    const cropsData = [
       {
         id: 1,
         item: 'Tomato',
         plantedAmount: 10,
-        plantedOn: '2025-05-01T07:00',
+        plantedOn: '2025-05-01',
         status: 'Planting',
-        lastUpdated: '2025-05-01T07:00',
-         percentage: '50%'
+        percentage: 17,
+        imageUrl: realCropImages[0]
       },
       {
         id: 2,
         item: 'Lettuce',
         plantedAmount: 5,
-        plantedOn: '2025-05-10T06:00',
+        plantedOn: '2025-05-10',
         status: 'Growing',
-        lastUpdated: '2025-05-11T07:00',
-         percentage: '90%'
+        percentage: 20,
+        imageUrl: realCropImages[1]
       },
       {
         id: 3,
         item: 'Potato',
         plantedAmount: 8,
-        plantedOn: '2025-04-20T06:30',
+        plantedOn: '2025-04-20',
         status: 'Harvesting',
-         percentage: '85%'
+        percentage: 30,
+        imageUrl: realCropImages[2]
       }
     ];
 
     const cropStatusOptions = [
-      "Planting",
-      "Growing",
-      "Crop Maintenance",
-      "Blooming",
-      "Fruit Set",
-      "Ripening",
-      "Harvesting",
-      "Harvested",
-      "Field Clearing"
+      "Planting", "Growing", "Crop Maintenance", "Blooming",
+      "Fruit Set", "Ripening", "Harvesting", "Harvested", "Field Clearing"
     ];
 
-    // ===== Utility: Format Date-Time =====
-    function formatDateTimeLocal(dtLocal) {
-      const d = new Date(dtLocal);
-      if (isNaN(d)) return dtLocal;
-      return d.toLocaleString();
-    }
-
-    // ===== Utility: Format Date Only (dd/mm/yyyy) =====
     function formatDateOnly(isoString) {
       const d = new Date(isoString);
-      if (isNaN(d)) return isoString;
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
+      return isNaN(d) ? isoString : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     }
 
-    // ===== Populate Approved Shipments =====
+    function formatDateTimeLocal(dtLocal) {
+      const d = new Date(dtLocal);
+      return isNaN(d) ? dtLocal : d.toLocaleString();
+    }
+
     function populateApprovedDash() {
-      approvedShipments.sort(
-        (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
-      );
+      approvedShipments.sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
       const tbody = document.querySelector('#tblApprovedDash tbody');
       tbody.innerHTML = '';
       approvedShipments.forEach(sh => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${sh.id}</td>
-          <td>${formatDateTimeLocal(sh.pickupTime)}</td>
-          <td>${sh.item}</td>
-          <td>
-            <button class="small btn-primary" onclick="goToReport(${sh.id})">
-              Shipment Report
-            </button>
-          </td>
+        tbody.innerHTML += `
+          <tr>
+            <td>${sh.id}</td>
+            <td>${formatDateTimeLocal(sh.pickupTime)}</td>
+            <td>${sh.item}</td>
+            <td><button class="small btn-primary" onclick="goToReport(${sh.id})">Shipment Report</button></td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
     }
 
-    // ===== Populate Shipment Requests =====
     function populateRequestsDash() {
       const tbody = document.querySelector('#tblRequestsDash tbody');
       tbody.innerHTML = '';
       shipmentRequests.forEach(req => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${req.item}</td>
-          <td>${req.amount}</td>
-          <td>${formatDateTimeLocal(req.pickupTime)}</td>
-          <td>
-            <button class="small btn-success" onclick="approveDash(${req.id})">
-              Approve
-            </button>
-          </td>
+        tbody.innerHTML += `
+          <tr>
+            <td>${req.item}</td>
+            <td>${req.amount}</td>
+            <td>${formatDateTimeLocal(req.pickupTime)}</td>
+            <td><button class="small btn-success" onclick="approveDash(${req.id})">Approve</button></td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
     }
 
-    // ===== Populate Crops Status Summary =====
     function populateCropsTable() {
       const tbody = document.querySelector('#tblCropsDash tbody');
       tbody.innerHTML = '';
       cropsData.forEach(crop => {
-        const tr = document.createElement('tr');
         const currentIndex = cropStatusOptions.indexOf(crop.status);
-        const isFinal = currentIndex === cropStatusOptions.length - 1; // "Field Clearing"
+        const isFinal = currentIndex === cropStatusOptions.length - 1;
 
-        let statusCell = '';
-        if (!isFinal) {
-          const nextStatus = cropStatusOptions[currentIndex + 1];
-          statusCell = `
-            <td class="inline-edit">
-              <select data-id="${crop.id}" onchange="advanceCropStatus(${crop.id}, this.value)">
-                <option value="${crop.status}" disabled selected>${crop.status}</option>
-                <option value="${nextStatus}">${nextStatus}</option>
-              </select>
-            </td>
-          `;
-        } else {
-          statusCell = `<td>${crop.status}</td>`;
-        }
+        const statusCell = !isFinal
+          ? `<select data-id="${crop.id}" onchange="advanceCropStatus(${crop.id}, this.value)">
+              <option value="${crop.status}" disabled selected>${crop.status}</option>
+              <option value="${cropStatusOptions[currentIndex + 1]}">${cropStatusOptions[currentIndex + 1]}</option>
+            </select>`
+          : crop.status;
 
-        tr.innerHTML = `
-          <td>${crop.item}</td>
-          <td>${crop.plantedAmount}</td>
-          
-          <!-- Only show the date (no time) in dd/mm/yyyy format -->
-          <td>${formatDateOnly(crop.plantedOn)}</td>
-          ${statusCell}
+        tbody.innerHTML += `
+          <tr>
+            <td>${crop.item}</td>
+            <td>${crop.plantedAmount}</td>
+            <td>${formatDateOnly(crop.plantedOn)}</td>
+            <td>${statusCell}</td>
+            <td>${crop.percentage ? crop.percentage + '%' : 'N/A'}</td>
+            <td><img src="${crop.imageUrl || 'images/default.png'}" alt="${crop.item}" width="50" /></td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
     }
 
-    // ===== Dashboard: Approve + Add to Approved =====
-    function approveDash(requestId) {
+    // Approve shipment request
+    window.approveDash = function(requestId) {
       const idx = shipmentRequests.findIndex(r => r.id === requestId);
       if (idx < 0) return;
       const req = shipmentRequests.splice(idx, 1)[0];
-      const newShipmentId = (approvedShipments.length
-        ? Math.max(...approvedShipments.map(s => s.id)) + 1
-        : 301
-      );
-      approvedShipments.push({
-        id: newShipmentId,
-        item: req.item,
-        amount: req.amount,
-        pickupTime: req.pickupTime
-      });
+      const newShipmentId = approvedShipments.length ? Math.max(...approvedShipments.map(s => s.id)) + 1 : 301;
+      approvedShipments.push({ id: newShipmentId, item: req.item, amount: req.amount, pickupTime: req.pickupTime });
       populateApprovedDash();
       populateRequestsDash();
       alert(`Request #${requestId} approved as Shipment #${newShipmentId}.`);
-      // BACKEND: Call POST /api/shipments/requests/{id}/approve, then re-fetch if desired.
-    }
+    };
 
-    // ===== Dashboard: Navigate to Report =====
-    function goToReport(shipmentId) {
-      // Simply open shipment-report.html with query param
-      window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
-    }
-
-    // ===== Advance Crop Status (optional on dashboard) =====
-    function advanceCropStatus(cropId, chosenStatus) {
+    // Update crop status
+    window.advanceCropStatus = function(cropId, chosenStatus) {
       const idx = cropsData.findIndex(c => c.id === cropId);
-      if (idx < 0) return;
-      cropsData[idx].status = chosenStatus;
-      populateCropsTable();
-    }
+      if (idx >= 0) {
+        cropsData[idx].status = chosenStatus;
+        populateCropsTable();
+      }
+    };
 
-    // ===== Logout Link =====
+    // Redirect to shipment report
+    window.goToReport = function(shipmentId) {
+      window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
+    };
+
+    // Logout (placeholder)
     document.getElementById('logoutLink').addEventListener('click', e => {
       e.preventDefault();
       alert('Logging out... (placeholder)');
-      // BACKEND: POST /api/logout → then redirect to login page.
+      // Redirect after real logout
       // window.location.href = '/login.html';
     });
 
-    // ===== Initial Render on window.load =====
+    // Initial page load
     window.addEventListener('load', () => {
       populateApprovedDash();
       populateRequestsDash();
-      populateCropsTable(); 
+      populateCropsTable();
     });
   </script>
 </body>
