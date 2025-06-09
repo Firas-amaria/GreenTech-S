@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manage Farmers | Farm Manager Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: #2b3e50;
+      padding: 1rem;
+      color: white;
+    }
+
+    nav#main-nav ul,
+    nav#sub-nav ul {
+      display: flex;
+      gap: 1rem;
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    nav#main-nav a,
+    nav#sub-nav a {
+      color: white;
+      text-decoration: none;
+    }
+
+    nav#sub-nav {
+      background-color: #2b3e50;
+      padding: 0.5rem;
+    }
+
+    .sub-active {
+      font-weight: bold;
+      text-decoration: underline;
+    }
+
+    main {
+      flex-grow: 1;
+      background-color: #f4f7f9;
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #2b3e50;
+      margin-bottom: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: #fff;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #2b3e50;
+      color: #fff;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    button, select, input {
+      cursor: pointer;
+    }
+
+    .btn-primary, .btn-success, .contact-btn {
+      border: none;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      color: white;
+    }
+
+    .btn-primary { background-color: #1a2733; }
+    .btn-primary:hover { background-color: #162029; }
+
+    .btn-success { background-color: #27ae60; }
+    .btn-success:hover { background-color: #1e8449; }
+
+    .contact-btn { background-color: #2b3e50; }
+    .contact-btn:hover { background-color: #1a2733; }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .filters select,
+    .filters input {
+      padding: 5px 8px;
+      font-size: 0.95rem;
+    }
+
+    .filters label {
+      font-size: 0.9rem;
+      color: #2b3e50;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <nav id="main-nav">
+    <ul>
+      <li><a href="#">Dashboard</a></li>
+      <li><a href="#">Shipments</a></li>
+      <li><a href="#">Job Application Review</a></li>
+      <li><a href="#">Schedule</a></li>
+      <li><a href="#">Reports</a></li>
+      <li><a href="#">Manage Farmers</a></li>
+      <li class="logout"><a href="#">Logout</a></li>
+    </ul>
+  </nav>
+
+  <nav id="sub-nav">
+    <ul>
+      <li><a href="#" id="tab-farmers" class="sub-active">Farmers</a></li>
+      <li><a href="#" id="tab-buyers">Buyers</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="manage-users-content">
+  <section id="farmers-section">
+    <h1>Farmers</h1>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-group">
+        <label for="filter-crop">Crop Type</label>
+        <select id="filter-crop">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-weight">Minimum Weight (kg)</label>
+        <input type="number" id="filter-weight" min="0" />
+      </div>
+      <div class="filter-group">
+        <label for="filter-shipment">Shipment Time</label>
+        <select id="filter-shipment">
+          <option value="">All</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+        </select>
+      </div>
+    </div>
+
+    <table id="farmers-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Crop Type</th>
+          <th>Weight (kg)</th>
+          <th>Shipment</th>
+          <th>Availability</th>
+          <th>Estimated Harvest Time</th>
+          <th>Contact</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+  const farmers = [
+    {
+      name: "Kevin Lou",
+      crop: "Strawberries",
+      weight: 150,
+      shipment: "Morning",
+      available: true,
+      estimatedTime: "2 hours",
+      contact: "kevin@example.com"
+    },
+    {
+      name: "Omar Nasser",
+      crop: "Carrots",
+      weight: 80,
+      shipment: "Evening",
+      available: false,
+      estimatedTime: "Unavailable",
+      contact: "omar@example.com"
+    },
+    {
+      name: "John Doe",
+      crop: "Zucchini",
+      weight: 120,
+      shipment: "Afternoon",
+      available: true,
+      estimatedTime: "30 minutes",
+      contact: "john@example.com"
+    },
+    {
+      name: "Sarah Kim",
+      crop: "Strawberries",
+      weight: 95,
+      shipment: "Morning",
+      available: true,
+      estimatedTime: "1 hour",
+      contact: "sarah@example.com"
+    }
+  ];
+
+  const tableBody = document.querySelector("#farmers-table tbody");
+
+  function isMoreThan1_5Hours(timeStr) {
+    if (!timeStr || timeStr.toLowerCase().includes("unavailable")) return false;
+    const match = timeStr.match(/(\d+)\s*(hour|minute)/i);
+    if (!match) return false;
+    const value = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    const minutes = unit.includes("hour") ? value * 60 : value;
+    return minutes > 60;
+  }
+
+  function populateCropOptions() {
+    const cropSelect = document.getElementById("filter-crop");
+    const crops = [...new Set(farmers.map(f => f.crop))];
+    crops.forEach(crop => {
+      const option = document.createElement("option");
+      option.value = crop;
+      option.textContent = crop;
+      cropSelect.appendChild(option);
+    });
+  }
+
+  function renderTable() {
+    const cropFilter = document.getElementById("filter-crop").value;
+    const weightFilter = parseFloat(document.getElementById("filter-weight").value) || 0;
+    const shipmentFilter = document.getElementById("filter-shipment").value;
+
+    tableBody.innerHTML = "";
+
+    farmers
+      .filter(f => (!cropFilter || f.crop === cropFilter))
+      .filter(f => f.weight >= weightFilter)
+      .filter(f => (!shipmentFilter || f.shipment === shipmentFilter))
+      .forEach(farmer => {
+        const isDelayed = isMoreThan1_5Hours(farmer.estimatedTime);
+        const wasAvailable = farmer.available;
+        const showOrderAnyway = isDelayed && wasAvailable;
+
+        const availabilityText = isDelayed && wasAvailable
+          ? "Not Available (Delayed)"
+          : (farmer.available ? "Available" : "Not Available");
+
+        const orderButton = showOrderAnyway
+          ? `<button class="btn-success small" style="margin-top: 6px;" onclick="orderAnyway('${farmer.name}')">Order Anyway</button>`
+          : "";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${farmer.name}</td>
+          <td>${farmer.crop}</td>
+          <td>${farmer.weight}</td>
+          <td>${farmer.shipment}</td>
+          <td>${availabilityText}</td>
+          <td>${farmer.estimatedTime}</td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <button class="contact-btn" onclick="contactFarmer('${farmer.contact}')">Email</button>
+              ${orderButton}
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+  }
+
+  function contactFarmer(email) {
+    window.location.href = `mailto:${email}`;
+  }
+
+  function orderAnyway(name) {
+    alert(`Order placed anyway for ${name}.`);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    populateCropOptions();
+    renderTable();
+    document.getElementById("filter-crop").addEventListener("change", renderTable);
+    document.getElementById("filter-weight").addEventListener("input", renderTable);
+    document.getElementById("filter-shipment").addEventListener("change", renderTable);
+  });
+</script>
+
+</body>
+</html>
