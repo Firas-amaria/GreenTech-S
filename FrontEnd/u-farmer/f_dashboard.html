@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard | Farmer App</title>
-  <link rel="stylesheet" href="css/styles.css" />
-  <link rel="stylesheet" href="css/farmer-dashboard.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/f_dashboard.css" />
 </head>
+
 <body>
   <!-- ===== Sidebar ===== -->
   <nav class="sidebar">
     <h2>Farmer App</h2>
     <ul>
-      <li><a href="farmer-dashboard.html">Dashboard</a></li>
-      <li><a href="farmer-crops.html">Crops</a></li>
-      <li><a href="farmer-shipments.html">Shipments</a></li>
+      <li><a href="f_dashboard.html">Dashboard</a></li>
+      <li><a href="f_crops.html">Crops</a></li>
+      <li><a href="f_shipments.html">Shipments</a></li>
       <li><a href="#" id="logoutLink">Logout</a></li>
     </ul>
   </nav>
@@ -203,7 +205,7 @@
     }
 
     // Approve shipment request
-    window.approveDash = function(requestId) {
+    window.approveDash = function (requestId) {
       const idx = shipmentRequests.findIndex(r => r.id === requestId);
       if (idx < 0) return;
       const req = shipmentRequests.splice(idx, 1)[0];
@@ -215,7 +217,7 @@
     };
 
     // Update crop status
-    window.advanceCropStatus = function(cropId, chosenStatus) {
+    window.advanceCropStatus = function (cropId, chosenStatus) {
       const idx = cropsData.findIndex(c => c.id === cropId);
       if (idx >= 0) {
         cropsData[idx].status = chosenStatus;
@@ -224,7 +226,7 @@
     };
 
     // Redirect to shipment report
-    window.goToReport = function(shipmentId) {
+    window.goToReport = function (shipmentId) {
       window.location.href = `shipment-report.html?shipmentId=${shipmentId}`;
     };
 
@@ -244,4 +246,5 @@
     });
   </script>
 </body>
+
 </html>

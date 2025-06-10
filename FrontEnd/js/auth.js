@@ -250,7 +250,7 @@ window.login = async (event) => {
         window.location.href = "u-admin/a_dashboard.html";
         break;
       case "farmer":
-        window.location.href = "u-farmer/farmer-dashboard.html";
+        window.location.href = "u-farmer/f_dashboard.html";
         break;
       case "Operation-Manager":
         window.location.href = "opManager-dashboard.html";
