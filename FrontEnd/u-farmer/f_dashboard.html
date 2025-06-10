@@ -7,22 +7,18 @@
   <title>Dashboard | Farmer App</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/f_dashboard.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
 </head>
 
 <body>
   <!-- ===== Sidebar ===== -->
-  <nav class="sidebar">
-    <h2>Farmer App</h2>
-    <ul>
-      <li><a href="f_dashboard.html">Dashboard</a></li>
-      <li><a href="f_crops.html">Crops</a></li>
-      <li><a href="f_shipments.html">Shipments</a></li>
-      <li><a href="#" id="logoutLink">Logout</a></li>
-    </ul>
-  </nav>
+  
 
   <!-- ===== Main Content ===== -->
   <div class="main">
+    <nav class="sidebar" id="sidebar">
+
+  </nav>
     <h1>Dashboard Overview</h1>
 
     <!-- ===== Approved Shipments ===== -->
@@ -78,7 +74,7 @@
       <button class="btn-primary" onclick="location.href='crops.html'">Manage Crops</button>
     </div>
   </div>
-
+<script src="../js/layout.js"></script>
   <!-- ===== Script Section ===== -->
   <script type="module">
     // Sample data
@@ -231,13 +227,13 @@
     };
 
     // Logout (placeholder)
-    document.getElementById('logoutLink').addEventListener('click', e => {
+   /* document.getElementById('logoutLink').addEventListener('click', e => {
       e.preventDefault();
       alert('Logging out... (placeholder)');
       // Redirect after real logout
       // window.location.href = '/login.html';
     });
-
+*/
     // Initial page load
     window.addEventListener('load', () => {
       populateApprovedDash();

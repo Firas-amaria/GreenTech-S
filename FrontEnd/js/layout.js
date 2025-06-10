@@ -1,41 +1,35 @@
 
 
-const navButtonsContainer = document.getElementById("nav-buttons");
-const roleSelector = document.getElementById("user-role");
-
-function updateNavbar(role) {
+const navButtonsContainer = document.getElementById("sidebar");
+//const roleSelector = document.getElementById("user-role");
+ updateSideBar("farmer");
+function updateSideBar(role) {
   navButtonsContainer.innerHTML = "";
-  const buttons = roleButtons[role];
-  buttons.forEach(text => {
-    const link = document.createElement("a");
-    link.textContent = text;
-    link.href = getLinkFor(text); // link mapping
-    link.className = "nav-link";
-    navButtonsContainer.appendChild(link);
-  });
+switch (role) {
+  case "farmer":
+    navButtonsContainer.innerHTML = `
+       <h2>Farmer App</h2>
+    <ul>
+      <li><a href="f_dashboard.html">Dashboard</a></li>
+      <li><a href="f_crops.html">Crops</a></li>
+      <li><a href="f_shipments.html">Shipments</a></li>
+      <li><a href="#" id="logoutLink">Logout</a></li>
+    </ul>
+    `;
+    break;
+    default:
+    navButtonsContainer.innerHTML = `
+       <h2>Farmer App</h2>
+    <ul>
+      <li><a href="f_dashboard.html">Dashboard</a></li>
+      <li><a href="f_crops.html">Crops</a></li>
+      <li><a href="f_shipments.html">Shipments</a></li>
+      <li><a href="#" id="logoutLink">Logout</a></li>
+    </ul>
+    `;
+    break;
+    
+
+}
 }
 
-
-// Initialize with default role
-updateNavbar(roleSelector.value);
-
-roleSelector.addEventListener("change", (e) => {
-  updateNavbar(e.target.value);
-});
-function getLinkFor(label) {
-  const linkMap = {
-    "Home": "index.html",
-    "Profile": "#",
-    "Shop": "#",
-    "Cart": "#",
-    "Dashboard": "-dashboard.html",
-    "Crops": "-crops.html",
-    "Shipments": "-shipments.html",
-    "Reports": "-reports.html",
-    "Performance": "#",
-    "Schedule": "#",
-    "Job Application Review": "-job-applications.html",
-    "Manage Users": "/manage-users.html"
-  };
-  return linkMap[label] || "#"; // fallback if label not found
-}
