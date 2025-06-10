@@ -41,8 +41,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "supervisor",
-    description: "Oversees operations and staff.",
+    name: "Industrial-driver",
+    description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -59,7 +59,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "industrial",
+    name: "logistic center worker",
     description: "Operates heavy-duty vehicles and equipment.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -68,8 +68,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "warehouseworker",
-    description: "Manages inventory in the warehouse.",
+    name: "logistic center worker",
+    description: "general worker in the logistics center , sorting employee.",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },

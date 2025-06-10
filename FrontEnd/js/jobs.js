@@ -37,7 +37,7 @@ const mockRoles = [
   },
   {
     name: "Industrial-driver",
-    description: "Oversees operations and staff.",
+    description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -62,6 +62,15 @@ const mockRoles = [
       { label: "Bank Name", type: "text" },
       { label: "ID Document", type: "file" },
       { label: "Bank Statement", type: "file" },
+    ],
+  },
+  {
+name: "logistic center worker",
+    description: "general worker in the logistics center , sorting employee.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
     ],
   },
 ];
