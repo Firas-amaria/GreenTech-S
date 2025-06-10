@@ -46,7 +46,6 @@ const registerCustomer = async (req, res) => {
 // Get role from custom claims or Firestore
 const getUserRole = async (req, res) => {
   const authHeader = req.headers.authorization;
-
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).send({ error: "Missing or invalid token" });
   }
@@ -81,25 +80,46 @@ const validateExtraFields = (position, fields) => {
   const isNumber = (val) => typeof val === "number";
 
   switch (position) {
-    case "Farmer":
-      return isBoolean(fields.agriculturalInsurance);
+    case "farmer":
+      return (
+        isString(fields.licenseType) &&
+        isString(fields.fieldArea) &&
+        isString(fields.crops) &&
+        isString(fields.pickupAddress)
+      );
 
-    case "Delivery":
-    case "TruckDriver":
+    case "deliverer":
       return (
         isString(fields.licenseType) &&
         isString(fields.vehicleType) &&
         isNumber(fields.vehicleCapacity) &&
-        (fields.vehicleExtraCapacity === undefined ||
-          isNumber(fields.vehicleExtraCapacity)) &&
         isString(fields.driverLicenseNumber) &&
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
+        isBoolean(fields.acceptAgreement) &&
+        isBoolean(fields.certifyAccuracy) &&
         typeof fields.availabilitySchedule === "object" &&
         (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
       );
 
-    case "LogisticsCenterWorker":
+    case "industrial-driver":
+      return (
+        isString(fields.licenseType) &&
+        isString(fields.vehicleType) &&
+        isNumber(fields.vehicleCapacity) &&
+        isString(fields.driverLicenseNumber) &&
+        isString(fields.vehicleRegistrationNumber) &&
+        isBoolean(fields.insurance) &&
+        isBoolean(fields.refrigerated) &&
+        isBoolean(fields.acceptAgreement) &&
+        isBoolean(fields.certifyAccuracy) &&
+        typeof fields.availabilitySchedule === "object" &&
+        (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
+      );
+
+    case "sorting":
+    case "picker":
+    case "warehouse":
       return true; // אין שדות נוספים
 
     default:
@@ -107,8 +127,8 @@ const validateExtraFields = (position, fields) => {
   }
 };
 
-// Register an employee (pending approval) with extra fields by position
-const registerEmployee = async (req, res) => {
+// request employment (pending approval) with extra fields by position
+const requestEmployment = async (req, res) => {
   const {
     firstName,
     lastName,
@@ -117,19 +137,26 @@ const registerEmployee = async (req, res) => {
     address,
     birthDate,
     position,
-    password,
-    confirmPassword,
-    extraFields, // dynamic fields depending on selected position,
+    extraFields,
     acceptAgreement,
     certifyAccuracy,
   } = req.body;
 
-  if (password !== confirmPassword) {
-    return res.status(400).send({ error: "Passwords do not match" });
+  console.log("Request Employment Data:", req.body);
+  console.log("req.user?.uid:", req.user);
+
+  const userId = req.user?.uid; // Assuming authentication middleware sets req.user
+
+  if (!userId) {
+    return res
+      .status(401)
+      .send({ error: "Unauthorized. No user ID provided." });
   }
+
   if (!acceptAgreement || !certifyAccuracy) {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
+
   if (!validateExtraFields(position, extraFields)) {
     return res.status(400).send({
       error: "Invalid or missing extra fields for selected position.",
@@ -137,27 +164,29 @@ const registerEmployee = async (req, res) => {
   }
 
   try {
-    // Create Firebase Auth user
-    const userRecord = await admin.auth().createUser({ email, password });
+    // Optional: Validate that user exists in Firebase Auth
+    const userRecord = await admin.auth().getUser(userId);
 
-    // Set custom claim 'role' to 'pendingEmployee'
-    await admin
-      .auth()
-      .setCustomUserClaims(userRecord.uid, { role: "pendingEmployee" });
+    // Set custom user claims
+    await admin.auth().setCustomUserClaims(userId, { role: "pendingEmployee" });
 
-    // Save basic user info to users collection
-    await db.collection("users").doc(userRecord.uid).set({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      role: "pendingEmployee",
-      position,
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
+    // Update or create user data in Firestore
+    await db.collection("users").doc(userId).set(
+      {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        birthDate,
+        position,
+        extraFields,
+        role: "pendingEmployee",
+        status: "pending",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true } // Ensures existing fields are preserved unless overwritten
+    );
     // Save full application with position-specific fields
     await db
       .collection("employmentApplications")
@@ -173,9 +202,14 @@ const registerEmployee = async (req, res) => {
         ...extraFields,
       });
 
-    res.status(201).send({ uid: userRecord.uid });
+    res.status(201).send({
+      success: true,
+      message:
+        "Application submitted successfully. We will contact you shortly.",
+      uid: userRecord.uid,
+    });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: error.message, success: false });
   }
 };
 
@@ -200,7 +234,7 @@ const login = async (req, res) => {
 
 module.exports = {
   registerCustomer,
-  registerEmployee,
+  requestEmployment,
   getUserRole,
   login,
 };

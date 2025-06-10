@@ -78,7 +78,7 @@ router.get(
   getCrop
 );
 
-router.post("/create-crop", authenticate, requireRole("admin"), createCrop);
+router.post("/create-crop", authenticate, requireRole("farmer"), createCrop);
 
 router.put("/crops/:cropId", authenticate, requireRole("admin"), updateCrop);
 
