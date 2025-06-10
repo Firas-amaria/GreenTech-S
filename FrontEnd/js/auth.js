@@ -247,10 +247,10 @@ window.login = async (event) => {
     // Redirect based on role
     switch (role) {
       case "admin":
-        window.location.href = "admin-dashboard.html";
+        window.location.href = "u-admin/a_dashboard.html";
         break;
       case "farmer":
-        window.location.href = "farmer-dashboard.html";
+        window.location.href = "u-farmer/farmer-dashboard.html";
         break;
       case "Operation-Manager":
         window.location.href = "opManager-dashboard.html";

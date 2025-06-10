@@ -1,41 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Application Review | Admin Dashboard</title>
-  <link rel="stylesheet" href="css/styles.css" />
-    <link rel="stylesheet" href="css/jobApplications.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/jobApplications.css" />
 </head>
+
 <body>
   <!-- ===== Main Navigation Bar ===== -->
   <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
-<header>
-  <nav id="main-nav">
-    <ul>
-      <li><a href="admin-dashboard.html">Dashboard</a></li>
-      <li><a href="admin-allShipments.html">Shipments</a></li>
-      <li><a href="admin-job-applications.html">Job Application Review</a></li>
-      <li><a href="schedule.html">Schedule</a></li>
-      <li><a href="admin-reports.html">Reports</a></li>
-      <li><a href="admin-manage-users.html">Manage Users</a></li>
-      <li class="logout"><a href="#" id="logout-link">Logout</a></li>
-    </ul>
-  </nav>
+  <header>
+    <nav id="main-nav">
+      <ul>
+        <li><a href="a_dashboard.html">Dashboard</a></li>
+        <li><a href="a_all_shipments.html">Shipments</a></li>
+        <li><a href="a_job_applications.html">Job Application Review</a></li>
+        <li><a href="schedule.html">Schedule</a></li>
+        <li><a href="a_reports.html">Reports</a></li>
+        <li><a href="a_manage_users.html">Manage Users</a></li>
+        <li class="logout"><a href="#" id="logout-link">Logout</a></li>
+      </ul>
+    </nav>
 
 
-  <!-- ===== Sub-Navigation Bar ===== -->
-  <nav id="sub-nav">
-    <ul>
-      <li><a href="#" id="tab-review" class="sub-active">Review</a></li>
-      <li><a href="#" id="tab-jobs">Jobs</a></li>
-    </ul>
-  </nav>
+    <!-- ===== Sub-Navigation Bar ===== -->
+    <nav id="sub-nav">
+      <ul>
+        <li><a href="#" id="tab-review" class="sub-active">Review</a></li>
+        <li><a href="#" id="tab-jobs">Jobs</a></li>
+      </ul>
+    </nav>
 
-</header>
+  </header>
 
 
 
@@ -84,23 +83,14 @@
 
       <h3>Add New Role</h3>
       <form id="add-role-form">
-        <input
-          type="text"
-          id="new-role-name"
-          placeholder="Role title"
-          required
-        />
-        <input
-          type="text"
-          id="new-role-desc"
-          placeholder="Job description"
-          required
-        />
+        <input type="text" id="new-role-name" placeholder="Role title" required />
+        <input type="text" id="new-role-desc" placeholder="Job description" required />
         <button type="submit" class="add-role-btn">Add Role</button>
       </form>
     </section>
   </main>
 
-  <script src="js/jobApplications.js"></script>
+  <script src="../js/admin-jobApplications.js"></script>
 </body>
+
 </html>
