@@ -110,7 +110,78 @@
       },
       utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
     });
+
   </script>
+  <script>
+  const form = document.getElementById("register-form");
+
+  // Refs to inputs
+  const fullnameInput = form["register-fullname"];
+  const emailInput = form["register-email"];
+  const phoneInputField = form["register-phone"];
+  const passwordInput = form["register-password"];
+  const confirmPasswordInput = form["confirm-password"];
+  const birthdateInput = form["register-birthdate"];
+
+  const errorBox = document.getElementById("error-message");
+
+  // Live Full Name Validation
+  fullnameInput.addEventListener("input", () => {
+    const parts = fullnameInput.value.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts[1] || "";
+
+    if (firstName.length < 2 || !/^[a-zA-Z]+$/.test(firstName)) {
+      fullnameInput.style.borderColor = "red";
+    } else if (lastName.length < 2 || !/^[a-zA-Z]+$/.test(lastName)) {
+      fullnameInput.style.borderColor = "red";
+    } else {
+      fullnameInput.style.borderColor = "green";
+    }
+  });
+
+  // Live Email Validation
+  emailInput.addEventListener("input", () => {
+    const validGmail = /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(emailInput.value);
+    emailInput.style.borderColor = validGmail ? "green" : "red";
+  });
+
+  // Live Phone Validation
+  phoneInputField.addEventListener("input", () => {
+    const isValidPhone = iti.isValidNumber();
+    phoneInputField.style.borderColor = isValidPhone ? "green" : "red";
+  });
+
+  // Live Password Validation
+  passwordInput.addEventListener("input", () => {
+    const val = passwordInput.value;
+    const strong =
+      val.length >= 8 &&
+      /[A-Z]/.test(val) &&
+      /[a-z]/.test(val) &&
+      /[0-9]/.test(val) &&
+      /[!@#$%^&*(),.?":{}|<>]/.test(val);
+
+    passwordInput.style.borderColor = strong ? "green" : "red";
+  });
+
+  // Live Confirm Password Match
+  confirmPasswordInput.addEventListener("input", () => {
+    const match = confirmPasswordInput.value === passwordInput.value;
+    confirmPasswordInput.style.borderColor = match ? "green" : "red";
+  });
+
+  // Live Age Validation
+  birthdateInput.addEventListener("input", () => {
+    const today = new Date();
+    const birth = new Date(birthdateInput.value);
+    const age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    const isOldEnough = age > 18 || (age === 18 && monthDiff >= 0);
+    birthdateInput.style.borderColor = isOldEnough ? "green" : "red";
+  });
+</script>
+
 
 </body>
 

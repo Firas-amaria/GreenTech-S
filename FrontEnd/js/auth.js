@@ -7,11 +7,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { auth, getCurrentUserToken } from "./firebase-init.js";
+import e from "cors";
 
 window.register = async (event) => {
   event.preventDefault();
 
   const form = document.getElementById("register-form");
+  consr
   const firstName = form["register-fullname"].value.split(" ")[0];
   const lastName = form["register-fullname"].value.split(" ")[1] || "";
 
@@ -21,6 +23,23 @@ window.register = async (event) => {
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
   const confirmPassword = form["confirm-password"].value;
+
+
+fullnameInput.addEventListener("input", () => {
+    const parts = fullnameInput.value.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts[1] || "";
+
+    if (firstName.length < 2 || !/^[a-zA-Z]+$/.test(firstName)) {
+      fullnameInput.style.borderColor = "red";
+    } else if (lastName.length < 2 || !/^[a-zA-Z]+$/.test(lastName)) {
+      fullnameInput.style.borderColor = "red";
+    } else {
+      fullnameInput.style.borderColor = "green";
+    }
+  });
+
+
 
   if (!firstName) {
     document.getElementById("error-message").innerText =
@@ -69,6 +88,9 @@ window.register = async (event) => {
     return;
   }
 
+
+  
+
   if (!email) {
     document.getElementById("error-message").innerText = "Email is required.";
     form["register-email"].style.borderColor = "red";
@@ -83,12 +105,14 @@ window.register = async (event) => {
   }
   // Check if email already exists
 
+
   if (!phone) {
     document.getElementById("error-message").innerText =
       "Phone number is required.";
     form["register-phone"].style.borderColor = "red";
     return;
   }
+
 
   // check if the phone number is vaild according to the country code
 
@@ -97,6 +121,8 @@ window.register = async (event) => {
     form["register-address"].style.borderColor = "red";
     return;
   }
+
+
   if (!birthDate) {
     document.getElementById("error-message").innerText =
       "Birth date is required.";
@@ -114,7 +140,17 @@ window.register = async (event) => {
         "You must be at least 18 years old to register.";
       form["register-birthdate"].style.borderColor = "red";
       return;
+      
     }
+    else {
+    if (age > 150) {
+      document.getElementById("error-message").innerText =
+        "Please enter a valid birth date.";
+      form["register-birthdate"].style.borderColor = "red";
+      return;
+    }
+  }
+
   }
 
   if (!password) {
@@ -154,6 +190,7 @@ window.register = async (event) => {
     form["register-password"].style.borderColor = "red";
     return;
   }
+
   // Check if confirm password is provided and matches the password
 
   if (!confirmPassword) {
@@ -170,6 +207,7 @@ window.register = async (event) => {
 
     return;
   }
+
 
   try {
     // Firebase user creation (client-side)
