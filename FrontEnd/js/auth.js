@@ -223,6 +223,7 @@ window.login = async (event) => {
       email,
       password
     );
+
     const user = userCredential.user;
     console.log(user);
 
@@ -240,9 +241,24 @@ window.login = async (event) => {
     });
 
     const data = await res.json();
+    console.log("Backend response:", data);
 
-    const role = data.message;
+    const role = data.role || data.message; // fallback in case backend still sends only `message`
+    const name = data.name || "";
+    const emailFromBackend = data.email || "";
+
     console.log("User role:", role);
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        uid: user.uid,
+        email: emailFromBackend || user.email,
+        token: token,
+        role: role,
+        name: name,
+      })
+    );
 
     // Redirect based on role
     switch (role) {

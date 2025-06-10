@@ -184,14 +184,19 @@ const login = async (req, res) => {
   try {
     const user_docuement = await db.collection("users").doc(uid).get();
     //check if user not exist
-    if (!user_docuement) {
+    if (!user_docuement.exists) {
       return res
         .status(404)
         .json({ message: "User of this id is not exist!!!" });
     }
     //fetched user object
     const user = user_docuement.data();
-    res.status(200).json({ message: user.role });
+    console.log("user", user);
+    res.status(200).json({
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    });
   } catch (err) {
     console.error("something went wrong", err);
     res.status(500).json({ message: "something went wrong!!!" });
