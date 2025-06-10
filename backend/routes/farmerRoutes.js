@@ -32,7 +32,7 @@ const {
   generateDeliveryBarcode,
   createFarmerShipment,
   shipmentRequest,
-  createApprovedShipment
+  createApprovedShipment,
 } = require("../controllers/farmerController");
 
 // Apply base authentication to all routes
@@ -65,8 +65,7 @@ router.get("/farms/:farmId/crops", requireRole("farmer"), listCrops);
 // Get specific crop details with item information
 router.get("/farms/:farmId/crops/:cropId", requireRole("farmer"), getCrop);
 
-// Create crop with enhanced data structure (variety, avg_Weight_per_Unit, etc.)
-router.post("/create-crop", requireRole("farmer"), createCrop);
+router.post("/create-crop", authenticate, requireRole("farmer"), createCrop);
 
 // Update crop with new field support
 router.put("/crops/:cropId", requireRole(["farmer", "admin"]), updateCrop);
@@ -125,8 +124,8 @@ router.post(
 // CREATE: APPROVED shipment request specific to farmer
 router.post(
   "/approved-shipment",
-  requireRole("admin"),         // Only authenticated farmers allowed
-  createApprovedShipment         // Controller handles approval logic
+  requireRole("admin"), // Only authenticated farmers allowed
+  createApprovedShipment // Controller handles approval logic
 );
 
 // Create shipment from simple JSON payload (Farmer-only)
@@ -143,11 +142,7 @@ router.post(
 );
 
 // Create a simplified shipment request for the authenticated farmer
-router.post(
-  "/shipment-request",
-  requireRole("farmer"),
-  shipmentRequest
-);
+router.post("/shipment-request", requireRole("farmer"), shipmentRequest);
 
 // =================================================================
 // 🚚 DELIVERY ROUTES

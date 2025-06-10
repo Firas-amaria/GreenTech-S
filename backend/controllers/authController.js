@@ -85,8 +85,7 @@ const validateExtraFields = (position, fields) => {
         isString(fields.licenseType) &&
         isString(fields.fieldArea) &&
         isString(fields.crops) &&
-        isString(fields.pickupAddress) &&
-        isBoolean(fields.agriculturalInsurance)
+        isString(fields.pickupAddress)
       );
 
     case "deliverer":
@@ -97,6 +96,8 @@ const validateExtraFields = (position, fields) => {
         isString(fields.driverLicenseNumber) &&
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
+        isBoolean(fields.acceptAgreement) &&
+        isBoolean(fields.certifyAccuracy) &&
         typeof fields.availabilitySchedule === "object" &&
         (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
       );
@@ -110,6 +111,8 @@ const validateExtraFields = (position, fields) => {
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
         isBoolean(fields.refrigerated) &&
+        isBoolean(fields.acceptAgreement) &&
+        isBoolean(fields.certifyAccuracy) &&
         typeof fields.availabilitySchedule === "object" &&
         (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
       );
@@ -140,9 +143,10 @@ const requestEmployment = async (req, res) => {
   } = req.body;
 
   console.log("Request Employment Data:", req.body);
+  console.log("req.user?.uid:", req.user);
 
-  let userId = ""; // Assuming authentication middleware sets req.user
-  userId = "WkhbrMJ8qiUKf3Ddo815SJbdOUB2";
+  const userId = req.user?.uid; // Assuming authentication middleware sets req.user
+
   if (!userId) {
     return res
       .status(401)
@@ -152,9 +156,6 @@ const requestEmployment = async (req, res) => {
   if (!acceptAgreement || !certifyAccuracy) {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
-
-  console.log("Position:", position);
-  console.log("Extra Fields:", extraFields);
 
   if (!validateExtraFields(position, extraFields)) {
     return res.status(400).send({
