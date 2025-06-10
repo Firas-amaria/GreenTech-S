@@ -65,8 +65,17 @@ const mockRoles = [
     ],
   },
   {
-name: "logistic center worker",
+name: "sorting",
     description: "general worker in the logistics center , sorting employee.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
+  },
+   {
+    name: "warehouse-worker",
+    description: "Operates heavy-duty vehicles and equipment.",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
