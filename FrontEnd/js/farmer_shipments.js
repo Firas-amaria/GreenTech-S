@@ -88,12 +88,16 @@ function goToReport(shipmentId) {
   window.location.href = `f_shipment_report.html?shipmentId=${shipmentId}`;
 }
 
-// ===== Logout Link =====
-document.getElementById("logoutLink3").addEventListener("click", (e) => {
-  e.preventDefault();
-  alert("Logging out... (placeholder)");
-  // BACKEND: POST /api/logout → window.location.href = '/login.html';
-});
+const logoutBtn =
+  document.getElementById("btnLogout") ||
+  document.getElementById("logoutLink2");
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Logging out... (placeholder)");
+    // window.location.href = '/login.html';
+  });
+}
 
 // ===== Initial Render =====
 window.addEventListener("load", () => {

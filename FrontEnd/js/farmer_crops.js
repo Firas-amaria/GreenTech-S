@@ -86,11 +86,25 @@ function populateCropsTable() {
           <td>${crop.plantedAmount}</td>
           <td>${formatDateOnly(crop.plantedOn)}</td>
           ${statusCell}
-          <td>${crop.percentage !== null ? crop.percentage + "%" : "N/A"}</td>
+<td><input type="number" value="${
+      crop.percentage
+    }" min="0" max="100" onchange="updateCropPercentage(${
+      crop.id
+    }, this.value)" /></td>
           <td><img src="${crop.imageUrl}" alt="${crop.item}"></td>
         `;
     tbody.appendChild(tr);
   });
+}
+
+function updateCropPercentage(cropId, newValue) {
+  const crop = cropsData.find((c) => c.id === cropId);
+  if (crop) {
+    const parsed = parseFloat(newValue);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+      crop.percentage = parsed;
+    }
+  }
 }
 
 function advanceCropStatus(id, newStatus) {
@@ -136,9 +150,13 @@ document.getElementById("btnAddCrop").addEventListener("click", () => {
 // Initialize
 populateCropsTable();
 
-// Optional logout event handler (if you want to handle logout)
-document.getElementById("logoutLink2").addEventListener("click", (e) => {
-  e.preventDefault();
-  alert("Logging out...");
-  // Add actual logout logic here
-});
+const logoutBtn =
+  document.getElementById("btnLogout") ||
+  document.getElementById("logoutLink2");
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Logging out... (placeholder)");
+    // window.location.href = '/login.html';
+  });
+}
