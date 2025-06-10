@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shipments | Farmer App</title>
-    <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
 
 </head>
 
@@ -61,112 +61,9 @@
     </div>
   </div>
 
-  <script>
-    /*******************************************************
-     * In-Memory Demo Data & Logic for Shipments Page
-     *******************************************************/
-    let approvedShipments = [
-      { id: 301, item: 'Tomato', amount: 120, pickupTime: '2025-06-02T08:00' },
-      { id: 302, item: 'Lettuce', amount: 80, pickupTime: '2025-06-01T09:30' },
-      { id: 303, item: 'Potato', amount: 200, pickupTime: '2025-06-04T11:00' }
-    ];
 
-    let shipmentRequests = [
-      { id: 1, item: 'Carrot', amount: 50, pickupTime: '2025-06-03T10:00' },
-      { id: 2, item: 'Spinach', amount: 40, pickupTime: '2025-06-05T13:30' }
-    ];
-
-    // ===== Utility: Format Date‐Time =====
-    function formatDateTimeLocal(dtLocal) {
-      const d = new Date(dtLocal);
-      if (isNaN(d)) return dtLocal;
-      return d.toLocaleString();
-    }
-
-    // ===== Populate Approved Shipments =====
-    function populateApprovedPage() {
-      approvedShipments.sort(
-        (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
-      );
-      const tbody = document.querySelector('#tblApprovedPage tbody');
-      tbody.innerHTML = '';
-      approvedShipments.forEach(sh => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${sh.id}</td>
-          <td>${formatDateTimeLocal(sh.pickupTime)}</td>
-          <td>${sh.item}</td>
-          <td>
-            <button class="btn-primary" onclick="goToReport(${sh.id})">
-              Shipment Report
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // ===== Populate Shipment Requests =====
-    function populateRequestsPage() {
-      const tbody = document.querySelector('#tblRequestsPage tbody');
-      tbody.innerHTML = '';
-      shipmentRequests.forEach(req => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${req.item}</td>
-          <td>${req.amount}</td>
-          <td>${formatDateTimeLocal(req.pickupTime)}</td>
-          <td>
-            <button class="btn-success" onclick="approveRequest(${req.id})">
-              Approve
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function approveRequest(requestId) {
-      const idx = shipmentRequests.findIndex(r => r.id === requestId);
-      if (idx < 0) return;
-      const req = shipmentRequests.splice(idx, 1)[0];
-      const newShipmentId = (approvedShipments.length
-        ? Math.max(...approvedShipments.map(s => s.id)) + 1
-        : 301
-      );
-      approvedShipments.push({
-        id: newShipmentId,
-        item: req.item,
-        amount: req.amount,
-        pickupTime: req.pickupTime
-      });
-      populateApprovedPage();
-      populateRequestsPage();
-      alert(`Request #${requestId} approved as Shipment #${newShipmentId}.`);
-      // BACKEND: Instead of local splice/push, call:
-      // POST /api/shipments/requests/{requestId}/approve
-      // then re-fetch lists from the server.
-    }
-
-    // ===== Go to Shipment Report =====
-    function goToReport(shipmentId) {
-      window.location.href = `f_shipment_report.html?shipmentId=${shipmentId}`;
-    }
-
-    // ===== Logout Link =====
-    document.getElementById('logoutLink3').addEventListener('click', e => {
-      e.preventDefault();
-      alert('Logging out... (placeholder)');
-      // BACKEND: POST /api/logout → window.location.href = '/login.html';
-    });
-
-    // ===== Initial Render =====
-    window.addEventListener('load', () => {
-      populateApprovedPage();
-      populateRequestsPage();
-    });
-  </script>
   <script src="../js/w_sidebar_menu.js"></script>
+  <script src="../js/farmer_shipments.js"></script>
 </body>
 
 </html>
