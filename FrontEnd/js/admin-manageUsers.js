@@ -24,7 +24,7 @@ const allRoles = [
   // Existing roles (match those used elsewhere)
   "driver",
   "picker",
-  "supervisor",
+  
   "farmer",
   // New managerial roles
   "farmer manager",

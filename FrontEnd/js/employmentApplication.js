@@ -13,6 +13,16 @@ import {
 
 console.log("employmentApplication.js loaded");
 
+//make sure user is logged in 
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("User is logged in:", user);
+    // You can store user details in localStorage/sessionStorage if needed
+  } else {
+    console.log("No user logged in, redirecting...");
+    window.location.href = "login.html"; // Redirect to login page
+  }
+});
 // Log out link
 document.getElementById("logout-link").addEventListener("click", () => {
   signOut(auth);
@@ -41,8 +51,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "supervisor",
-    description: "Oversees operations and staff.",
+    name: "Industrial-driver",
+    description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -59,7 +69,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "industrial",
+    name: "warehouse-worker",
     description: "Operates heavy-duty vehicles and equipment.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -68,8 +78,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "warehouseworker",
-    description: "Manages inventory in the warehouse.",
+    name: "sorting",
+    description: "general worker in the logistics center , sorting employee.",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -95,13 +105,16 @@ onAuthStateChanged(auth, async (user) => {
     return (window.location.href = "login.html");
   }
 
-  // 2) Fetch user profile from backend
+  ///2) Fetch user profile from backend
+ 
+
   // const token = await getCurrentUserToken();
   // const res = await fetch('/api/user-profile', {
   //   method: 'GET',
   //   headers: { 'Authorization': `Bearer ${token}` }
   // });
   // const profile = await res.json();
+
 
   // Mock profile data from backend:
   const profile = {
