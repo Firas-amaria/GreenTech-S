@@ -207,7 +207,6 @@ async function renderApplicationForm() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const formData = new FormData(form);
     const reserved = ["role", "submittedAt", "agreement"];
 
