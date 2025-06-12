@@ -2,17 +2,16 @@
 // Handles rendering a weekly availability schedule and extracting the selected values
 
 // Days of the week for the schedule
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // Simulate fetching shift definitions from a database or API
-async function fetchShifts() {
+export async function fetchShifts() {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([
-        { name: "Morning",    start: "07:00", end: "9:00" },
+        { name: "Morning",    start: "07:00", end: "09:00" },
         { name: "Afternoon",  start: "12:00", end: "13:00" },
-        { name: "Evening",    start: "18:00", end: "19:00" },
-   
+        { name: "Evening",    start: "18:00", end: "19:00" }
       ]);
     }, 50);
   });
@@ -23,24 +22,28 @@ function formatTime(timeStr) {
   const [h, m] = timeStr.split(":").map((x) => parseInt(x, 10));
   const suffix = h >= 12 && h < 24 ? "PM" : "AM";
   const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12} ${suffix}`;
+  return `${hour12}:${m.toString().padStart(2, '0')} ${suffix}`;
 }
 
 /**
- * Initialize the schedule table inside the given container.
- * Expects the container to have a <tbody> where rows will be injected.
+ * Initialize the schedule table inside the given container (form or section).
+ * Expects the container to have a <table> with <tbody> where rows will be injected.
  */
 export async function initSchedule(container) {
   const shifts = await fetchShifts();
+  // The <tbody> of #scheduleTable or within the form
   const tbody = container.querySelector('tbody');
   tbody.innerHTML = '';
 
   shifts.forEach((shift) => {
     const row = document.createElement('tr');
 
-    // Shift label cell
+    // Shift label cell with name and times
     const labelCell = document.createElement('td');
-    labelCell.innerHTML = `${shift.name} <br>(${formatTime(shift.start)} - ${formatTime(shift.end)})`;
+    labelCell.innerHTML = `
+      <strong>${shift.name}</strong><br>
+      <small>(${formatTime(shift.start)} - ${formatTime(shift.end)})</small>
+    `;
     row.appendChild(labelCell);
 
     // One checkbox cell per day
@@ -50,7 +53,11 @@ export async function initSchedule(container) {
       checkbox.type = 'checkbox';
       checkbox.name = day;
       checkbox.value = shift.name;
-      cell.appendChild(checkbox);
+      checkbox.id = `chk-${day}-${shift.name}`;
+      const label = document.createElement('label');
+      label.htmlFor = checkbox.id;
+      label.appendChild(checkbox);
+      cell.appendChild(label);
       row.appendChild(cell);
     });
 
