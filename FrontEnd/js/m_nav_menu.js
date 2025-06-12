@@ -3,15 +3,6 @@
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  //Remove this after integration
-  localStorage.setItem(
-    "user",
-    JSON.stringify({
-      fullName: "Alice Friedman",
-      role: "admin", // or "transportation manager", etc.
-    })
-  );
-
   const user = JSON.parse(localStorage.getItem("user"));
 
   const nav = document.getElementById("main-nav");
@@ -50,6 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
     menuItems = [{ href: "schedule.html", text: "Schedule" }];
   }
 
+  menuItems.unshift({
+    href: "#",
+    text: `Welcome, ${name}`,
+    className: "user-greeting",
+  });
+
   // Always include Logout
   menuItems.push({
     href: "#",
@@ -74,4 +71,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   nav.innerHTML = ""; // clear existing nav
   nav.appendChild(ul);
+
+  const logoutLink = document.getElementById("logout-link");
+  if (logoutLink) {
+    logoutLink.addEventListener("click", () => {
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    });
+  }
 });

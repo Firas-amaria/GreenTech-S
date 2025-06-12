@@ -1,64 +1,68 @@
 // ==========================================
-// w_sidebar_menu.js — Dynamic Worker Sidebar
+// w_sidebar_menu.js — Dynamic Role-Based Sidebar
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  localStorage.setItem(
-    "user",
-    JSON.stringify({
-      fullName: "David Shapiro",
-      role: "farmer", // or "driver", "picker"
-    })
-  );
-
   const user = JSON.parse(localStorage.getItem("user"));
   const sidebar = document.querySelector("nav.sidebar");
 
   if (!user || !user.role || !sidebar) {
-    console.warn("Worker role or sidebar missing.");
+    console.warn("User role or sidebar element missing.");
     return;
   }
 
   const role = user.role.toLowerCase();
+  const name = user.name || "User";
+
   let appTitle = "";
   let links = [];
 
+  // ✅ Role-based sidebar config
   if (role === "farmer") {
-    appTitle = "Farmer App";
+    appTitle = "Farmer Panel";
     links = [
       { href: "f_dashboard.html", text: "Dashboard" },
       { href: "f_crops.html", text: "Crops" },
       { href: "f_shipments.html", text: "Shipments" },
     ];
   } else if (role === "driver") {
-    appTitle = "Driver App";
+    appTitle = "Driver Panel";
     links = [
       { href: "d_dashboard.html", text: "Dashboard" },
       { href: "d_routes.html", text: "Routes" },
       { href: "d_shipments.html", text: "Shipments" },
     ];
   } else if (role === "picker") {
-    appTitle = "Picker App";
+    appTitle = "Picker Panel";
     links = [
       { href: "p_dashboard.html", text: "Dashboard" },
       { href: "p_tasks.html", text: "Picking Tasks" },
       { href: "p_inventory.html", text: "Inventory" },
     ];
   } else {
-    appTitle = "Worker App";
+    appTitle = "Worker Panel";
     links = [{ href: "#", text: "Home" }];
   }
 
-  links.push({ href: "#", text: "Logout", id: "logoutLink2" });
+  // ✅ Add name display and logout
+  links.unshift({
+    href: "#",
+    text: `Welcome, ${name}`,
+    className: "user-greeting",
+  });
+  links.push({ href: "#", text: "Logout", id: "logoutLink" });
 
-  sidebar.innerHTML = ""; // Clear current sidebar
+  // ✅ Clear and rebuild sidebar
+  sidebar.innerHTML = "";
 
   const titleEl = document.createElement("h2");
   titleEl.textContent = appTitle;
+  sidebar.appendChild(titleEl);
 
   const ul = document.createElement("ul");
   links.forEach((link) => {
     const li = document.createElement("li");
+    if (link.className) li.classList.add(link.className);
     const a = document.createElement("a");
     a.href = link.href;
     a.textContent = link.text;
@@ -67,6 +71,14 @@ document.addEventListener("DOMContentLoaded", () => {
     ul.appendChild(li);
   });
 
-  sidebar.appendChild(titleEl);
   sidebar.appendChild(ul);
+
+  // ✅ Logout logic
+  const logoutBtn = document.getElementById("logoutLink");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    });
+  }
 });

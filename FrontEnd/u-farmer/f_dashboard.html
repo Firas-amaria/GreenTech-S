@@ -7,6 +7,8 @@
   <title>Dashboard | Farmer App</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/f_dashboard.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+
 </head>
 
 <body>
@@ -16,6 +18,8 @@
 
   <!-- ===== Main Content ===== -->
   <div class="main">
+
+
     <h1>Dashboard Overview</h1>
 
     <!-- ===== Approved Shipments ===== -->
@@ -32,7 +36,7 @@
         </thead>
         <tbody></tbody>
       </table>
-      <button class="btn-primary" onclick="location.href='shipments.html'">View All Shipments</button>
+      <button class="btn-primary" onclick="location.href='f_shipments.html'">View All Shipments</button>
     </div>
 
     <!-- ===== Shipment Requests ===== -->
@@ -49,7 +53,7 @@
         </thead>
         <tbody></tbody>
       </table>
-      <button class="btn-primary" onclick="location.href='shipments.html'">View All Shipments</button>
+      <button class="btn-primary" onclick="location.href='f_shipments.html'">View All Shipments</button>
     </div>
 
     <!-- ===== Crops Status Summary ===== -->
@@ -71,9 +75,9 @@
       <button class="btn-primary" onclick="location.href='crops.html'">Manage Crops</button>
     </div>
   </div>
-
+  <script src="../js/layout.js"></script>
   <!-- ===== Script Section ===== -->
-  <script type="module">
+  <!-- <script type="module">
     // Sample data
     const approvedShipments = [
       { id: 301, item: 'Tomato', amount: 120, pickupTime: '2025-06-02T08:00' },
@@ -224,21 +228,23 @@
     };
 
     // Logout (placeholder)
-    document.getElementById('logoutLink').addEventListener('click', e => {
+   /* document.getElementById('logoutLink').addEventListener('click', e => {
       e.preventDefault();
       alert('Logging out... (placeholder)');
       // Redirect after real logout
       // window.location.href = '/login.html';
     });
-
+*/
     // Initial page load
     window.addEventListener('load', () => {
       populateApprovedDash();
       populateRequestsDash();
       populateCropsTable();
     });
-  </script>
+  </script> -->
   <script src="../js/w_sidebar_menu.js"></script>
+  <script src="../js/farmer-dashboard.js"></script>
+
 
 </body>
 
