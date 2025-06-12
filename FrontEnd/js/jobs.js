@@ -36,7 +36,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "Industrial-driver",
+    name: "industrial-driver",
     description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },

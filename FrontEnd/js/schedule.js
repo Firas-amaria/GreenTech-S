@@ -9,10 +9,10 @@ async function fetchShifts() {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([
-        { name: "Morning",    start: "06:00", end: "12:00" },
-        { name: "Afternoon",  start: "12:00", end: "18:00" },
-        { name: "Evening",    start: "18:00", end: "00:00" },
-        { name: "Late Night", start: "00:00", end: "06:00" },
+        { name: "Morning",    start: "07:00", end: "9:00" },
+        { name: "Afternoon",  start: "12:00", end: "13:00" },
+        { name: "Evening",    start: "18:00", end: "19:00" },
+   
       ]);
     }, 50);
   });
