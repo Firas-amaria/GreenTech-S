@@ -40,14 +40,23 @@ function formatTime(timeStr) {
 export async function initSchedule(container) {
   const shifts = await fetchShifts();
   // The <tbody> of #scheduleTable or within the form
+<<<<<<< HEAD
   const tbody = container.querySelector("tbody");
   tbody.innerHTML = "";
+=======
+  const tbody = container.querySelector('tbody');
+  tbody.innerHTML = '';
+>>>>>>> 23732c7 (need to  prepare the pages as if fetching from backend the data aka the mock data file if for job application review)
 
   shifts.forEach((shift) => {
     const row = document.createElement("tr");
 
     // Shift label cell with name and times
+<<<<<<< HEAD
     const labelCell = document.createElement("td");
+=======
+    const labelCell = document.createElement('td');
+>>>>>>> 23732c7 (need to  prepare the pages as if fetching from backend the data aka the mock data file if for job application review)
     labelCell.innerHTML = `
       <strong>${shift.name}</strong><br>
       <small>(${formatTime(shift.start)} - ${formatTime(shift.end)})</small>
@@ -62,7 +71,11 @@ export async function initSchedule(container) {
       checkbox.name = day;
       checkbox.value = shift.name;
       checkbox.id = `chk-${day}-${shift.name}`;
+<<<<<<< HEAD
       const label = document.createElement("label");
+=======
+      const label = document.createElement('label');
+>>>>>>> 23732c7 (need to  prepare the pages as if fetching from backend the data aka the mock data file if for job application review)
       label.htmlFor = checkbox.id;
       label.appendChild(checkbox);
       cell.appendChild(label);
