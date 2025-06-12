@@ -191,7 +191,7 @@ const login = async (req, res) => {
     }
     //fetched user object
     const user = user_docuement.data();
-    console.log("user", user);
+    // console.log("user", user);
     res.status(200).json({
       role: user.role,
       name: user.name,
