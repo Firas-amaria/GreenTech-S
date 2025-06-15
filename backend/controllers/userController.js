@@ -40,9 +40,32 @@ const getEmailDocumnets = async (req, res) => {
 
 
 
+// Get employment application from 'employmentApplications/{uid}' for user itself
+// Returns only status
+const getApplication = async (req, res) => {
+  const uid = req.user.uid;
+
+  try {
+    // Fetch application document from 'employmentApplications' collection
+    const applicationDoc = await db
+      .collection("employmentApplications")
+      .doc(uid)
+      .get();
+
+    // If the document doesn't exist, return 404
+    if (!applicationDoc.exists)
+      return res.status(404).send({ error: "Application not found" });
+
+    // Return the full application data without filtering
+    res.send(applicationDoc.data().status);
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+}
 
 module.exports = {
   getProfile,
-  getEmailDocumnets
+  getEmailDocumnets,
+  getApplication
   
 };

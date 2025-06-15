@@ -27,13 +27,15 @@ const {
   getAllFarmerRatings,
   getDashboard,
   getPerformance,
-  // New delivery imports
   createDelivery,
   getDeliveryHistory,
   generateDeliveryBarcode,
+  createFarmerShipment,
+  shipmentRequest,
+  createApprovedShipment
 } = require("../controllers/farmerController");
 
-// Apply base authentication to all routes (farmers only by default)
+// Apply base authentication to all routes
 router.use(authenticate);
 
 // =================================================================
@@ -41,12 +43,7 @@ router.use(authenticate);
 // =================================================================
 
 // List all farms (Admin/Manager access only - for system oversight)
-router.get(
-  "/farms",
-  authenticate,
-  requireRole(["admin", "farmerManager"]),
-  listFarms
-);
+router.get("/farms", requireRole(["admin", "farmerManager"]), listFarms);
 
 // Get specific farm by ID (Multi-role access - farmers can only access their own)
 router.get(
@@ -56,89 +53,100 @@ router.get(
 );
 
 // Get authenticated farmer's own farms (Farmer-only - token-based security)
-router.get("/my-farms", authenticate, requireRole("farmer"), getFarmerFarms);
+router.get("/my-farms", requireRole("farmer"), getFarmerFarms);
 
 // =================================================================
-// 🌾 CROP ROUTES
+// 🌾 CROP ROUTES - Enhanced with NEW_DATA structure
 // =================================================================
 
-// List crops for a specific farm (Farmer-only - ownership verified in controller)
-router.get(
-  "/farms/:farmId/crops",
-  authenticate,
-  requireRole("farmer"),
-  listCrops
-);
+// List crops for a specific farm with filters (status, itemId)
+router.get("/farms/:farmId/crops", requireRole("farmer"), listCrops);
 
-// Get specific crop details (Farmer-only - ownership verified in controller)
-router.get(
-  "/farms/:farmId/crops/:cropId",
-  authenticate,
-  requireRole("farmer"),
-  getCrop
-);
+// Get specific crop details with item information
+router.get("/farms/:farmId/crops/:cropId", requireRole("farmer"), getCrop);
 
-router.post("/create-crop", authenticate, requireRole("admin"), createCrop);
+// Create crop with enhanced data structure (variety, avg_Weight_per_Unit, etc.)
+router.post("/create-crop", requireRole("farmer"), createCrop);
 
-router.put("/crops/:cropId", authenticate, requireRole("admin"), updateCrop);
+// Update crop with new field support
+router.put("/crops/:cropId", requireRole(["farmer", "admin"]), updateCrop);
 
-router.delete("/crops/:cropId", authenticate, requireRole("admin"), deleteCrop);
+// Delete crop (farmer can delete their own)
+router.delete("/crops/:cropId", requireRole(["farmer", "admin"]), deleteCrop);
 
 // =================================================================
-// 📄 REPORT ROUTES - Using Reports Collection
+// 📄 REPORT ROUTES - Enhanced reporting system
 // =================================================================
 
 // Get specific report by ID (Admin/Manager access)
 router.get(
   "/report/:reportId",
-  authenticate,
   requireRole(["admin", "farmerManager"]),
   getReport
 );
 
-// Get farmer's own reports (Farmer-only - token-based security)
-router.get("/report", authenticate, requireRole("farmer"), getFarmerReport);
+// Get farmer's own reports with type filtering
+router.get("/report", requireRole("farmer"), getFarmerReport);
 
-// Generate crop report (Multi-role access)
+// Generate enhanced crop report with NEW_DATA metrics
 router.get(
   "/crops/:cropId/report",
-  authenticate,
   requireRole(["farmer", "admin", "farmerManager"]),
   getCropReport
 );
 
-// List all reports (Admin/Manager access)
-router.get(
-  "/reports",
-  authenticate,
-  requireRole(["admin", "farmerManager"]),
-  getAllReports
-);
+// List all reports with filtering (Admin/Manager access)
+router.get("/reports", requireRole(["admin", "farmerManager"]), getAllReports);
 
 // Create custom report (Farmer-only)
-router.post("/reports", authenticate, requireRole("farmer"), createReport);
+router.post("/reports", requireRole("farmer"), createReport);
+
 // =================================================================
-// 📦 SHIPMENT ROUTES
+// 📦 SHIPMENT ROUTES - Enhanced with NEW_DATA structure
 // =================================================================
 
-// List farmer's shipments (Farmer-only - token-based filtering)
-router.get("/shipments", authenticate, requireRole("farmer"), listShipments);
+// List farmer's shipments with filtering (status, farmId)
+router.get("/shipments", requireRole("farmer"), listShipments);
 
+// Get specific shipment details
 router.get(
   "/shipments/:shipmentId",
-  authenticate,
-  requireRole(["admin", "farmerManager"]),
+  requireRole(["farmer", "admin", "farmerManager"]),
   getShipment
 );
 
-router.post("/shipments", authenticate, requireRole("admin"), createShipment);
+// CREATE: SHIPMENT REQUEST specific to farmer (item, quantity, pickupTime)
+router.post(
+  "/shipment-request",
+  requireRole("admin"), // Only authenticated farmers allowed
+  createFarmerShipment
+);
 
-// Generate QR code/barcode for shipment tracking (Farmer-only)
+// CREATE: APPROVED shipment request specific to farmer
+router.post(
+  "/approved-shipment",
+  requireRole("admin"),         // Only authenticated farmers allowed
+  createApprovedShipment         // Controller handles approval logic
+);
+
+// Create shipment from simple JSON payload (Farmer-only)
+router.post("/shipments/simple", requireRole("farmer"), createFarmerShipment);
+
+// Create shipment with enhanced structure (pickupTime, driver, items)
+router.post("/shipments", requireRole("farmer"), createShipment);
+
+// Generate QR code/barcode for shipment tracking
 router.post(
   "/shipments/:shipmentId/barcode",
-  authenticate,
   requireRole(["admin", "farmerManager", "farmer"]),
   generateBarcode
+);
+
+// Create a simplified shipment request for the authenticated farmer
+router.post(
+  "/shipment-request",
+  requireRole("farmer"),
+  shipmentRequest
 );
 
 // =================================================================
@@ -146,76 +154,60 @@ router.post(
 // =================================================================
 
 // Create delivery form/record (Farmer-only - for produce deliveries)
-router.post(
-  "/delivery-form",
-  authenticate,
-  requireRole("farmer"),
-  createDelivery
-);
+router.post("/delivery-form", requireRole("farmer"), createDelivery);
 
-// Get delivery history (Farmer-only - token-based filtering with optional filters)
-router.get(
-  "/delivery-history",
-  authenticate,
-  requireRole("farmer"),
-  getDeliveryHistory
-);
+// Get delivery history with filtering (status, farmId)
+router.get("/delivery-history", requireRole("farmer"), getDeliveryHistory);
 
 // Generate QR code for delivery tracking (Farmer-only)
 router.post(
   "/deliveries/:deliveryId/barcode",
-  authenticate,
   requireRole("farmer"),
   generateDeliveryBarcode
 );
 
 // =================================================================
-// 🥕 ITEM CATALOG ROUTES (Read-only)
+// 🥕 ITEM CATALOG ROUTES - Enhanced with filtering
 // =================================================================
 
-// List available produce items (Farmer-only - for crop reporting/shipments)
-router.get("/items", authenticate, requireRole("farmer"), listItems); // @@@@ need to add query field
+// List available produce items with category/season filtering
+router.get("/items", requireRole("farmer"), listItems);
 
-router.get("/items/:itemId", authenticate, getItem);
+// Get specific item details with quality standards
+router.get("/items/:itemId", requireRole("farmer"), getItem);
 
 // =================================================================
-// ⭐ RATING/FEEDBACK ROUTES - New Structure
+// ⭐ RATING/FEEDBACK ROUTES
 // =================================================================
 
-// Get farmer's own ratings (Farmer-only - see their rating summary)
-router.get("/my-ratings", authenticate, requireRole("farmer"), getMyRatings);
+// Get farmer's own ratings summary
+router.get("/my-ratings", requireRole("farmer"), getMyRatings);
 
 // Get specific farmer's ratings by farmerId (Admin/Manager access)
 router.get(
   "/ratings/:farmerId",
-  authenticate,
   requireRole(["admin", "farmerManager"]),
   getFarmerRating
 );
 
-// Add/Update rating for a farmer (Customer-only - customers rate farmers)
-router.post(
-  "/ratings/:farmerId",
-  authenticate,
-  requireRole("customer"),
-  addOrUpdateRating
-);
+// Add/Update rating for a farmer (Customer-only)
+router.post("/ratings/:farmerId", requireRole("customer"), addOrUpdateRating);
 
 // Get all farmers with their ratings (Admin-only - for analytics)
 router.get(
   "/all-ratings",
-  authenticate,
   requireRole(["admin", "farmerManager"]),
   getAllFarmerRatings
 );
+
 // =================================================================
 // 📊 DASHBOARD & ANALYTICS ROUTES
 // =================================================================
 
-// Get farmer dashboard overview (Farmer-only - personal metrics/summary)
-router.get("/dashboard", authenticate, requireRole("farmer"), getDashboard);
+// Get farmer dashboard overview with summary metrics
+router.get("/dashboard", requireRole("farmer"), getDashboard);
 
-// Get performance metrics (Farmer-only - detailed analytics for farmer)
-router.get("/performance", authenticate, requireRole("farmer"), getPerformance);
+// Get detailed performance metrics
+router.get("/performance", requireRole("farmer"), getPerformance);
 
 module.exports = router;
