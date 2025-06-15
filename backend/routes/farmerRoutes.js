@@ -65,7 +65,8 @@ router.get("/farms/:farmId/crops", requireRole("farmer"), listCrops);
 // Get specific crop details with item information
 router.get("/farms/:farmId/crops/:cropId", requireRole("farmer"), getCrop);
 
-router.post("/create-crop", authenticate, requireRole("farmer"), createCrop);
+// Create crop with enhanced data structure (variety, avg_Weight_per_Unit, etc.)
+router.post("/create-crop", requireRole("farmer"), createCrop);
 
 // Update crop with new field support
 router.put("/crops/:cropId", requireRole(["farmer", "admin"]), updateCrop);
@@ -115,16 +116,13 @@ router.get(
 );
 
 // CREATE: SHIPMENT REQUEST specific to farmer (item, quantity, pickupTime)
-router.post(
-  "/shipment-request",
-  requireRole("admin"), // Only authenticated farmers allowed
-  createFarmerShipment
-);
+router.post("/shipment-request", requireRole("farmer"), createFarmerShipment);
 
 // CREATE: APPROVED shipment request specific to farmer
+// Similar to /shipment-request but sets status to "approved" immediately
 router.post(
   "/approved-shipment",
-  requireRole("admin"), // Only authenticated farmers allowed
+  requireRole("farmer"), // Only authenticated farmers allowed
   createApprovedShipment // Controller handles approval logic
 );
 

@@ -181,7 +181,6 @@ async function getCrop(req, res) {
 async function createCrop(req, res) {
   try {
     const {
-      // item_name, variety**, Avg_Weight_per_Unit,expected_fruiting_per_plant,percentage_status,percentage_total
       farmId,
       itemId,
       variety,
@@ -851,20 +850,8 @@ async function shipmentRequest(req, res) {
     const farmDoc = farmsSnapshot.docs[0];
     const farmId = farmDoc.id;
 
-    for (const item of items) {
-      totalWeight += parseFloat(item.weight || 0);
-      totalVolume += parseFloat(item.volume || 0);
-    }
-
-    //CREATE// create shipent before final deleiver .. like add when it gonna be ended... farmer_shipment_report -- קיים בקובץ משותף MOCK DATA
-
-    //CREATE// SHIPMENT REQUENST SPEICIF TO FARMER
-    // THEN
-    //CREATE// APPROVED SPEICIF TO FARMER
-
-    // Create shipment document with SAME STRUCTURE as test data
+    // Build the shipment data structure
     const shipmentData = {
-      farmId, // pick address instead of land
       farmerId: req.user.uid,
       farmId,
       pickupTime,
