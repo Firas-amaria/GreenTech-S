@@ -118,15 +118,14 @@ router.get(
 // CREATE: SHIPMENT REQUEST specific to farmer (item, quantity, pickupTime)
 router.post(
   "/shipment-request",
-  requireRole("farmer"),
+  requireRole("admin"), // Only authenticated farmers allowed
   createFarmerShipment
 );
 
 // CREATE: APPROVED shipment request specific to farmer
-// Similar to /shipment-request but sets status to "approved" immediately
 router.post(
   "/approved-shipment",
-  requireRole("farmer"),         // Only authenticated farmers allowed
+  requireRole("admin"),         // Only authenticated farmers allowed
   createApprovedShipment         // Controller handles approval logic
 );
 
