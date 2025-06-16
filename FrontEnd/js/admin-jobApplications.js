@@ -1,9 +1,7 @@
-// ==========================================
-// js/jobApplications.js
-// ==========================================
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
-// ********** MOCK DATA **********
-let mockRoles = [
+// ====== Local Role Definitions ======
+const mockRoles = [
   {
     name: "driver",
     description: "Responsible for transporting shipments.",
@@ -64,664 +62,273 @@ let mockRoles = [
   },
 ];
 
-// A list of mock applications (unchanged)
-const mockApplications = [
-  {
-    id: "APP-1001",
-    role: "farmer",
-    fullName: "Yossi Cohen",
-    timeApplied: "2025-05-20T09:15:00Z",
-    status: "pending",
-    details: {
-      email: "yossi@example.com",
-      phone: "+972-50-1112222",
-      farmName: "Green Valley Farms",
-      experience: "5 years",
-      bankDetails: {
-        accountNumber: "IL12 3456 7890 1234 5678 901",
-        bankName: "Bank Hapoalim",
-      },
-      documents: {
-        idCard: "url-to-id-card.pdf",
-        bankStatement: "url-to-bank-statement.pdf",
-      },
-    },
-  },
-  {
-    id: "APP-1002",
-    role: "driver",
-    fullName: "Miriam Levy",
-    timeApplied: "2025-05-21T11:30:00Z",
-    status: "contacted",
-    details: {
-      email: "miriam.levy@example.com",
-      phone: "+972-52-3334444",
-      licenseNumber: "DR-55667788",
-      vehicleType: "Truck",
-      bankDetails: {
-        accountNumber: "IL98 7654 3210 9876 5432 109",
-        bankName: "Leumi",
-      },
-      documents: {
-        driverLicense: "url-to-driver-license.pdf",
-        vehicleRegistration: "url-to-vehicle-registration.pdf",
-      },
-    },
-  },
-  {
-    id: "APP-1003",
-    role: "supervisor",
-    fullName: "David Mizrahi",
-    timeApplied: "2025-05-22T14:45:00Z",
-    status: "pending",
-    details: {
-      email: "david.mizrahi@example.com",
-      phone: "+972-54-5556666",
-      yearsOfExperience: "8 years",
-      previousCompany: "LogiCorp Ltd.",
-      bankDetails: {
-        accountNumber: "IL22 2222 3333 4444 5555 666",
-        bankName: "Discount Bank",
-      },
-      documents: {
-        resume: "url-to-resume.pdf",
-      },
-    },
-  },
-];
+let applicationsFromBackend = [];
 
-// ********** HELPERS **********
-
-// Format ISO timestamp → "YYYY-MM-DD hh:mm"
-function formatTimestamp(iso) {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
-}
-
-// ********** SUB-NAVIGATION HANDLING **********
-
-function showReviewTab() {
-  document.getElementById("tab-review").classList.add("sub-active");
-  document.getElementById("tab-jobs").classList.remove("sub-active");
-  document.getElementById("review-section").style.display = "block";
-  document.getElementById("jobs-section").style.display = "none";
-}
-
-function showJobsTab() {
-  document.getElementById("tab-jobs").classList.add("sub-active");
-  document.getElementById("tab-review").classList.remove("sub-active");
-  document.getElementById("jobs-section").style.display = "block";
-  document.getElementById("review-section").style.display = "none";
-}
-
-// ********** RENDERING ROLES (Jobs Section) **********
-
-// Render the roles table (Name above Description)
-function renderRolesTable() {
-  const tbody = document.querySelector("#roles-table tbody");
-  tbody.innerHTML = "";
-
-  mockRoles.forEach((roleObj, idx) => {
-    const row = document.createElement("tr");
-    row.dataset.index = idx; // store index for reference
-
-    row.innerHTML = `
-      <td class="role-name-desc">
-        <strong>${roleObj.name}</strong><br>
-        <em>${roleObj.description}</em>
-      </td>
-      <td>
-        <button class="edit-role-btn" data-index="${idx}">Edit</button>
-        <button class="delete-role-btn" data-index="${idx}">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  populateRoleFilterOptions();
-}
-
-// Populate the "Filter by Role" dropdown (uses role name)
-function populateRoleFilterOptions() {
-  const select = document.getElementById("filter-role");
-  select.innerHTML = '<option value="">All Roles</option>';
-  mockRoles.forEach((roleObj) => {
-    const opt = document.createElement("option");
-    opt.value = roleObj.name;
-    opt.textContent = roleObj.name.charAt(0).toUpperCase() + roleObj.name.slice(1);
-    select.appendChild(opt);
-  });
-}
-
-// ********** ROLE EDITOR **********
-
-// Render the inline Role Editor beneath the role’s table row
-function renderRoleEditor(idx) {
-  // If an editor is already open, remove it first
-  const existingEditor = document.querySelector(".role-editor-row");
-  if (existingEditor) existingEditor.remove();
-
-  const roleObj = mockRoles[idx];
-  const table = document.getElementById("roles-table");
-  const tbody = table.querySelector("tbody");
-  const targetRow = tbody.querySelector(`tr[data-index="${idx}"]`);
-
-  // Create a new <tr> for the editor that spans 2 columns
-  const editorRow = document.createElement("tr");
-  editorRow.classList.add("role-editor-row");
-  editorRow.innerHTML = `
-    <td colspan="2" class="editor-container">
-      <div class="editor-content">
-        <h3>Edit Role: "${roleObj.name}"</h3>
-        <form id="edit-role-form">
-          <div class="form-group">
-            <label for="edit-role-name-${idx}"><strong>Title:</strong></label>
-            <input type="text" id="edit-role-name-${idx}" value="${roleObj.name}" required />
-          </div>
-          <div class="form-group">
-            <label for="edit-role-desc-${idx}"><strong>Job Description:</strong></label>
-            <input type="text" id="edit-role-desc-${idx}" value="${roleObj.description}" required />
-          </div>
-          <h4>Applicant Form Fields</h4>
-          <table id="fields-table-${idx}" class="fields-table">
-            <thead>
-              <tr>
-                <th>Field Label</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- JS will inject existing fields here -->
-            </tbody>
-          </table>
-          <button type="button" class="add-field-btn" data-index="${idx}">+ Add Field</button>
-          <div class="editor-actions">
-            <button type="submit" class="save-role-btn" data-index="${idx}">Save</button>
-            <button type="button" class="cancel-edit-btn">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </td>
-  `;
-  // Insert editorRow right after the targetRow
-  targetRow.insertAdjacentElement("afterend", editorRow);
-
-  // Populate the fields table with existing fields
-  const fieldsTbody = editorRow.querySelector(`#fields-table-${idx} tbody`);
-  fieldsTbody.innerHTML = "";
-  roleObj.fields.forEach((fieldObj, fidx) => {
-    const fieldRow = document.createElement("tr");
-    fieldRow.dataset.findex = fidx;
-    fieldRow.innerHTML = `
-      <td>
-        <input type="text" class="field-label-input" value="${fieldObj.label}" required />
-      </td>
-      <td>
-        <select class="field-type-select">
-          <option value="text" ${fieldObj.type === "text" ? "selected" : ""}>Text</option>
-          <option value="email" ${fieldObj.type === "email" ? "selected" : ""}>Email</option>
-          <option value="tel" ${fieldObj.type === "tel" ? "selected" : ""}>Phone</option>
-          <option value="number" ${fieldObj.type === "number" ? "selected" : ""}>Number</option>
-          <option value="date" ${fieldObj.type === "date" ? "selected" : ""}>Date</option>
-          <option value="file" ${fieldObj.type === "file" ? "selected" : ""}>File</option>
-        </select>
-      </td>
-      <td>
-        <button type="button" class="remove-field-btn" data-index="${idx}" data-findex="${fidx}">Remove</button>
-      </td>
-    `;
-    fieldsTbody.appendChild(fieldRow);
-  });
-
-  // Event: Add Field button
-  editorRow.querySelector(`.add-field-btn`).addEventListener("click", () => {
-    addNewField(idx);
-  });
-
-  // Event: Cancel button
-  editorRow.querySelector(".cancel-edit-btn").addEventListener("click", () => {
-    editorRow.remove();
-  });
-
-  // Event: Save Role button
-  editorRow.querySelector(`#edit-role-form`).addEventListener("submit", (e) => {
-    e.preventDefault();
-    saveRoleChanges(idx);
-  });
-
-  // Event Delegation: Remove Field buttons
-  fieldsTbody.addEventListener("click", (e) => {
-    if (e.target.classList.contains("remove-field-btn")) {
-      const fidx = parseInt(e.target.dataset.findex);
-      removeField(idx, fidx);
-    }
-  });
-}
-
-// Add a default new field when manager clicks “+ Add Field”
-function addNewField(roleIdx) {
-  const editorRow = document.querySelector(".role-editor-row");
-  if (!editorRow) return;
-  const fieldsTbody = editorRow.querySelector(`#fields-table-${roleIdx} tbody`);
-
-  // Add a new field object to mockRoles[roleIdx].fields
-  mockRoles[roleIdx].fields.push({ label: "New Field", type: "text" });
-  const newFidx = mockRoles[roleIdx].fields.length - 1;
-
-  // Re-render the fields row
-  const fieldObj = mockRoles[roleIdx].fields[newFidx];
-  const fieldRow = document.createElement("tr");
-  fieldRow.dataset.findex = newFidx;
-  fieldRow.innerHTML = `
-    <td>
-      <input type="text" class="field-label-input" value="${fieldObj.label}" required />
-    </td>
-    <td>
-      <select class="field-type-select">
-        <option value="text" selected>Text</option>
-        <option value="email">Email</option>
-        <option value="tel">Phone</option>
-        <option value="number">Number</option>
-        <option value="date">Date</option>
-        <option value="file">File</option>
-      </select>
-    </td>
-    <td>
-      <button type="button" class="remove-field-btn" data-index="${roleIdx}" data-findex="${newFidx}">Remove</button>
-    </td>
-  `;
-  fieldsTbody.appendChild(fieldRow);
-}
-
-// Remove a field from a role
-function removeField(roleIdx, fieldIdx) {
-  mockRoles[roleIdx].fields.splice(fieldIdx, 1);
-  renderRolesTable(); // re-render so that indexes update
-  // Re-open the editor after re-render
-  setTimeout(() => {
-    renderRoleEditor(roleIdx);
-  }, 0);
-}
-
-// Save changes made in the Role Editor
-function saveRoleChanges(roleIdx) {
-  const editorRow = document.querySelector(".role-editor-row");
-  const newName = editorRow.querySelector(`#edit-role-name-${roleIdx}`).value
-    .trim()
-    .toLowerCase();
-  const newDesc = editorRow.querySelector(`#edit-role-desc-${roleIdx}`).value.trim();
-
-  if (!newName || !newDesc) {
-    alert("Title and description cannot be empty.");
-    return;
-  }
-  // Check for duplicate role names (excluding current)
-  if (mockRoles.some((r, idx) => idx !== roleIdx && r.name === newName)) {
-    alert("Another role with that title already exists.");
-    return;
-  }
-
-  // Update fields from the table
-  const fieldsTbody = editorRow.querySelector(`#fields-table-${roleIdx} tbody`);
-  const updatedFields = [];
-  fieldsTbody.querySelectorAll("tr").forEach((row) => {
-    const labelInput = row.querySelector(".field-label-input").value.trim();
-    const typeSelect = row.querySelector(".field-type-select").value;
-    if (labelInput) {
-      updatedFields.push({ label: labelInput, type: typeSelect });
-    }
-  });
-
-  // Save changes to mockRoles
-  mockRoles[roleIdx] = {
-    name: newName,
-    description: newDesc,
-    fields: updatedFields,
-  };
-
-  // OPTIONAL: Send PUT to backend
-  // fetch(`/api/admin/roles/${mockRoles[roleIdx].nameBeforeEdit}`, {
-  //   method: "PUT",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(mockRoles[roleIdx]),
-  // })
-  //   .catch((err) => console.error(err));
-
+// ====== DOM Ready ======
+document.addEventListener("DOMContentLoaded", async () => {
+  setupTabs();
   renderRolesTable();
+  setupRoleEditorHandlers();
+  setupAddRoleForm();
+  populateRoleFilter();
+
+  try {
+    applicationsFromBackend = await fetchApplications();
+
+    // Render each application using the new viewer
+    const container = document.getElementById("applications-list");
+    container.innerHTML = "";
+    applicationsFromBackend.forEach((app) => {
+      const card = renderDynamicApplicationCard(app);
+      container.appendChild(card);
+    });
+  } catch (e) {
+    console.error("Failed to load applications:", e);
+  }
+
+  document.getElementById("apply-app-filters").addEventListener("click", () => {
+    const role = document.getElementById("filter-role").value;
+    const filtered = role
+      ? applicationsFromBackend.filter((app) => app.position === role)
+      : applicationsFromBackend;
+
+    const container = document.getElementById("applications-list");
+    container.innerHTML = "";
+    filtered.forEach((app) => {
+      const card = renderDynamicApplicationCard(app);
+      container.appendChild(card);
+    });
+  });
+});
+
+// ====== Tab UI ======
+function setupTabs() {
+  document.getElementById("tab-review").addEventListener("click", () => {
+    document.getElementById("review-section").style.display = "block";
+    document.getElementById("jobs-section").style.display = "none";
+  });
+  document.getElementById("tab-jobs").addEventListener("click", () => {
+    document.getElementById("jobs-section").style.display = "block";
+    document.getElementById("review-section").style.display = "none";
+  });
 }
 
-// ********** RENDERING APPLICATIONS (Review Section) **********
+// ====== Fetch Real Applications ======
+async function fetchApplications() {
+  const token = await getCurrentUserToken();
+  const res = await fetch("http://localhost:4000/api/admin/applications", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error("Failed to fetch applications");
+  return await res.json();
+}
 
-function renderApplicationCard(app) {
+function renderDynamicApplicationCard(app) {
   const card = document.createElement("div");
-  card.classList.add("application-card");
-  if (app.status === "denied") card.classList.add("denied-flag");
-  if (app.status === "accepted") card.classList.add("accepted-flag");
+  card.className = "application-card";
 
-  // Header row
-  const headerRow = document.createElement("div");
-  headerRow.classList.add("application-header");
-
-  const infoDiv = document.createElement("div");
-  infoDiv.classList.add("app-info");
-  infoDiv.innerHTML = `
-    <span class="app-role"><strong>Role:</strong> ${app.role}</span>
-    <span class="app-name"><strong>Name:</strong> ${app.fullName}</span>
-    <span class="app-time"><strong>Applied:</strong> ${formatTimestamp(app.timeApplied)}</span>
-    <span class="app-status"><strong>Status:</strong> ${app.status}</span>
+  // === Header with basic info ===
+  const header = document.createElement("div");
+  header.className = "application-header";
+  header.innerHTML = `
+    <span><strong>Position:</strong> ${app.position || "-"}</span>
+    <span><strong>Name:</strong> ${
+      (app.firstName || "") + " " + (app.lastName || "")
+    }</span>
+    <span class="app-status"><strong>Status:</strong> ${
+      app.status || "pending"
+    }</span>
   `;
 
   const expandBtn = document.createElement("button");
-  expandBtn.classList.add("expand-app-btn");
+  expandBtn.className = "expand-app-btn";
   expandBtn.textContent = "+";
-  expandBtn.title = "Review Application";
+  header.appendChild(expandBtn);
+  card.appendChild(header);
 
-  headerRow.appendChild(infoDiv);
-  headerRow.appendChild(expandBtn);
-  card.appendChild(headerRow);
-
-  // Details (hidden by default)
+  // === Details (hidden by default) ===
   const detailsDiv = document.createElement("div");
-  detailsDiv.classList.add("app-details");
+  detailsDiv.className = "app-details";
   detailsDiv.style.display = "none";
 
-  // Build details HTML (unchanged from previous version)
-  const d = app.details;
-  let inner = `
-    <h3>Application ID: ${app.id}</h3>
-    <table class="details-table">
-      <tr>
-        <td><strong>Email:</strong></td>
-        <td>${d.email}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="emailVerified"> Verify Email</label></td>
-      </tr>
-      <tr>
-        <td><strong>Phone:</strong></td>
-        <td>${d.phone}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="phoneVerified"> Verify Phone</label></td>
-      </tr>
-  `;
+  // === Build details table ===
+  let tableHTML = "<table class='details-table'>";
+  for (const [key, value] of Object.entries(app)) {
+    if (["uid", "status", "position", "createdAt", "updatedAt"].includes(key))
+      continue;
 
-  if (app.role === "farmer") {
-    inner += `
-      <tr>
-        <td><strong>Farm Name:</strong></td>
-        <td>${d.farmName}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="farmNameVerified"> Verify Farm Name</label></td>
-      </tr>
-      <tr>
-        <td><strong>Experience:</strong></td>
-        <td>${d.experience}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="experienceVerified"> Verify Experience</label></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Account:</strong></td>
-        <td>${d.bankDetails.accountNumber}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="bankVerified"> Verify Bank Details</label></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Name:</strong></td>
-        <td>${d.bankDetails.bankName}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><strong>ID Document:</strong></td>
-        <td><a href="${d.documents.idCard}" target="_blank">View Document</a></td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="docIDVerified"> Verify ID Doc</label></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Statement:</strong></td>
-        <td><a href="${d.documents.bankStatement}" target="_blank">View Statement</a></td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="docBankVerified"> Verify Bank Statement</label></td>
-      </tr>
-    `;
+    let formattedValue = "";
+    if (typeof value === "object" && value !== null) {
+      formattedValue = formatComplexField(value);
+    } else {
+      formattedValue = formatVal(value);
+    }
+
+    tableHTML += `<tr><td><strong>${key}</strong></td><td>${formattedValue}</td></tr>`;
   }
+  tableHTML += "</table>";
 
-  if (app.role === "driver") {
-    inner += `
-      <tr>
-        <td><strong>License #:</strong></td>
-        <td>${d.licenseNumber}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="licenseVerified"> Verify License</label></td>
-      </tr>
-      <tr>
-        <td><strong>Vehicle Type:</strong></td>
-        <td>${d.vehicleType}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Account:</strong></td>
-        <td>${d.bankDetails.accountNumber}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="bankVerified"> Verify Bank Details</label></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Name:</strong></td>
-        <td>${d.bankDetails.bankName}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><strong>Driver License Doc:</strong></td>
-        <td><a href="${d.documents.driverLicense}" target="_blank">View Document</a></td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="docLicenseVerified"> Verify License Doc</label></td>
-      </tr>
-      <tr>
-        <td><strong>Vehicle Registration:</strong></td>
-        <td><a href="${d.documents.vehicleRegistration}" target="_blank">View Document</a></td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="docVehicleVerified"> Verify Vehicle Doc</label></td>
-      </tr>
-    `;
-  }
-
-  if (app.role === "supervisor") {
-    inner += `
-      <tr>
-        <td><strong>Experience:</strong></td>
-        <td>${d.yearsOfExperience}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="experienceVerified"> Verify Experience</label></td>
-      </tr>
-      <tr>
-        <td><strong>Previous Company:</strong></td>
-        <td>${d.previousCompany}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Account:</strong></td>
-        <td>${d.bankDetails.accountNumber}</td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="bankVerified"> Verify Bank Details</label></td>
-      </tr>
-      <tr>
-        <td><strong>Bank Name:</strong></td>
-        <td>${d.bankDetails.bankName}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <td><strong>Resume:</strong></td>
-        <td><a href="${d.documents.resume}" target="_blank">View Resume</a></td>
-        <td><label><input type="checkbox" class="verify-checkbox" data-field="docResumeVerified"> Verify Resume</label></td>
-      </tr>
-    `;
-  }
-
-  inner += `</table>`;
-
-  // Status update row
-  inner += `
+  // === Status dropdown ===
+  tableHTML += `
     <div class="status-update-section">
-      <label for="status-select-${app.id}"><strong>Update Status:</strong></label>
-      <select id="status-select-${app.id}" class="status-select">
-        <option value="pending"${app.status === "pending" ? " selected" : ""}>Pending</option>
-        <option value="contacted"${app.status === "contacted" ? " selected" : ""}>Contacted</option>
-        <option value="denied"${app.status === "denied" ? " selected" : ""}>Denied</option>
-        <option value="accepted"${app.status === "accepted" ? " selected" : ""}>Accepted</option>
+      <label><strong>Update Status:</strong></label>
+      <select class="status-select">
+        <option value="pending"${
+          app.status === "pending" ? " selected" : ""
+        }>Pending</option>
+        <option value="contacted"${
+          app.status === "contacted" ? " selected" : ""
+        }>Contacted</option>
+        <option value="denied"${
+          app.status === "denied" ? " selected" : ""
+        }>Denied</option>
+        <option value="accepted"${
+          app.status === "accepted" ? " selected" : ""
+        }>Accepted</option>
       </select>
-      <button class="save-status-btn" data-id="${app.id}">Save</button>
+      <button class="save-status-btn">Save</button>
     </div>
   `;
 
-  detailsDiv.innerHTML = inner;
+  detailsDiv.innerHTML = tableHTML;
   card.appendChild(detailsDiv);
 
-  // Toggle expand/collapse
+  // === Expand/collapse handler ===
   expandBtn.addEventListener("click", () => {
-    const isVisible = detailsDiv.style.display === "block";
-    detailsDiv.style.display = isVisible ? "none" : "block";
-    expandBtn.textContent = isVisible ? "+" : "−";
+    const visible = detailsDiv.style.display === "block";
+    detailsDiv.style.display = visible ? "none" : "block";
+    expandBtn.textContent = visible ? "+" : "−";
   });
 
-  // Save status & verifications
+  // === Save button (placeholder) ===
   const saveBtn = detailsDiv.querySelector(".save-status-btn");
   saveBtn.addEventListener("click", () => {
-    const select = document.getElementById(`status-select-${app.id}`);
-    const newStatus = select.value;
-    app.status = newStatus; // update mock
-
-    const checkboxes = detailsDiv.querySelectorAll(".verify-checkbox");
-    const verifications = {};
-    checkboxes.forEach((cb) => {
-      verifications[cb.dataset.field] = cb.checked;
-    });
-
-    // OPTIONAL: PUT to backend
-    // fetch(`/api/admin/applications/${app.id}`, {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ status: newStatus, verifications })
-    // })
-    //   .catch(err => console.error(err));
-
-    alert(`(FAKE) Saved status="${newStatus}" and verifications for ${app.id}`);
+    const newStatus = detailsDiv.querySelector(".status-select").value;
     const statusSpan = card.querySelector(".app-status");
     statusSpan.innerHTML = `<strong>Status:</strong> ${newStatus}`;
+    // Make real PUT request to backend
+    //the backend routes dont support this yet, so we will just fake it for now
+    alert(`(FAKE) Status updated to "${newStatus}"`);
+    // getCurrentUserToken().then((token) => {
+    //   fetch(`http://localhost:4000/api/admin/users/${app.uid}`, {
+    //     method: "PUT",
+    //     headers: {
+    //       Authorization: `Bearer ${token}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify({ status: newStatus }),
+    //   })
+    //     .then((res) => {
+    //       if (!res.ok) throw new Error("Failed to update status");
+    //       statusSpan.innerHTML = `<strong>Status:</strong> ${newStatus}`;
+    //       alert("Status updated successfully!");
+    //     })
+    //     .catch((err) => {
+    //       console.error(err);
+    //       alert("Failed to update status.");
+    //     });
+    // });
   });
 
   return card;
 }
 
-// Populate all applications (sorted oldest first)
-function populateApplicationsList(applications) {
-  const container = document.getElementById("applications-list");
-  container.innerHTML = "";
-
-  const sorted = applications
-    .slice()
-    .sort((a, b) => new Date(a.timeApplied) - new Date(b.timeApplied));
-
-  sorted.forEach((app) => {
-    const cardEl = renderApplicationCard(app);
-    container.appendChild(cardEl);
-  });
-}
-
-// Filter applications by selected role
-function applyAppFilter() {
-  const selectedRole = document.getElementById("filter-role").value;
-  let filtered = mockApplications.slice();
-  if (selectedRole) {
-    filtered = filtered.filter((app) => app.role === selectedRole);
+// === Utility to render objects/arrays ===
+function formatComplexField(obj) {
+  if (Array.isArray(obj)) {
+    return obj.join(", ");
   }
-  populateApplicationsList(filtered);
+  if (typeof obj === "object") {
+    return Object.entries(obj)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+      .join("<br>");
+  }
+  return String(obj);
 }
 
-// ********** INITIALIZATION **********
+// === Format basic values (e.g., links) ===
+function formatVal(val) {
+  if (typeof val === "string" && val.startsWith("http")) {
+    return `<a href="${val}" target="_blank">View</a>`;
+  }
+  return val;
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Sub-nav logic
-  document.getElementById("tab-review").addEventListener("click", (e) => {
-    e.preventDefault();
-    showReviewTab();
-  });
-  document.getElementById("tab-jobs").addEventListener("click", (e) => {
-    e.preventDefault();
-    showJobsTab();
-  });
-  showReviewTab(); // default
-
-  // 1) Render roles table
-  renderRolesTable();
-
-  // 2) Setup Add Role form, but now auto–open the editor
-  document.getElementById("add-role-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const nameInput = document.getElementById("new-role-name");
-    const descInput = document.getElementById("new-role-desc");
-    const newName = nameInput.value.trim().toLowerCase();
-    const newDesc = descInput.value.trim();
-    if (!newName || !newDesc) {
-      alert("Both title and description are required.");
-      return;
+async function updateApplicationStatus(id, status) {
+  const token = await getCurrentUserToken();
+  const res = await fetch(
+    `http://localhost:4000/api/admin/applications/${id}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
     }
-    if (mockRoles.some((r) => r.name === newName)) {
-      alert("Role already exists.");
-      return;
-    }
-    // Default fields: Full Name, Email, Phone
-    const defaultFields = [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-    ];
-    mockRoles.push({ name: newName, description: newDesc, fields: defaultFields });
-    // OPTIONAL: POST to backend
-    // fetch('/api/admin/roles', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ name: newName, description: newDesc, fields: defaultFields })
-    // })
-    //   .catch(err => console.error(err));
+  );
+  if (!res.ok) throw new Error("Failed to update application status");
+}
 
-    renderRolesTable();
-    nameInput.value = "";
-    descInput.value = "";
-
-    // Immediately switch to Jobs tab and open the editor for the newly added role:
-    showJobsTab();
-    const newIndex = mockRoles.length - 1;
-    // Slight delay to ensure renderRolesTable() has updated the DOM
-    setTimeout(() => {
-      renderRoleEditor(newIndex);
-    }, 0);
+// ====== Populate Role Filter ======
+function populateRoleFilter() {
+  const filter = document.getElementById("filter-role");
+  filter.innerHTML = "<option value=''>All Roles</option>";
+  mockRoles.forEach((role) => {
+    const opt = document.createElement("option");
+    opt.value = role.name;
+    opt.textContent = role.name.charAt(0).toUpperCase() + role.name.slice(1);
+    filter.appendChild(opt);
   });
+}
 
-  // 3) Setup Edit/Delete actions for roles
+// ====== Render Roles Table ======
+function renderRolesTable() {
+  const tbody = document.querySelector("#roles-table tbody");
+  tbody.innerHTML = "";
+
+  mockRoles.forEach((role) => {
+    const tr = document.createElement("tr");
+    const nameTd = document.createElement("td");
+    nameTd.textContent = role.name;
+    const actionTd = document.createElement("td");
+    actionTd.textContent = role.description;
+
+    tr.appendChild(nameTd);
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+  });
+}
+
+function setupRoleEditorHandlers() {
   document.getElementById("roles-table").addEventListener("click", (e) => {
+    const idx = e.target.dataset.index;
     if (e.target.classList.contains("edit-role-btn")) {
-      const idx = parseInt(e.target.dataset.index);
-      renderRoleEditor(idx);
+      alert("Edit form coming soon (still local data only)");
     }
     if (e.target.classList.contains("delete-role-btn")) {
-      const idx = parseInt(e.target.dataset.index);
-      const roleToDelete = mockRoles[idx].name;
-      if (confirm(`Delete role "${roleToDelete}"?`)) {
+      if (confirm("Delete this role?")) {
         mockRoles.splice(idx, 1);
-        // OPTIONAL: DELETE to backend
-        // fetch(`/api/admin/roles/${roleToDelete}`, { method: 'DELETE' })
-        //   .catch(err => console.error(err));
         renderRolesTable();
       }
     }
   });
+}
 
-  // 4) Populate role filter dropdown
-  populateRoleFilterOptions();
-
-  // 5) Render application list
-  populateApplicationsList(mockApplications);
-
-  // 6) Wire up “Apply Filters” button
-  document.getElementById("apply-app-filters").addEventListener("click", applyAppFilter);
-
-  // OPTIONAL: If fetching from real API
-  // fetch('/api/admin/applications')
-  //   .then(res => res.json())
-  //   .then(data => {
-  //     mockApplications = data;
-  //     populateApplicationsList(mockApplications);
-  //   })
-  //   .catch(err => console.error(err));
-});
+function setupAddRoleForm() {
+  const form = document.getElementById("add-role-form");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document
+      .getElementById("new-role-name")
+      .value.trim()
+      .toLowerCase();
+    const desc = document.getElementById("new-role-desc").value.trim();
+    if (!name || !desc) return alert("Please enter name and description");
+    mockRoles.push({ name, description: desc, fields: [] });
+    renderRolesTable();
+    form.reset();
+  });
+}
