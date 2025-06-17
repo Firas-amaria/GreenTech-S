@@ -1,0 +1,50 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+}
+
+#language-selector {
+  text-align: center;
+  margin: 20px 0;
+}
+
+#articles-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+  padding: 20px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+  margin-top: 0;
+  color: #005792;
+}
+
+
+mark {
+  background-color: #ffff00;
+  font-weight: bold;
+}
+
+
+#search-section{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  right: 50%;
+  
+}
