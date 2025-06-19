@@ -86,8 +86,7 @@ const validateExtraFields = (position, fields) => {
         isString(fields.fieldArea) &&
         isString(fields.crops) &&
         isString(fields.pickupAddress) &&
-        isBoolean(fields.agriculturalInsurance) 
-
+        isBoolean(fields.agriculturalInsurance)
       );
 
     case "deliverer":
@@ -98,7 +97,6 @@ const validateExtraFields = (position, fields) => {
         isString(fields.driverLicenseNumber) &&
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
-
         typeof fields.availabilitySchedule === "object" &&
         (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
       );
@@ -112,7 +110,6 @@ const validateExtraFields = (position, fields) => {
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
         isBoolean(fields.refrigerated) &&
-
         typeof fields.availabilitySchedule === "object" &&
         (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
       );
@@ -120,7 +117,6 @@ const validateExtraFields = (position, fields) => {
     case "sorting":
     case "picker":
     case "warehouse":
-
       return true; // אין שדות נוספים
 
     default:
@@ -231,7 +227,7 @@ const login = async (req, res) => {
     // console.log("user", user);
     res.status(200).json({
       role: user.role,
-      name: user.name,
+      name: user.firstName + " " + user.lastName,
       email: user.email,
     });
   } catch (err) {
