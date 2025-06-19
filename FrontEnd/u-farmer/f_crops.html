@@ -6,45 +6,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Crops | Farmer App</title>
   <link rel="stylesheet" href="../css/sidebar.css" />
+  <style>
+    td img {
+      border-radius: 4px;
+    }
 
+    .form-row {
+      margin-bottom: 10px;
+    }
 
+    .form-row label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .form-row input,
+    .form-row select {
+      width: 100%;
+      padding: 6px;
+    }
+  </style>
 </head>
 
 <body>
   <nav class="sidebar"></nav>
 
-
   <div class="main">
     <h1>Manage Crops</h1>
 
-    <!-- Add New Crop -->
+    <!-- Land Selector -->
     <div class="section">
-      <h2>Add New Crop</h2>
-      <div class="form-row">
-        <label for="itemInput">Item Name:</label>
-        <input type="text" id="itemInput" placeholder="e.g. Tomato" />
-      </div>
-      <div class="form-row">
-        <label for="inputPlantedAmt">Planted Amount (kg):</label>
-        <input type="number" id="inputPlantedAmt" />
-      </div>
-      <div class="form-row">
-        <label for="inputPlantedOn">Planted On:</label>
-        <input type="date" id="inputPlantedOn" />
-      </div>
-      <button class="btn-primary" id="btnAddCrop">Add Crop</button>
+      <label for="landSelector"><strong>Select Land:</strong></label>
+      <select id="landSelector"></select>
     </div>
 
     <!-- Crops Table -->
     <div class="section">
-      <h2>Existing Crops</h2>
+      <h2>Crop in Selected Land</h2>
       <table id="tblCrops">
         <thead>
           <tr>
             <th>Item</th>
-            <th>Planted Amount (kg)</th>
+            <th>Planted Amount</th>
             <th>Planted On</th>
             <th>Status</th>
+            <th>Last Updated On</th>
             <th>Percentage</th>
             <th>Image</th>
           </tr>
@@ -52,13 +59,48 @@
         <tbody></tbody>
       </table>
     </div>
-  </div>
 
+    <div class="section" id="addCropSection">
+      <h2>Add New Crop</h2>
+
+      <div class="form-row">
+        <label for="itemDropdown">Select Crop:</label>
+        <select id="itemDropdown"></select>
+      </div>
+
+      <div class="form-row">
+        <label for="inputPlantedAmt">Planted Amount (kg):</label>
+        <input type="number" id="inputPlantedAmt" />
+      </div>
+
+      <div class="form-row">
+        <label for="avgRatePerUnit">Average Rate Per Unit (kg):</label>
+        <input type="number" id="avgRatePerUnit" />
+      </div>
+
+      <div class="form-row">
+        <label for="fruitingPerPlant">Expected Fruiting per Plant:</label>
+        <input type="number" id="fruitingPerPlant" />
+      </div>
+
+      <div class="form-row">
+        <label for="inputPlantedOn">Planted On:</label>
+        <input type="date" id="inputPlantedOn" />
+      </div>
+
+      <div class="form-row">
+        <label for="expectedHarvestDate">Expected Harvest Date:</label>
+        <input type="date" id="expectedHarvestDate" />
+      </div>
+
+      <button class="btn-primary" id="btnAddCrop">Add Crop</button>
+    </div>
+
+
+  </div>
 
   <script src="../js/w_sidebar_menu.js"></script>
   <script src="../js/farmer_crops.js"></script>
-
-
 </body>
 
 </html>
