@@ -20,6 +20,7 @@ export async function fetchShifts() {
         { name: "Morning", start: "07:00", end: "09:00" },
         { name: "Afternoon", start: "12:00", end: "13:00" },
         { name: "Evening", start: "18:00", end: "19:00" },
+        { name: "Night", start: "21:00", end: "23:00" },
       ]);
     }, 50);
   });
@@ -91,4 +92,48 @@ export function getScheduleData(container) {
     }
   });
   return schedule;
+}
+
+export async function getScheduleBitmaskArray(container) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Reverse index: Morning is 3
+    return acc;
+  }, {});
+
+  const result = [];
+
+  days.forEach((day) => {
+    let bitmask = 0;
+    const checkboxes = container.querySelectorAll(
+      `input[name="${day}"]:checked`
+    );
+    checkboxes.forEach((cb) => {
+      const shiftBit = shiftIndices[cb.value];
+      bitmask |= 1 << shiftBit;
+    });
+    result.push(bitmask);
+  });
+
+  return result;
+}
+
+export async function applyScheduleBitmaskArray(container, bitmaskArray) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Morning is bit 3
+    return acc;
+  }, {});
+
+  days.forEach((day, dayIndex) => {
+    const dayMask = bitmaskArray[dayIndex];
+    Object.entries(shiftIndices).forEach(([shiftName, bit]) => {
+      const checkbox = container.querySelector(
+        `input[name="${day}"][value="${shiftName}"]`
+      );
+      if (checkbox) {
+        checkbox.checked = (dayMask & (1 << bit)) !== 0;
+      }
+    });
+  });
 }
