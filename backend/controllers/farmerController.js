@@ -25,6 +25,9 @@ async function listFarms(req, res) {
   }
 }
 
+
+
+
 async function getFarm(req, res) {
   try {
     const { farmId } = req.params;
@@ -69,13 +72,12 @@ async function getFarmerFarms(req, res) {
   }
 }
 
-// --- Crop Handlers ---
+// List crops with computed expected harvest quantity
 async function listCrops(req, res) {
   try {
     const { farmId } = req.params;
     const { status, itemId } = req.query;
 
-    // Verify farm ownership if farmId is provided
     if (farmId) {
       const farmDoc = await db.collection("farms").doc(farmId).get();
       if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
@@ -84,47 +86,48 @@ async function listCrops(req, res) {
     }
 
     let query = db.collection("crops").where("farmerId", "==", req.user.uid);
-
-    if (farmId) {
-      query = query.where("farmId", "==", farmId);
-    }
-    if (status) {
-      query = query.where("status", "==", status);
-    }
-    if (itemId) {
-      query = query.where("itemId", "==", itemId);
-    }
+    if (farmId) query = query.where("farmId", "==", farmId);
+    if (status) query = query.where("status", "==", status);
+    if (itemId) query = query.where("itemId", "==", itemId);
 
     const snapshot = await query.get();
-
     if (snapshot.empty) {
       return res.json({ crops: [], message: "No crops found" });
     }
 
     const crops = await Promise.all(
       snapshot.docs.map(async (doc) => {
-        const cropData = { id: doc.id, ...doc.data() };
+        const data = doc.data();
+        const crop = {
+          id: doc.id,
+          farmId: data.farmId,
+          itemId: data.itemId,
+          variety: data.variety || null,
+          quantity: data.quantity,
+          avgRatePerUnit: data.avgRatePerUnit,
+          fruitingPerPlant: data.fruitingPerPlant,
+          statusPercentage: data.statusPercentage,
+          agreementPercentage: data.agreementPercentage,
+          status: data.status,
+          plantedDate: data.plantedDate,
+          expectedHarvestDate: data.expectedHarvestDate,
+          notes: data.notes || "",
+        };
 
-        // Get item details
-        if (cropData.itemId) {
-          try {
-            const itemDoc = await db
-              .collection("items")
-              .doc(cropData.itemId)
-              .get();
-            if (itemDoc.exists) {
-              cropData.itemName = itemDoc.data().name;
-              cropData.itemDetails = itemDoc.data();
-            }
-          } catch (err) {
-            console.log(
-              `Could not fetch item ${cropData.itemId}:`,
-              err.message
-            );
+        // Compute expected harvest quantity if not stored
+        crop.expectedHarvestQuantity = data.expectedHarvestQuantity !== undefined
+          ? data.expectedHarvestQuantity
+          : (crop.quantity * crop.fruitingPerPlant * crop.avgRatePerUnit);
+
+        // Attach item details
+        if (crop.itemId) {
+          const itemDoc = await db.collection("items").doc(crop.itemId).get();
+          if (itemDoc.exists) {
+            crop.itemName = itemDoc.data().name;
+            crop.itemDetails = itemDoc.data();
           }
         }
-
-        return cropData;
+        return crop;
       })
     );
 
@@ -135,121 +138,124 @@ async function listCrops(req, res) {
   }
 }
 
+
+// Get a single crop with computed expected harvest quantity
 async function getCrop(req, res) {
   try {
     const { farmId, cropId } = req.params;
-
-    // Verify farm ownership
     const farmDoc = await db.collection("farms").doc(farmId).get();
     if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
       return res.status(404).send({ error: "Farm not found" });
     }
 
     const cropDoc = await db.collection("crops").doc(cropId).get();
-
     if (!cropDoc.exists) {
       return res.status(404).send({ error: "Crop not found" });
     }
-
-    const cropData = cropDoc.data();
-    if (cropData.farmId !== farmId || cropData.farmerId !== req.user.uid) {
+    const data = cropDoc.data();
+    if (data.farmId !== farmId || data.farmerId !== req.user.uid) {
       return res.status(403).send({ error: "Access denied" });
     }
 
-    // Get item details
-    let itemDetails = {};
-    if (cropData.itemId) {
-      const itemDoc = await db.collection("items").doc(cropData.itemId).get();
+    const crop = {
+      id: cropDoc.id,
+      farmId: data.farmId,
+      itemId: data.itemId,
+      variety: data.variety || null,
+      quantity: data.quantity,
+      avgRatePerUnit: data.avgRatePerUnit,
+      fruitingPerPlant: data.fruitingPerPlant,
+      statusPercentage: data.statusPercentage,
+      agreementPercentage: data.agreementPercentage,
+      status: data.status,
+      plantedDate: data.plantedDate,
+      expectedHarvestDate: data.expectedHarvestDate,
+      notes: data.notes || "",
+    };
+    crop.expectedHarvestQuantity = data.expectedHarvestQuantity !== undefined
+      ? data.expectedHarvestQuantity
+      : (crop.quantity * crop.fruitingPerPlant * crop.avgRatePerUnit);
+
+    // Attach item details
+    if (crop.itemId) {
+      const itemDoc = await db.collection("items").doc(crop.itemId).get();
       if (itemDoc.exists) {
-        itemDetails = itemDoc.data();
+        crop.itemDetails = itemDoc.data();
       }
     }
 
-    res.json({
-      crop: {
-        id: cropDoc.id,
-        ...cropData,
-        itemDetails,
-      },
-    });
+    res.json({ crop });
   } catch (err) {
     console.error("Error fetching crop:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
+
+// Create crop with computed expected harvest quantity
 async function createCrop(req, res) {
   try {
     const {
       farmId,
       itemId,
       variety,
-      avg_Weight_per_Unit,
-      expected_fruiting_per_plant,
-      percentage_status,
-      percentage_total,
+      avgRatePerUnit,
+      fruitingPerPlant,
+      statusPercentage,
+      agreementPercentage,
       status,
       quantity,
       plantedDate,
-      expectedHarvest,
+      expectedHarvestDate,
       notes,
     } = req.body;
 
-    // Validate required fields
     if (!farmId || !itemId || !status) {
-      return res.status(400).send({
-        error: "Missing required fields: farmId, itemId, status",
-      });
+      return res.status(400).send({ error: "Missing required fields: farmId, itemId, status" });
     }
 
-    // Verify farm belongs to farmer
     const farmDoc = await db.collection("farms").doc(farmId).get();
     if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
       return res.status(404).send({ error: "Farm not found or access denied" });
     }
 
-    // Verify item exists
     const itemDoc = await db.collection("items").doc(itemId).get();
     if (!itemDoc.exists) {
       return res.status(404).send({ error: "Item not found" });
     }
 
-    // Create crop document with NEW_DATA structure
+    const qty = parseInt(quantity, 10);
+    const avgRate = parseFloat(avgRatePerUnit);
+    const fruiting = parseInt(fruitingPerPlant, 10);
+
+    const expectedQty = qty * fruiting * avgRate;
+
     const cropData = {
       farmId,
       farmerId: req.user.uid,
       itemId,
-      variety: variety || "",
-      avg_Weight_per_Unit: avg_Weight_per_Unit
-        ? parseFloat(avg_Weight_per_Unit)
-        : null,
-      expected_fruiting_per_plant: expected_fruiting_per_plant
-        ? parseInt(expected_fruiting_per_plant)
-        : null,
-      percentage_status: percentage_status ? parseFloat(percentage_status) : 0,
-      percentage_total: percentage_total ? parseFloat(percentage_total) : 0,
+      variety: variety || null,
+      avgRatePerUnit: avgRate,
+      fruitingPerPlant: fruiting,
+      statusPercentage: statusPercentage ? parseFloat(statusPercentage) : 0,
+      agreementPercentage: agreementPercentage ? parseFloat(agreementPercentage) : 0,
       status,
-      quantity: quantity ? parseInt(quantity) : null,
+      quantity: qty,
       plantedDate: plantedDate || null,
-      expectedHarvest: expectedHarvest || null,
+      expectedHarvestDate: expectedHarvestDate || null,
+      expectedHarvestQuantity: expectedQty,
       notes: notes || "",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Add to Firestore
     const docRef = await db.collection("crops").add(cropData);
-
-    // Add the document ID to the document itself
     await docRef.update({ id: docRef.id });
 
     res.status(201).json({
       id: docRef.id,
       message: "Crop created successfully",
-      crop: {
-        id: docRef.id,
-        ...cropData,
-      },
+      crop: { id: docRef.id, ...cropData },
     });
   } catch (err) {
     console.error("Error creating crop:", err);
@@ -257,49 +263,37 @@ async function createCrop(req, res) {
   }
 }
 
+
+// Update crop with recomputed expected harvest quantity
 async function updateCrop(req, res) {
   try {
     const { cropId } = req.params;
     const updates = req.body;
 
     const cropDoc = await db.collection("crops").doc(cropId).get();
-
     if (!cropDoc.exists) {
       return res.status(404).send({ error: "Crop not found" });
     }
-
-    const cropData = cropDoc.data();
-    if (cropData.farmerId !== req.user.uid) {
+    const data = cropDoc.data();
+    if (data.farmerId !== req.user.uid) {
       return res.status(403).send({ error: "Access denied" });
     }
 
-    // Update with proper data types
-    const updateData = {
-      ...updates,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    // Prepare updated fields
+    const updateData = { ...updates, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    if (updates.avgRatePerUnit !== undefined) updateData.avgRatePerUnit = parseFloat(updates.avgRatePerUnit);
+    if (updates.fruitingPerPlant !== undefined) updateData.fruitingPerPlant = parseInt(updates.fruitingPerPlant, 10);
+    if (updates.statusPercentage !== undefined) updateData.statusPercentage = parseFloat(updates.statusPercentage);
+    if (updates.agreementPercentage !== undefined) updateData.agreementPercentage = parseFloat(updates.agreementPercentage);
+    if (updates.quantity !== undefined) updateData.quantity = parseInt(updates.quantity, 10);
 
-    // Convert numeric fields
-    if (updates.avg_Weight_per_Unit) {
-      updateData.avg_Weight_per_Unit = parseFloat(updates.avg_Weight_per_Unit);
-    }
-    if (updates.expected_fruiting_per_plant) {
-      updateData.expected_fruiting_per_plant = parseInt(
-        updates.expected_fruiting_per_plant
-      );
-    }
-    if (updates.percentage_status) {
-      updateData.percentage_status = parseFloat(updates.percentage_status);
-    }
-    if (updates.percentage_total) {
-      updateData.percentage_total = parseFloat(updates.percentage_total);
-    }
-    if (updates.quantity) {
-      updateData.quantity = parseInt(updates.quantity);
-    }
+    // Recompute expected harvest quantity if key fields changed
+    const finalQty = updateData.quantity !== undefined ? updateData.quantity : data.quantity;
+    const finalFruiting = updateData.fruitingPerPlant !== undefined ? updateData.fruitingPerPlant : data.fruitingPerPlant;
+    const finalAvgRate = updateData.avgRatePerUnit !== undefined ? updateData.avgRatePerUnit : data.avgRatePerUnit;
+    updateData.expectedHarvestQuantity = finalQty * finalFruiting * finalAvgRate;
 
     await db.collection("crops").doc(cropId).update(updateData);
-
     res.json({ message: "Crop updated successfully" });
   } catch (err) {
     console.error("Error updating crop:", err);
@@ -307,21 +301,15 @@ async function updateCrop(req, res) {
   }
 }
 
+// Delete crop (unchanged)
 async function deleteCrop(req, res) {
   try {
     const { cropId } = req.params;
-
     const cropDoc = await db.collection("crops").doc(cropId).get();
-
-    if (!cropDoc.exists) {
-      return res.status(404).send({ error: "Crop not found" });
-    }
-
-    const cropData = cropDoc.data();
-    if (cropData.farmerId !== req.user.uid) {
+    if (!cropDoc.exists) return res.status(404).send({ error: "Crop not found" });
+    if (cropDoc.data().farmerId !== req.user.uid) {
       return res.status(403).send({ error: "Access denied" });
     }
-
     await db.collection("crops").doc(cropId).delete();
     res.json({ message: "Crop deleted successfully" });
   } catch (err) {
@@ -329,6 +317,7 @@ async function deleteCrop(req, res) {
     res.status(500).send({ error: err.message });
   }
 }
+
 
 // --- Shipment Handlers ---
 async function createShipment(req, res) {
@@ -369,6 +358,7 @@ async function createShipment(req, res) {
       farmId,
       farmerId: req.user.uid,
       destination,
+      //logistic_center
       scheduledDate: scheduledDate
         ? admin.firestore.Timestamp.fromDate(new Date(scheduledDate))
         : null,
@@ -1617,11 +1607,181 @@ async function getPerformance(req, res) {
   return getPerformanceMetrics(req, res);
 }
 
+
+
+
+
+
+// Get all lands (farmer’s farms)
+async function getLands(req, res) {
+  try {
+    const snapshot = await db
+      .collection("farms")
+      .where("farmerId", "==", req.user.uid)
+      .get();
+    const lands = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ lands });
+  } catch (err) {
+    console.error("Error fetching lands:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Mark a land (farm) as ready for harvest
+async function markLandReady(req, res) {
+  try {
+    const { landId } = req.params;
+    // update all crops under this land to status 'ready for harvest'
+    const cropsSnap = await db.collection("crops")
+      .where("farmId", "==", landId)
+      .where("farmerId", "==", req.user.uid)
+      .get();
+    const batch = db.batch();
+    cropsSnap.forEach(doc => {
+      batch.update(doc.ref, {
+        status: "ready for harvest",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+    res.json({ message: "Land marked ready for harvest" });
+  } catch (err) {
+    console.error("Error marking land ready:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+
+// Quality-test an item (per container)
+async function qualityTestItem(req, res) {
+  try {
+    const { itemId } = req.params;
+    const { containerId, results } = req.body;
+    // TODO: store `results` under a subcollection on this container
+    await db.collection("containers")
+      .doc(containerId)
+      .collection("qualityTests")
+      .add({
+        itemId,
+        results,
+        testedAt: admin.firestore.FieldValue.serverTimestamp(),
+        testerId: req.user.uid
+      });
+    res.json({ message: "Quality test recorded" });
+  } catch (err) {
+    console.error("Error recording quality test:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+
+
+// Generate barcode for a shipment container
+async function generateShipmentBarcode(req, res) {
+  try {
+    const { shipmentId } = req.params;
+    const barcodeData = await QRCode.toDataURL(shipmentId);
+    res.json({ shipmentId, barcode: barcodeData });
+  } catch (err) {
+    console.error("Error generating shipment barcode:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Demand & Ordering Handlers ---
+
+// Get item-demand per shift/day
+async function getDemands(req, res) {
+  try {
+    // TODO: fetch from `itemDemands` collection
+    const snapshot = await db.collection("itemDemands").get();
+    const demands = snapshot.docs.map(d => d.data());
+    res.json({ demands });
+  } catch (err) {
+    console.error("Error fetching demands:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Notify farmer to be ready for a predicted order
+async function informFarmer(req, res) {
+  try {
+    const { farmerId, itemId, quantity, shift, day } = req.body;
+    // TODO: send notification/record in `notifications`
+    await db.collection("notifications").add({
+      to: farmerId,
+      itemId,
+      quantity,
+      shift,
+      day,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    res.json({ message: "Farmer informed" });
+  } catch (err) {
+    console.error("Error informing farmer:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Get order summaries (consumer orders aggregated per farmer)
+async function getOrderSummaries(req, res) {
+  try {
+    // TODO: aggregate from `orders` collection
+    const snapshot = await db.collection("orders").get();
+    const summaries = snapshot.docs.map(d => d.data());
+    res.json({ summaries });
+  } catch (err) {
+    console.error("Error fetching order summaries:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Post farmer shipment info (pickup time, etc.)
+async function postFarmerShipmentInfo(req, res) {
+  try {
+    const { shipmentId } = req.body;
+    const info = { ...req.body, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    await db.collection("shipments").doc(shipmentId).update(info);
+    res.json({ message: "Shipment info updated" });
+  } catch (err) {
+    console.error("Error updating shipment info:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Post driver assignment/notification
+async function postDriverInfo(req, res) {
+  try {
+    const { shipmentId, driverName, driverContact } = req.body;
+    await db.collection("shipments").doc(shipmentId).update({
+      driver: { name: driverName, contact: driverContact },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    res.json({ message: "Driver info recorded" });
+  } catch (err) {
+    console.error("Error recording driver info:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+
+
+
+
+
 module.exports = {
   // Farm functions
   listFarms,
   getFarm,
   getFarmerFarms,
+    getLands,
+  markLandReady,
+    getDemands,
+  informFarmer,
+  getOrderSummaries,
+  postFarmerShipmentInfo,
+  postDriverInfo,
+  qualityTestItem,
 
   // Crop functions
   listCrops,

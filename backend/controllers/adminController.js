@@ -1,24 +1,57 @@
 const { admin, db } = require("../firebaseConfig");
 
-// Admin API to approve pending employee and assign a new role
+// Admin API to approve a pending employee and move them into their role collection
+const roleCollectionMap = {
+  farmer: "farmers",
+  deliverer: "deliverers",
+  "industrial-driver": "industrialDrivers",
+  sorting: "sorters",
+  picker: "pickers",
+  "warehouse-worker": "warehouseWorkers"
+};
+
 const approveEmployee = async (req, res) => {
-  const { uid, Employee } = req.body;
+  const { uid, role } = req.body;
+  const pendingRef = db.collection("Pending-employment").doc(uid);
 
   try {
-    // Update custom claim with new role
-    await admin.auth().setCustomUserClaims(uid, { role: Employee });
+    // 1. Fetch the pending application
+    const pendingSnap = await pendingRef.get();
+    if (!pendingSnap.exists) {
+      return res.status(404).send({ error: "Pending application not found" });
+    }
+    const data = pendingSnap.data();
 
-    // Update user role and status in Firestore
-    await db.collection("users").doc(uid).update({
-      role: Employee,
+    // 2. Update Firebase Auth custom claim
+    await admin.auth().setCustomUserClaims(uid, { role });
+
+    // 3. Copy into the new role-specific collection
+    const targetCol = roleCollectionMap[role];
+    if (!targetCol) {
+      return res.status(400).send({ error: `Unknown role: ${role}` });
+    }
+    await db.collection(targetCol).doc(uid).set({
+      ...data,
       status: "approved",
+      approvedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    res.send({ message: `User ${uid} approved as ${Employee}` });
+    // 4. Update top-level users collection with new role
+    await db.collection("users").doc(uid).set(
+      { role, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+
+    // 5. Delete the pending document
+    await pendingRef.delete();
+
+    res.send({ message: `User approved as ${role}` });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    console.error("Error approving employee:", error);
+    res.status(500).send({ error: error.message });
   }
 };
+
 
 // Allows an admin to update another user's role in Firebase Authentication and Firestore
 // Requires admin authentication via middleware

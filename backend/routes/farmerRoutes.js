@@ -32,7 +32,26 @@ const {
   generateDeliveryBarcode,
   createFarmerShipment,
   shipmentRequest,
-  createApprovedShipment
+  createApprovedShipment,
+   // Land handlers
+  getLands,
+  
+  markLandReady,
+
+  
+
+  // Item handlers
+  qualityTestItem,
+
+  // Shipment handlers
+
+  // Demand & ordering handlers
+  getDemands,
+  informFarmer,
+  getOrderSummaries,
+  postFarmerShipmentInfo,
+  postDriverInfo,
+  generateShipmentBarcode
 } = require("../controllers/farmerController");
 
 // Apply base authentication to all routes
@@ -209,5 +228,146 @@ router.get("/dashboard", requireRole("farmer"), getDashboard);
 
 // Get detailed performance metrics
 router.get("/performance", requireRole("farmer"), getPerformance);
+
+
+
+
+
+// Get all lands for authenticated farmer
+router.get(
+  "/lands",
+  requireRole("farmer"),
+  getLands
+);
+
+// Get detailed info for a single land
+router.get(
+  "/land/:landId",
+  requireRole("farmer"),
+  getFarm
+);
+
+// Mark an entire land ready for harvest (updates all crops under it)
+router.put(
+  "/land/:landId",
+  requireRole("farmer"),
+  markLandReady
+);
+
+// --- Crop Routes ---
+
+// List all crops (optionally filter by farmId, status, itemId)
+router.get(
+  "/crops",
+  requireRole("farmer"),
+  listCrops
+);
+
+// Add a new crop to a land
+router.post(
+  "/create-crop",
+  requireRole("farmer"),
+  createCrop
+);
+
+// Get a single crop’s details
+router.get(
+  "/crops/:cropId",
+  requireRole("farmer"),
+  getCrop
+);
+
+// Update a crop’s data (e.g., status, quantities)
+router.put(
+  "/crops/:cropId",
+  requireRole("farmer"),
+  updateCrop
+);
+
+// Delete a crop
+router.delete(
+  "/crops/:cropId",
+  requireRole("farmer"),
+  deleteCrop
+);
+
+// --- Item Catalog Routes ---
+
+// Get list of all items
+router.get(
+  "/items",
+  requireRole("farmer"),
+  listItems
+);
+
+// Get detailed info (including quality standards) for one item
+router.get(
+  "/items/:itemId",
+  requireRole("farmer"),
+  getItem
+);
+
+// Record a quality‐test result for a specific container of an item
+router.post(
+  "/items/:itemId/quality-test",
+  requireRole("farmer"),
+  qualityTestItem
+);
+
+// --- Shipment Routes ---
+
+// Farmer submits a shipment form
+router.post(
+  "/shipments",
+  requireRole("farmer"),
+  createShipment
+);
+
+// Generate or retrieve a QR/barcode for a given shipment
+router.post(
+  "/shipments/:shipmentId/barcode",
+  requireRole("farmer"),
+  generateShipmentBarcode
+);
+
+// --- Demand & Ordering Routes ---
+
+// Get forecasted item‐demand by shift and weekday
+router.get(
+  "/demands",
+  requireRole("farmer"),
+  getDemands
+);
+
+// Notify a farmer they need to be ready for an upcoming order
+router.post(
+  "/demands/inform",
+  requireRole("farmer"),
+  informFarmer
+);
+
+// Retrieve consumer order summaries aggregated per farmer
+router.get(
+  "/order-summaries",
+  requireRole("farmer"),
+  getOrderSummaries
+);
+
+// Update shipment info (e.g., pickup time) for a farmer’s shipment
+router.post(
+  "/shipment-info",
+  requireRole("farmer"),
+  postFarmerShipmentInfo
+);
+
+// Record driver assignment or notification for a shipment
+router.post(
+  "/shipments/:shipmentId/driver",
+  requireRole("farmer"),
+  postDriverInfo
+);
+
+
+
 
 module.exports = router;
