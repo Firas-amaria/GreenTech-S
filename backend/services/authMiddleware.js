@@ -8,7 +8,7 @@ const authenticate = async (req, res, next) => {
   try {
     // Verify token
     const decoded = await admin.auth().verifyIdToken(token);
-    req.user = { uid: decoded.uid, email: decoded.email };
+    req.user = { uid: decoded.uid, email: decoded.email, role: decoded.role }; // Initialize user object with uid and email
 
     // Fetch user role from Firestore
     const userDoc = await db.collection("users").doc(decoded.uid).get();

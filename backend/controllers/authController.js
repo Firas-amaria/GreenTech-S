@@ -29,119 +29,13 @@ const registerCustomer = async (req, res) => {
     return res.status(400).send({ error: "Passwords do not match" });
   }
 
-  // ─── Server-side Validation ─────────────────────────────────────────────
-
-  // 1. Names: required, ≥2 chars, letters only
-  if (!firstName || firstName.length < 2 || !/^[A-Za-z]+$/.test(firstName)) {
-    return res.status(400).send({
-      error: !firstName
-        ? "First name is required."
-        : firstName.length < 2
-        ? "First name must be at least 2 characters."
-        : "First name must contain only letters.",
-    });
-  }
-  if (!lastName || lastName.length < 2 || !/^[A-Za-z]+$/.test(lastName)) {
-    return res.status(400).send({
-      error: !lastName
-        ? "Last name is required."
-        : lastName.length < 2
-        ? "Last name must be at least 2 characters."
-        : "Last name must contain only letters.",
-    });
-  }
-
-  // 2. Email: required, Gmail only
-  if (!email) {
-    return res.status(400).send({ error: "Email is required." });
-  }
-  if (!/^[A-Za-z0-9._%+-]+@gmail\.com$/.test(email)) {
-    return res
-      .status(400)
-      .send({ error: "Email must be a valid Gmail address." });
-  }
-
-  // 3. Phone: required, international format (e.g. +972509876543)
-  if (!phone) {
-    return res.status(400).send({ error: "Phone number is required." });
-  }
-  if (!/^\+\d{9,14}$/.test(phone)) {
-    return res
-      .status(400)
-      .send({
-        error: "Phone must be in international format, e.g. +972509876543.",
-      });
-  }
-
-  // 4. Address
-  if (!address) {
-    return res.status(400).send({ error: "Address is required." });
-  }
-
-  // 5. Birth date: required, ≥18 years old
-  if (!birthDate) {
-    return res.status(400).send({ error: "Birth date is required." });
-  }
-  {
-    const today = new Date();
-    const bd = new Date(birthDate);
-    let age = today.getFullYear() - bd.getFullYear();
-    const m = today.getMonth() - bd.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
-    if (age < 18) {
-      return res
-        .status(400)
-        .send({ error: "You must be at least 18 years old to register." });
-    }
-  }
-
-  // 6. Password: required, confirm match, ≥8 chars, uppercase, lowercase, digit, special
-  if (!password) {
-    return res.status(400).send({ error: "Password is required." });
-  }
-  if (password !== confirmPassword) {
-    return res.status(400).send({ error: "Passwords do not match." });
-  }
-  if (password.length < 8) {
-    return res
-      .status(400)
-      .send({ error: "Password must be at least 8 characters long." });
-  }
-  if (!/[A-Z]/.test(password)) {
-    return res
-      .status(400)
-      .send({ error: "Password must contain at least one uppercase letter." });
-  }
-  if (!/[a-z]/.test(password)) {
-    return res
-      .status(400)
-      .send({ error: "Password must contain at least one lowercase letter." });
-  }
-  if (!/[0-9]/.test(password)) {
-    return res
-      .status(400)
-      .send({ error: "Password must contain at least one number." });
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    return res
-      .status(400)
-      .send({ error: "Password must contain at least one special character." });
-  }
-
-  // ─── End Validation ──────────────────────────────────────────────────────
-
   try {
-    // Prevent duplicate by email
-    try {
-      await admin.auth().getUserByEmail(email);
-      return res.status(400).send({ error: "User already registered" });
-    } catch (err) {
-      if (err.code !== "auth/user-not-found") throw err;
-    }
+
 
     // Create Auth user
     const userRecord = await admin.auth().createUser({ email, password });
     const uid = userRecord.uid;
+
 
     // Assign role
     await admin.auth().setCustomUserClaims(uid, { role: "customer" });
@@ -150,8 +44,10 @@ const registerCustomer = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashPass = await bcrypt.hash(password, salt);
 
-    // Save profile in role-specific sub-collection
-    await db.collection(roleCollectionMap["customer"]).doc(uid).set({
+
+    // Save full profile (including hashed password) into users/{uid}
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    await db.collection("users").doc(uid).set({
       firstName,
       lastName,
       email,
@@ -159,12 +55,9 @@ const registerCustomer = async (req, res) => {
       birthDate,
       address,
       role: "customer",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    await db.collection("users").doc(uid).set({
-      password: hashPass, // Store hashed password
+      password: hashPass,
+      createdAt: now,
+      updatedAt: now,
     });
 
     res.status(201).send({ firstName, lastName });
@@ -229,7 +122,8 @@ const validateExtraFields = (position, fields) => {
         isString(fields.driverLicenseNumber) &&
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
-        scheduleValid && isObject(map)
+        scheduleValid &&
+        isObject(map)
       );
     case "industrial-driver":
       return (
@@ -240,7 +134,8 @@ const validateExtraFields = (position, fields) => {
         isString(fields.vehicleRegistrationNumber) &&
         isBoolean(fields.insurance) &&
         isBoolean(fields.refrigerated) &&
-        scheduleValid && isObject(map)
+        scheduleValid &&
+        isObject(map)
       );
     case "sorting":
     case "picker":
@@ -304,11 +199,9 @@ const requestEmployment = async (req, res) => {
     return res.status(400).send({ error: "Phone number is required." });
   }
   if (!/^\+\d{9,14}$/.test(phone)) {
-    return res
-      .status(400)
-      .send({
-        error: "Phone must be in international format, e.g. +972509876543.",
-      });
+    return res.status(400).send({
+      error: "Phone must be in international format, e.g. +972509876543.",
+    });
   }
 
   // 4. Address
@@ -367,11 +260,6 @@ const requestEmployment = async (req, res) => {
     }
     const uid = userRecord.uid;
 
-    // Assign pendingEmployee role
-    await admin.auth().setCustomUserClaims(uid, {
-      role: "pendingEmployee",
-    });
-
     // Save in role-specific sub-collection
     await db.collection("Pending-employment").doc(uid).set({
       firstName,
@@ -385,9 +273,6 @@ const requestEmployment = async (req, res) => {
       status: "pending",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
-    // ALSO save in top-level 'users' collection
-    await db.collection("users").doc(uid).set({});
 
     // Save full application details
     await db
@@ -428,16 +313,13 @@ const login = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 3. Save hashed password into users/{uid}.password
-    await db
-      .collection("users")
-      .doc(uid)
-      .set(
-        {
-          password: hashedPassword,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+    await db.collection("users").doc(uid).set(
+      {
+        password: hashedPassword,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     // 4. Return the role
     res.status(200).json({ role });

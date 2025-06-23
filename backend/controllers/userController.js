@@ -3,7 +3,7 @@ const { emailDocuments } = require("../info/contactInfo");
 
 // At top of your authController.js (or wherever getProfile lives):
 const roleCollectionMap = {
-  customer: "customers",
+  customer: "users",
   farmer: "farmers",
   deliverer: "deliverers",
   "industrial-driver": "industrialDrivers",
@@ -20,10 +20,12 @@ const getProfile = async (req, res) => {
   // choose collection: role-specific if known, otherwise fallback to 'users'
   const collection = roleCollectionMap[role] || "users";
 
+  
+
   try {
     const doc = await db.collection(collection).doc(uid).get();
     if (!doc.exists) {
-      return res.status(404).send({ error: "Profile not found" });
+      return res.status(404).send({ error: "Profile not found 222" });
     }
 
     // merge in generic fields if you still need them:
@@ -43,7 +45,7 @@ const getProfile = async (req, res) => {
 
 // Helper to remove unwanted fields from a document (e.g., createdAt, uid)
 const filterFields = (data) => {
-  const { createdAt, uid, ...rest } = data; // ???? -createdAt
+  const { createdAt, uid,approvedAt, ...rest } = data; // ???? -createdAt
   return rest;
 };
 
