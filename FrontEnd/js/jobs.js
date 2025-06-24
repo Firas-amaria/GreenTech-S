@@ -65,7 +65,7 @@ const mockRoles = [
     ],
   },
   {
-name: "sorting",
+    name: "sorting",
     description: "general worker in the logistics center , sorting employee.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -73,7 +73,7 @@ name: "sorting",
       { label: "Phone", type: "tel" },
     ],
   },
-   {
+  {
     name: "warehouse-worker",
     description: "Operates heavy-duty vehicles and equipment.",
     fields: [
@@ -95,17 +95,26 @@ console.log("jobs.js loaded"); // <-- add this line temporarily
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    console.log("User is logged in:", user);
+    console.log("User is logged in:", user.email);
     // You can store user details in localStorage/sessionStorage if needed
   } else {
     console.log("No user logged in, redirecting...");
+    alert("You must be logged in to view this page.");
     window.location.href = "login.html"; // Redirect to login page
   }
 });
 
-document.getElementById("logout-link").addEventListener("click", () => {
-  signOut(auth);
-  alert("loged out");
+document.getElementById("logout-link").addEventListener("click", (event) => {
+  event.preventDefault(); // Prevent the default link action
+
+  signOut(auth)
+    .then(() => {
+      console.log("User signed out successfully.");
+      window.location.href = "index.html"; // Redirect after logout
+    })
+    .catch((error) => {
+      console.error("Error signing out:", error);
+    });
 });
 
 document.addEventListener("DOMContentLoaded", () => {

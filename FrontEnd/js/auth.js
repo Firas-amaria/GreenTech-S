@@ -172,14 +172,6 @@ window.register = async (event) => {
   }
 
   try {
-    // Firebase user creation (client-side)
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-    const user = userCredential.user;
-
     // Send user data to backend
     const res = await fetch(
       "http://localhost:4000/api/auth/register-customer",
@@ -189,7 +181,6 @@ window.register = async (event) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          uid: user.uid,
           firstName,
           lastName,
           email,
@@ -230,31 +221,37 @@ window.login = async (event) => {
     // Get token using shared utility
     const token = await getCurrentUserToken();
     console.log(user.uid);
-    // Fetch user role from backend
-    const res = await fetch("http://localhost:4000/api/auth/login", {
+
+    // Post password user to DB
+    await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ uid: user.uid }),
+      body: JSON.stringify({ uid: user.uid, password }),
+    });
+
+    // Fetch user info from backend
+    const res = await fetch("http://localhost:4000/api/user/profile", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     const data = await res.json();
-    console.log("Backend response:", data);
+    // console.log("User data from backend:", data);
 
-    const role = data.role || data.message; // fallback in case backend still sends only `message`
-    const name = data.name || "";
-    const emailFromBackend = data.email || "";
+    const role = data.position || data.role; // role or position field
+    const name = data.firstName + " " + data.lastName || "";
 
     console.log("User role:", role);
 
     localStorage.setItem(
       "user",
       JSON.stringify({
-        uid: user.uid,
-        email: emailFromBackend || user.email,
-        token: token,
         role: role,
         name: name,
       })

@@ -8,10 +8,17 @@ import {
 
 // console.log("employmentApplication.js loaded");
 
-document.getElementById("logout-link").addEventListener("click", () => {
-  signOut(auth);
-  alert("Logged out");
-  window.location.href = "login.html";
+document.getElementById("logout-link").addEventListener("click", (event) => {
+  event.preventDefault(); // Prevent the default link action
+
+  signOut(auth)
+    .then(() => {
+      console.log("User signed out successfully.");
+      window.location.href = "index.html"; // Redirect after logout
+    })
+    .catch((error) => {
+      console.error("Error signing out:", error);
+    });
 });
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -19,7 +26,7 @@ window.addEventListener("DOMContentLoaded", () => {
   renderApplicationForm(); // Always tries to build the form
 });
 
-const mockRoles = [
+const RolesTable = [
   {
     name: "deliverer",
     description: "Responsible for transporting shipments.",
@@ -104,14 +111,26 @@ function checkAuthStatus() {
 async function renderApplicationForm() {
   const container = document.getElementById("application-form-container");
 
+  //get current user token and profile
+  const token = await getCurrentUserToken();
+
+  const res = await fetch("http://localhost:4000/api/user/profile", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const data = await res.json();
+  //mockget progile
   const profile = {
-    fisrtName: "John",
-    lasttName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1234567890",
-    role: "customer",
-    birthdate: "17-07-1997",
-    address: "hunalulu",
+    fisrtName: data.firstName,
+    lasttName: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    role: data.role,
+    birthdate: data.birthDate,
+    address: data.address,
   };
 
   if (profile.role && profile.role !== "customer") {
@@ -125,7 +144,7 @@ async function renderApplicationForm() {
     return;
   }
 
-  const roleObj = mockRoles.find((r) => r.name === roleParam.toLowerCase());
+  const roleObj = RolesTable.find((r) => r.name === roleParam.toLowerCase());
   if (!roleObj) {
     container.innerHTML = `<p>Role "${roleParam}" not found.</p>`;
     return;
@@ -346,10 +365,26 @@ async function renderApplicationForm() {
     // Log final output
     console.log("==== Mock Backend req.body ====");
     const mockReqBody = {};
+    mockReqBody.uid = auth.currentUser?.uid || "mock-uid";
     for (let [key, value] of formData.entries()) {
       mockReqBody[key] = value;
     }
-    console.log(JSON.stringify(mockReqBody, null, 2));
+    console.log(JSON.stringify(mockReqBody));
+
+    try {
+      await fetch("http://localhost:4000/api/auth/register-employee", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(mockReqBody),
+      });
+      alert("Application submitted! (mocked)");
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      alert("Failed to submit application. Check console for details.");
+    }
   });
 }
 
