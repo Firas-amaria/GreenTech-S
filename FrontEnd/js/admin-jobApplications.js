@@ -3,7 +3,7 @@ import { getCurrentUserToken } from "../js/firebase-init.js";
 // ====== Local Role Definitions ======
 const mockRoles = [
   {
-    name: "driver",
+    name: "deliverer",
     description: "Responsible for transporting shipments.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -18,7 +18,7 @@ const mockRoles = [
     ],
   },
   {
-    name: "packer",
+    name: "picker",
     description: "Packages and labels containers before shipping.",
     fields: [
       { label: "Full Name", type: "text" },
@@ -32,8 +32,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "supervisor",
-    description: "Oversees operations and staff.",
+    name: "industrial-driver",
+    description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -58,6 +58,24 @@ const mockRoles = [
       { label: "Bank Name", type: "text" },
       { label: "ID Document", type: "file" },
       { label: "Bank Statement", type: "file" },
+    ],
+  },
+  {
+    name: "sorting",
+    description: "general worker in the logistics center , sorting employee.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
+  },
+  {
+    name: "warehouse-worker",
+    description: "Operates heavy-duty vehicles and equipment.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
     ],
   },
 ];
@@ -86,11 +104,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Failed to load applications:", e);
   }
 
-  document.getElementById("apply-app-filters").addEventListener("click", () => {
+  document
+    .getElementById("apply-app-filters")
+    .addEventListener("click", applyFilters);
+  document
+    .getElementById("filter-search")
+    .addEventListener("input", applyFilters); // for dynamic search
+
+  function applyFilters() {
     const role = document.getElementById("filter-role").value;
-    const filtered = role
-      ? applicationsFromBackend.filter((app) => app.position === role)
-      : applicationsFromBackend;
+    const timeRange = document.getElementById("filter-time").value;
+    const search = document.getElementById("filter-search").value.toLowerCase();
+
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    const filtered = applicationsFromBackend.filter((app) => {
+      const matchRole = !role || app.position === role;
+
+      const createdAt = app.createdAt ? new Date(app.createdAt) : null;
+      let matchTime = true;
+      if (createdAt) {
+        switch (timeRange) {
+          case "today":
+            matchTime = createdAt >= startOfToday;
+            break;
+          case "yesterday":
+            const startOfYesterday = new Date(startOfToday.getTime() - oneDay);
+            matchTime =
+              createdAt >= startOfYesterday && createdAt < startOfToday;
+            break;
+          case "last-week":
+            const oneWeekAgo = new Date(Date.now() - 7 * oneDay);
+            matchTime = createdAt >= oneWeekAgo;
+            break;
+          case "last-month":
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            matchTime = createdAt >= oneMonthAgo;
+            break;
+          case "last-year":
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            matchTime = createdAt >= oneYearAgo;
+            break;
+        }
+      }
+
+      const fullName = `${app.firstName || ""} ${
+        app.lastName || ""
+      }`.toLowerCase();
+      const email = (app.email || "").toLowerCase();
+      const matchSearch =
+        !search || fullName.includes(search) || email.includes(search);
+
+      return matchRole && matchTime && matchSearch;
+    });
 
     const container = document.getElementById("applications-list");
     container.innerHTML = "";
@@ -98,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const card = renderDynamicApplicationCard(app);
       container.appendChild(card);
     });
-  });
+  }
 });
 
 // ====== Tab UI ======

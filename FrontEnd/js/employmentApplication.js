@@ -1,3 +1,5 @@
+/* employmentApplication.js - Optimized Version */
+
 import { initSchedule, getScheduleBitmaskArray } from "./schedule.js";
 import {
   auth,
@@ -6,24 +8,22 @@ import {
   signOut,
 } from "./firebase-init.js";
 
-// console.log("employmentApplication.js loaded");
-
-document.getElementById("logout-link").addEventListener("click", (event) => {
-  event.preventDefault(); // Prevent the default link action
-
+document.getElementById("logout-link").addEventListener("click", (e) => {
+  e.preventDefault();
   signOut(auth)
-    .then(() => {
-      console.log("User signed out successfully.");
-      window.location.href = "index.html"; // Redirect after logout
-    })
-    .catch((error) => {
-      console.error("Error signing out:", error);
-    });
+    .then(() => (window.location.href = "index.html"))
+    .catch((err) => console.error("Logout failed:", err));
 });
 
 window.addEventListener("DOMContentLoaded", () => {
-  checkAuthStatus(); // Just checks if user is logged in
-  renderApplicationForm(); // Always tries to build the form
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      alert("You need to log in first!");
+      window.location.href = "login.html";
+    } else {
+      renderApplicationForm();
+    }
+  });
 });
 
 const RolesTable = [
@@ -95,205 +95,247 @@ const RolesTable = [
   },
 ];
 
-function getQueryParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
-}
-
-function checkAuthStatus() {
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      alert("You need to log in first!");
-      window.location.href = "login.html";
-    }
-  });
-}
+const getQueryParam = (name) =>
+  new URLSearchParams(window.location.search).get(name);
 
 async function renderApplicationForm() {
   const container = document.getElementById("application-form-container");
-
-  //get current user token and profile
   const token = await getCurrentUserToken();
 
   const res = await fetch("http://localhost:4000/api/user/profile", {
-    method: "GET",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
   });
   const data = await res.json();
-  //mockget progile
+
   const profile = {
-    fisrtName: data.firstName,
-    lasttName: data.lastName,
+    firstName: data.firstName,
+    lastName: data.lastName,
     email: data.email,
-    phone: data.phone,
-    role: data.role,
-    birthdate: data.birthDate,
+    phone: "+972" + data.phone,
     address: data.address,
+    birthDate: data.birthDate,
+    role: data.role,
   };
 
   if (profile.role && profile.role !== "customer") {
-    alert("You already submitted for a role, you can’t have different roles");
+    alert("You already submitted for a role.");
     return (window.location.href = "index.html");
   }
 
-  const roleParam = getQueryParam("role");
-  if (!roleParam) {
-    container.innerHTML = "<p>No role specified in URL.</p>";
-    return;
-  }
-
-  const roleObj = RolesTable.find((r) => r.name === roleParam.toLowerCase());
-  if (!roleObj) {
-    container.innerHTML = `<p>Role "${roleParam}" not found.</p>`;
+  const roleName = getQueryParam("role")?.toLowerCase();
+  const role = RolesTable.find((r) => r.name === roleName);
+  if (!role) {
+    container.innerHTML = `<p>Invalid role: ${roleName}</p>`;
     return;
   }
 
   container.innerHTML = "";
-
-  const info = document.createElement("div");
-  info.innerHTML = `
-    <p>Please check that your personal details we already have are up to date. 
-      If not, sign up with the up-to-date information.</p>
-    <p>This is the mail and phone number we will be using to contact you.</p>
+  container.innerHTML += `
+    <p>Ensure your personal details are up to date. If not, sign up again with correct information.</p>
+    <p>We will contact you using the details below.</p>
   `;
-  container.appendChild(info);
 
   const form = document.createElement("form");
   form.id = "application-form";
 
-  // Add hidden profile fields
+  const createStaticField = (label, value) => `
+    <div class="form-group">
+      <label>${label}</label>
+      <div class="static-field">${value}</div>
+      <input type="hidden" name="${label
+        .replace(/\s+/g, "")
+        .toLowerCase()}" value="${value}" />
+    </div>
+  `;
+
   [
-    ["first name", profile.fisrtName],
-    ["last name", profile.lasttName],
+    ["First Name", profile.firstName],
+    ["Last Name", profile.lastName],
     ["Email", profile.email],
     ["Phone", profile.phone],
     ["Address", profile.address],
-    ["Birth-date", profile.birthdate],
-  ].forEach(([label, value]) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "form-group";
+    ["Birth Date", profile.birthDate],
+  ].forEach(
+    ([label, value]) => (form.innerHTML += createStaticField(label, value))
+  );
 
-    const lab = document.createElement("label");
-    lab.textContent = label;
-    wrapper.appendChild(lab);
-
-    const span = document.createElement("div");
-    span.className = "static-field";
-    span.textContent = value;
-    wrapper.appendChild(span);
-
-    const hidden = document.createElement("input");
-    hidden.type = "hidden";
-    hidden.name = label.replace(/\s+/g, "").toLowerCase();
-    hidden.value = value;
-    wrapper.appendChild(hidden);
-
-    form.appendChild(wrapper);
-  });
-
-  const hiddenRole = document.createElement("input");
-  hiddenRole.type = "hidden";
-  hiddenRole.name = "role";
-  hiddenRole.value = roleObj.name;
-  form.appendChild(hiddenRole);
-
+  form.innerHTML += `<input type="hidden" name="role" value="${role.name}" />`;
   const extraFields = document.createElement("div");
   extraFields.id = "extra-fields";
   form.appendChild(extraFields);
 
-  // === Dynamically add role-specific fields ===
-  if (roleObj.fields && Array.isArray(roleObj.fields)) {
-    roleObj.fields.forEach((field) => {
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("form-group");
+  // Role-specific fields
+  role.fields.forEach((field) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-group";
 
-      const label = document.createElement("label");
-      label.textContent = field.label;
+    const label = document.createElement("label");
+    label.textContent = field.label;
+    const input = document.createElement("input");
+    input.type = field.type;
+    input.name = field.label.replace(/\s+/g, "").toLowerCase();
+    input.required = true;
 
-      const input = document.createElement("input");
-      input.type = field.type;
-      input.name = field.label.replace(/\s+/g, "").toLowerCase();
-      input.required = true;
+    if (field.step) input.step = field.step;
+    if (field.min) input.min = field.min;
+    if (field.pattern) input.pattern = field.pattern;
 
-      // Optional field attributes (step, min, pattern)
-      if (field.step) input.step = field.step;
-      if (field.min) input.min = field.min;
-      if (field.pattern) input.pattern = field.pattern;
+    field.type === "checkbox" ? label.prepend(input) : label.appendChild(input);
+    wrapper.appendChild(label);
+    extraFields.appendChild(wrapper);
+  });
 
-      if (field.type === "checkbox") {
-        label.prepend(input); // checkbox goes before label text
-        wrapper.appendChild(label);
-      } else {
-        label.appendChild(input);
-        wrapper.appendChild(label);
-      }
+  // Land section
+  if (role.includeLand) {
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.id = "add-land-btn";
+    addBtn.textContent = "Add Land";
 
-      extraFields.appendChild(wrapper);
-    });
-  }
-
-  // === Add land section if needed ===
-  if (roleObj.includeLand) {
+    // Create section first
     const landsSection = document.createElement("div");
     landsSection.id = "lands-section";
     landsSection.innerHTML = `<h4>Lands</h4>`;
     extraFields.appendChild(landsSection);
 
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.id = "add-land-btn";
-    addBtn.textContent = "Add Land";
+    // Append button after section
     extraFields.appendChild(addBtn);
 
+    // 🔄 Attach event listener after DOM is fully updated
     setTimeout(() => {
-      document
-        .getElementById("add-land-btn")
-        ?.addEventListener("click", window.addLand);
+      const section = document.getElementById("lands-section");
+      const button = document.getElementById("add-land-btn");
+      if (section && button) {
+        button.addEventListener("click", () => addLand(section));
+        console.log("✅ Add Land button ready");
+      } else {
+        console.warn("❌ Button or section not found at timeout");
+      }
     }, 0);
   }
 
-  // === Add schedule if needed ===
-  let schedEl = null;
-  if (roleObj.includeSchedule) {
-    schedEl = document.createElement("div");
-    schedEl.id = "schedule-container";
-    schedEl.innerHTML = `
-      <table>
-        <thead>
-          <tr><th>Shift/Day</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  // Schedule
+  if (role.includeSchedule) {
+    const sched = document.createElement("div");
+    sched.id = "schedule-container";
+    sched.innerHTML = `
+      <table><thead><tr>
+        <th>Shift/Day</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+      </tr></thead><tbody></tbody></table>
     `;
-    extraFields.appendChild(schedEl);
-    await initSchedule(schedEl);
+    extraFields.appendChild(sched);
+    await initSchedule(sched);
   }
 
-  // === Add agreement checkbox ===
-  const agreementWrapper = document.createElement("div");
-  agreementWrapper.className = "agreement";
-  agreementWrapper.innerHTML = `
-    <label><input type="checkbox" name="agreement" required /> I certify that all information is accurate.</label>
+  extraFields.innerHTML += `
+    <div class="agreement">
+      <label><input type="checkbox" name="agreement" required /> I certify that all information is accurate.</label>
+    </div>
   `;
-  extraFields.appendChild(agreementWrapper);
 
-  // === Submit button ===
-  const submitBtn = document.createElement("button");
-  submitBtn.type = "submit";
-  submitBtn.textContent = "Submit Application";
-  form.appendChild(submitBtn);
+  form.innerHTML += `<button type="submit">Submit Application</button>`;
   container.appendChild(form);
 
-  // === Submit handler ===
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const formData = new FormData(form);
-    formData.append("submittedAt", new Date().toISOString());
 
-    // Clean out any leftover schedule fields
-    const dayNames = [
+    const formData = new FormData(form);
+    const reserved = [
+      "uid",
+      "agreement",
+      "firstname",
+      "lastname",
+      "email",
+      "phone",
+      "address",
+      "birthdate",
+      "role",
+      "submittedat",
+    ];
+
+    const ReqBody = {
+      uid: auth.currentUser?.uid,
+      acceptAgreement: formData.get("agreement") === "on",
+      certifyAccuracy: formData.get("agreement") === "on",
+      submittedAt: new Date().toISOString(),
+      firstName: formData.get("firstname"),
+      lastName: formData.get("lastname"),
+      email: formData.get("email"),
+      phone: formData.get("phone").replace(/[^+\d]/g, ""),
+      address: formData.get("address"),
+      birthDate: formData.get("birthdate"),
+      position: formData.get("role"),
+      extraFields: {},
+    };
+
+    if (document.getElementById("schedule-container")) {
+      ReqBody.extraFields.scheduleBitmask = await getScheduleBitmaskArray(
+        document.getElementById("schedule-container")
+      );
+    }
+
+    if (role.includeLand) {
+      const lands = [];
+      document.querySelectorAll(".land-block").forEach((block, i) => {
+        const get = (name) =>
+          block.querySelector(`[name="land[${i}][${name}]"]`)?.value;
+        lands.push({
+          name: get("customName") || `Land #${i + 1}`,
+          ownership: get("ownership"),
+          acres: get("acres"),
+          pickupAddress: get("pickupAddress"),
+          pickupLat: get("pickupLat"),
+          pickupLng: get("pickupLng"),
+          location: get("location"),
+          locLat: get("locLat"),
+          locLng: get("locLng"),
+        });
+      });
+      ReqBody.extraFields.lands = lands;
+    }
+
+    for (let [key, val] of formData.entries()) {
+      if (!reserved.includes(key)) {
+        if (val === "on") ReqBody.extraFields[key] = true;
+        else if (!isNaN(val) && val.trim() !== "")
+          ReqBody.extraFields[key] = Number(val);
+        else if (val.startsWith("{") || val.startsWith("[")) {
+          try {
+            ReqBody.extraFields[key] = JSON.parse(val);
+          } catch {
+            ReqBody.extraFields[key] = val;
+          }
+        } else {
+          ReqBody.extraFields[key] = val;
+        }
+      }
+    }
+
+    // Optional renaming
+    const mapKeys = {
+      licensetype: "licenseType",
+      vehiclemake: "vehicleMake",
+      vehiclemodel: "vehicleModel",
+      vehicletype: "vehicleType",
+      year: "vehicleYear",
+      "vehiclecapacity(t)": "vehicleCapacity",
+      "driverlicense#": "driverLicenseNumber",
+      "vehiclereg.#": "vehicleRegistrationNumber",
+      vehicleinsurance: "vehicleInsurance",
+      agriculturalinsurance: "agriculturalInsurance",
+    };
+    Object.entries(mapKeys).forEach(([oldK, newK]) => {
+      if (oldK in ReqBody.extraFields) {
+        ReqBody.extraFields[newK] = ReqBody.extraFields[oldK];
+        delete ReqBody.extraFields[oldK];
+      }
+    });
+
+    // Remove leftover raw weekday shift fields from extraFields
+    const rawDays = [
       "Sunday",
       "Monday",
       "Tuesday",
@@ -302,119 +344,74 @@ async function renderApplicationForm() {
       "Friday",
       "Saturday",
     ];
-    dayNames.forEach((day) => formData.delete(day));
+    rawDays.forEach((day) => {
+      delete ReqBody.extraFields[day];
+    });
 
-    // Append schedule bitmask
-    if (schedEl) {
-      const bitmaskArray = await getScheduleBitmaskArray(schedEl);
-      formData.append("scheduleBitmask", JSON.stringify(bitmaskArray));
-    }
-
-    // Append land data if present
-    if (roleObj.includeLand) {
-      const lands = [];
-      const landBlocks = document.querySelectorAll(".land-block");
-      landBlocks.forEach((block, index) => {
-        const name =
-          block.querySelector(`[name="land[${index}][customName]"]`)?.value ||
-          `Land #${index + 1}`;
-        const ownership = block.querySelector(
-          `[name="land[${index}][ownership]"]`
-        )?.value;
-        const acres = block.querySelector(
-          `[name="land[${index}][acres]"]`
-        )?.value;
-        const pickupAddress = block.querySelector(
-          `[name="land[${index}][pickupAddress]"]`
-        )?.value;
-        const pickupLat = block.querySelector(
-          `[name="land[${index}][pickupLat]"]`
-        )?.value;
-        const pickupLng = block.querySelector(
-          `[name="land[${index}][pickupLng]"]`
-        )?.value;
-        const location = block.querySelector(
-          `[name="land[${index}][location]"]`
-        )?.value;
-        const locLat = block.querySelector(
-          `[name="land[${index}][locLat]"]`
-        )?.value;
-        const locLng = block.querySelector(
-          `[name="land[${index}][locLng]"]`
-        )?.value;
-
-        lands.push({
-          name,
-          ownership,
-          acres,
-          pickupAddress,
-          pickupLat,
-          pickupLng,
-          location,
-          locLat,
-          locLng,
-        });
-      });
-
-      formData.append("lands", JSON.stringify(lands));
-      [...formData.keys()].forEach((key) => {
-        if (key.startsWith("land[")) formData.delete(key);
-      });
-    }
-
-    // Log final output
-    console.log("==== Mock Backend req.body ====");
-    const mockReqBody = {};
-    mockReqBody.uid = auth.currentUser?.uid || "mock-uid";
-    for (let [key, value] of formData.entries()) {
-      mockReqBody[key] = value;
-    }
-    console.log(JSON.stringify(mockReqBody));
-
-    try {
-      await fetch("http://localhost:4000/api/auth/register-employee", {
+    const response = await fetch(
+      "http://localhost:4000/api/auth/register-employee",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(mockReqBody),
-      });
-      alert("Application submitted! (mocked)");
-    } catch (error) {
-      console.error("Error submitting application:", error);
-      alert("Failed to submit application. Check console for details.");
+        body: JSON.stringify(ReqBody),
+      }
+    );
+
+    const resData = await response.json();
+    if (response.ok) {
+      alert(resData.message || "Application submitted!");
+      window.location.href = "index.html";
+    } else {
+      alert("Error: " + (resData.error || "Unknown"));
     }
   });
 }
 
 let landIndex = 0;
-
-window.addLand = function () {
-  const landsSection = document.getElementById("lands-section");
+window.addLand = function (landsSection) {
   if (!landsSection) return;
 
   const block = document.createElement("div");
   block.className = "land-block";
-
   block.innerHTML = `
-    <h5>Land #${landIndex + 1}</h5>
-    <label>land Name: <input type="text" name="land[${landIndex}][customName]" /></label>
-    <label>Ownership Type: <input type="text" name="land[${landIndex}][ownership]" /></label>
-    <label>Acres: <input type="number" name="land[${landIndex}][acres]" /></label>
-    <label>Pickup Address: <input type="text" name="land[${landIndex}][pickupAddress]" /></label>
-    <label>Pickup Lat: <input type="number" name="land[${landIndex}][pickupLat]" step="any" /></label>
-    <label>Pickup Lng: <input type="number" name="land[${landIndex}][pickupLng]" step="any" /></label>
-    <label>Location Address: <input type="text" name="land[${landIndex}][location]" /></label>
-    <label>Location Lat: <input type="number" name="land[${landIndex}][locLat]" step="any" /></label>
-    <label>Location Lng: <input type="number" name="land[${landIndex}][locLng]" step="any" /></label>
+    <h5>Land #${++landIndex}</h5>
+    ${[
+      "customName",
+      "ownership",
+      "acres",
+      "pickupAddress",
+      "pickupLat",
+      "pickupLng",
+      "location",
+      "locLat",
+      "locLng",
+    ]
+      .map(
+        (field) => `<label>${capitalize(field.replace(/([A-Z])/g, " $1"))}: 
+          <input type="${
+            field.toLowerCase().includes("lat") ||
+            field.toLowerCase().includes("lng") ||
+            field === "acres"
+              ? "number"
+              : "text"
+          }"
+          step="any" name="land[${landIndex - 1}][${field}]" /></label>`
+      )
+      .join("<br/>")}
+    
+    <br/>
+    <button type="button" class="delete-land-btn" style="margin-top:5px; background:#d9534f; color:white; border:none; padding:5px 10px; cursor:pointer;">Delete Land</button>
     <hr/>
   `;
 
   landsSection.appendChild(block);
-  landIndex++;
+  // Bind delete button
+  block.querySelector(".delete-land-btn").addEventListener("click", () => {
+    landsSection.removeChild(block);
+  });
 };
 
-function capitalize(word) {
-  return word ? word[0].toUpperCase() + word.slice(1) : "";
-}
+const capitalize = (w) => w && w[0].toUpperCase() + w.slice(1);
