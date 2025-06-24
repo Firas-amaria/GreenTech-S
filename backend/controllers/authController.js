@@ -35,7 +35,7 @@ const registerCustomer = async (req, res) => {
     const uid = userRecord.uid;
 
     // Assign role
-    await admin.auth().setCustomUserClaims(uid, { role: "customer" });
+    // await admin.auth().setCustomUserClaims(uid, { role: "customer" });
 
     // Hash the password before storing
     const salt = await bcrypt.genSalt(12);
@@ -147,6 +147,8 @@ const requestEmployment = async (req, res) => {
     acceptAgreement,
     certifyAccuracy,
   } = req.body;
+
+
 
   // ─── Server-side Validation ─────────────────────────────────────────────
 

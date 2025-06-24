@@ -23,7 +23,7 @@ const approveEmployee = async (req, res) => {
     const data = pendingSnap.data();
 
     // 2. Update Firebase Auth custom claim
-    await admin.auth().setCustomUserClaims(uid, { role });
+    // await admin.auth().setCustomUserClaims(uid, { role });
 
     // 3. Copy into the new role-specific collection
     const targetCol = roleCollectionMap[role];
@@ -61,7 +61,7 @@ const setRole = async (req, res) => {
 
   try {
     // Set custom user claims in Firebase Auth (used for role-based auth)
-    await admin.auth().setCustomUserClaims(uid, { role });
+    // await admin.auth().setCustomUserClaims(uid, { role });
 
     // Update the user's role in Firestore document
     await db.collection("users").doc(uid).update({
