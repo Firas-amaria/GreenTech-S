@@ -30,12 +30,9 @@ const registerCustomer = async (req, res) => {
   }
 
   try {
-
-
     // Create Auth user
     const userRecord = await admin.auth().createUser({ email, password });
     const uid = userRecord.uid;
-
 
     // Assign role
     await admin.auth().setCustomUserClaims(uid, { role: "customer" });
@@ -43,7 +40,6 @@ const registerCustomer = async (req, res) => {
     // Hash the password before storing
     const salt = await bcrypt.genSalt(12);
     const hashPass = await bcrypt.hash(password, salt);
-
 
     // Save full profile (including hashed password) into users/{uid}
     const now = admin.firestore.FieldValue.serverTimestamp();
@@ -84,7 +80,6 @@ const getUserRole = async (req, res) => {
   }
 };
 
-// Validate extra fields by position (unchanged)…
 const validateExtraFields = (position, fields) => {
   const isString = (v) => typeof v === "string";
   const isBoolean = (v) => typeof v === "boolean";
@@ -92,58 +87,49 @@ const validateExtraFields = (position, fields) => {
   const isObject = (v) =>
     v !== null && typeof v === "object" && !Array.isArray(v);
 
-  const map = fields.shiftMap;
+  const sched = fields.scheduleBitmask;
+  const scheduleValid = Array.isArray(sched) && sched.every(Number.isInteger);
 
-  const validShifts = ["morning", "afternoon", "evening"];
-  const sched = fields.availabilitySchedule;
-  const scheduleValid =
-    (Array.isArray(sched) &&
-      sched.every((shift) => validShifts.includes(shift))) ||
-    (sched &&
-      typeof sched === "object" &&
-      !Array.isArray(sched) &&
-      Object.values(sched).every(
-        (shift) => shift === "" || validShifts.includes(shift)
-      ));
+  // Coerce numbers to string where needed
+  const toStr = (v) => (typeof v === "number" ? v.toString() : v);
 
   switch (position) {
     case "farmer":
       return (
         Array.isArray(fields.lands) && isBoolean(fields.agriculturalInsurance)
       );
+
     case "deliverer":
       return (
         isString(fields.licenseType) &&
-        isString(fields.vehicleType) &&
         isString(fields.vehicleMake) &&
         isString(fields.vehicleModel) &&
+        isString(fields.vehicleType) &&
         isNumber(fields.vehicleYear) &&
         isNumber(fields.vehicleCapacity) &&
-        isString(fields.driverLicenseNumber) &&
-        isString(fields.vehicleRegistrationNumber) &&
-        isBoolean(fields.insurance) &&
-        scheduleValid &&
-        isObject(map)
+        isString(toStr(fields.driverLicenseNumber)) &&
+        isString(toStr(fields.vehicleRegistrationNumber)) &&
+        isBoolean(fields.vehicleInsurance) &&
+        scheduleValid
       );
+
     case "industrial-driver":
       return (
         isString(fields.licenseType) &&
+        isString(fields.vehicleMake) &&
+        isString(fields.vehicleModel) &&
         isString(fields.vehicleType) &&
+        isNumber(fields.vehicleYear) &&
         isNumber(fields.vehicleCapacity) &&
-        isString(fields.driverLicenseNumber) &&
-        isString(fields.vehicleRegistrationNumber) &&
-        isBoolean(fields.insurance) &&
+        isString(toStr(fields.driverLicenseNumber)) &&
+        isString(toStr(fields.vehicleRegistrationNumber)) &&
+        isBoolean(fields.vehicleInsurance) &&
         isBoolean(fields.refrigerated) &&
-        scheduleValid &&
-        isObject(map)
+        scheduleValid
       );
-    case "sorting":
-    case "picker":
-    case "warehouse-worker":
-      scheduleValid;
-      return true;
+
     default:
-      return false;
+      return true; // warehouse, picker, etc.
   }
 };
 
@@ -232,8 +218,16 @@ const requestEmployment = async (req, res) => {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
 
+  if (!extraFields || typeof extraFields !== "object") {
+    return res
+      .status(400)
+      .send({ error: "Extra fields are missing or invalid." });
+  }
+
   if (!validateExtraFields(position, extraFields)) {
-    return res.status(400).send({ error: "Invalid or missing extra fields." });
+    return res.status(400).send({
+      error: `Invalid or missing extra fields for position '${position}'. Check required inputs.`,
+    });
   }
 
   const col = roleCollectionMap[position];
