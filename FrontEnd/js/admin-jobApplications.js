@@ -186,7 +186,7 @@ function setupTabs() {
 // ====== Fetch Real Applications ======
 async function fetchApplications() {
   const token = await getCurrentUserToken();
-  const res = await fetch("http://localhost:4000/api/admin/applications", {
+  const res = await fetch("http://localhost:4000/api/admin/getApplications", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -203,7 +203,7 @@ function renderDynamicApplicationCard(app) {
   const header = document.createElement("div");
   header.className = "application-header";
   header.innerHTML = `
-    <span><strong>Position:</strong> ${app.position || "-"}</span>
+    <span><strong>Position:</strong> ${app.role || "-"}</span>
     <span><strong>Name:</strong> ${
       (app.firstName || "") + " " + (app.lastName || "")
     }</span>
@@ -226,7 +226,7 @@ function renderDynamicApplicationCard(app) {
   // === Build details table ===
   let tableHTML = "<table class='details-table'>";
   for (const [key, value] of Object.entries(app)) {
-    if (["uid", "status", "position", "createdAt", "updatedAt"].includes(key))
+    if (["uid", "status", "role", "createdAt", "updatedAt"].includes(key))
       continue;
 
     let formattedValue = "";
@@ -254,9 +254,9 @@ function renderDynamicApplicationCard(app) {
         <option value="denied"${
           app.status === "denied" ? " selected" : ""
         }>Denied</option>
-        <option value="accepted"${
-          app.status === "accepted" ? " selected" : ""
-        }>Accepted</option>
+        <option value="approved"${
+          app.status === "approved" ? " selected" : ""
+        }>Approved</option>
       </select>
       <button class="save-status-btn">Save</button>
     </div>
@@ -274,32 +274,37 @@ function renderDynamicApplicationCard(app) {
 
   // === Save button (placeholder) ===
   const saveBtn = detailsDiv.querySelector(".save-status-btn");
-  saveBtn.addEventListener("click", () => {
+  saveBtn.addEventListener("click", async () => {
     const newStatus = detailsDiv.querySelector(".status-select").value;
     const statusSpan = card.querySelector(".app-status");
-    statusSpan.innerHTML = `<strong>Status:</strong> ${newStatus}`;
-    // Make real PUT request to backend
-    //the backend routes dont support this yet, so we will just fake it for now
-    alert(`(FAKE) Status updated to "${newStatus}"`);
-    // getCurrentUserToken().then((token) => {
-    //   fetch(`http://localhost:4000/api/admin/users/${app.uid}`, {
-    //     method: "PUT",
-    //     headers: {
-    //       Authorization: `Bearer ${token}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify({ status: newStatus }),
-    //   })
-    //     .then((res) => {
-    //       if (!res.ok) throw new Error("Failed to update status");
-    //       statusSpan.innerHTML = `<strong>Status:</strong> ${newStatus}`;
-    //       alert("Status updated successfully!");
-    //     })
-    //     .catch((err) => {
-    //       console.error(err);
-    //       alert("Failed to update status.");
-    //     });
-    // });
+
+    try {
+      const token = await getCurrentUserToken();
+
+      const res = await fetch(
+        `http://localhost:4000/api/admin/updateApplication/${app.uid}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: newStatus,
+            role: app.role || app.position, // ensure role is passed (needed for acceptance)
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to update status");
+
+      const result = await res.json();
+      statusSpan.innerHTML = `<strong>Status:</strong> ${newStatus}`;
+      alert(result.message || `Status updated to "${newStatus}"`);
+    } catch (err) {
+      console.error("Update failed:", err);
+      alert("Failed to update status. Please try again.");
+    }
   });
 
   return card;

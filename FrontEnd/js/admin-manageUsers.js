@@ -39,7 +39,7 @@ function splitUsersByRole(users) {
 // This needs to be updated and make sure we are using the correct roles pls
 const allRoles = [
   "admin",
-  "driver",
+  "deliverer",
   "picker",
   "farmer",
   "farmer manager",
@@ -47,6 +47,7 @@ const allRoles = [
   "customer service manager",
   "customer",
   "warehouse-worker",
+  "industrial-driver",
   "Operation-Maneger",
 ];
 
