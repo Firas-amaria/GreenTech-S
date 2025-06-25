@@ -1,10 +1,5 @@
 // js/auth.js
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { auth, getCurrentUserToken } from "./firebase-init.js";
 
@@ -16,7 +11,7 @@ window.register = async (event) => {
   const lastName = form["register-fullname"].value.split(" ")[1] || "";
 
   const email = form["register-email"].value;
-  const phone = form["register-phone"].value;
+  const phone = iti.getNumber(); // This gives the full international number like +972512325456
   const address = form["register-address"].value;
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
@@ -28,9 +23,8 @@ window.register = async (event) => {
     form["register-fullname"].style.borderColor = "red";
     return;
   }
-  console.log(firstName.length);
   if (firstName.length < 2) {
-    console.log("aaa");
+    // console.log("aaa");
     document.getElementById("error-message").innerText =
       "First name must be at least 2 characters long.";
     form["register-fullname"].style.borderColor = "red";
@@ -172,15 +166,6 @@ window.register = async (event) => {
   }
 
   try {
-    // Firebase user creation (client-side)
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-    const user = userCredential.user;
-
-    // Send user data to backend
     const res = await fetch(
       "http://localhost:4000/api/auth/register-customer",
       {
@@ -189,7 +174,6 @@ window.register = async (event) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          uid: user.uid,
           firstName,
           lastName,
           email,
@@ -201,13 +185,20 @@ window.register = async (event) => {
         }),
       }
     );
+
     const data = await res.json();
-    console.log(data);
+
+    if (!res.ok) {
+      // Show backend error message if registration fails
+      alert("Registration failed: " + data.error);
+      return;
+    }
+
     alert("Registration successful!");
     window.location.href = "login.html";
   } catch (error) {
     console.error(error);
-    document.getElementById("error-message").innerText = error.message;
+    alert("Registration failed - Unknown Error ");
   }
 };
 
@@ -225,40 +216,48 @@ window.login = async (event) => {
     );
 
     const user = userCredential.user;
-    console.log(user);
+    // console.log(user.uid " " + user.email);
 
     // Get token using shared utility
     const token = await getCurrentUserToken();
-    console.log(user.uid);
-    // Fetch user role from backend
+
+    // Post password user to DB
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ uid: user.uid }),
+      body: JSON.stringify({ uid: user.uid, password }),
     });
 
+    // // Fetch user info from backend
+    // await fetch("http://localhost:4000/api/user/profile", {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     Authorization: `Bearer ${token}`,
+    //   },
+    // });
+
     const data = await res.json();
-    console.log("Backend response:", data);
+    // console.log("User data from backend:", data);
 
-    const role = data.role || data.message; // fallback in case backend still sends only `message`
-    const name = data.name || "";
-    const emailFromBackend = data.email || "";
+    const role = data.role;
+    const name = data.name;
 
-    console.log("User role:", role);
+    // console.log("User role:", role);
 
+    //save name and role in localStorage to use later
     localStorage.setItem(
       "user",
       JSON.stringify({
-        uid: user.uid,
-        email: emailFromBackend || user.email,
-        token: token,
         role: role,
         name: name,
       })
     );
+
+    // alert(`Welcome ${name}! You are logged in as ${role}.`);
 
     // Redirect based on role
     switch (role) {

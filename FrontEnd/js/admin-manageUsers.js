@@ -1,210 +1,200 @@
-// ==========================================
-// js/manageUsers.js
-// ==========================================
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
-// ********** MOCK DATA **********
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const users = await fetchUsers();
+    const { employees, customers } = splitUsersByRole(users);
+    renderUsersToTable(employees, "employees-table", true);
+    renderUsersToTable(customers, "customers-table", false);
+  } catch (error) {
+    console.error("Failed to load users:", error);
+  }
 
-// A sample list of Employees
-let mockEmployees = [
-  { id: "EMP-001", fullName: "Alice Friedman", role: "packer" },
-  { id: "EMP-002", fullName: "Barak Cohen", role: "driver" },
-  { id: "EMP-003", fullName: "Carmen Levy", role: "supervisor" },
-  { id: "EMP-004", fullName: "David Shapiro", role: "farmer" }
-];
+  // Tab switching
+  document.getElementById("tab-employees").addEventListener("click", () => {
+    showTab("employees");
+  });
+  document.getElementById("tab-customers").addEventListener("click", () => {
+    showTab("customers");
+  });
+});
 
-// A sample list of Customers
-let mockCustomers = [
-  { id: "CUS-001", fullName: "Eliav Katz", role: "customer" },
-  { id: "CUS-002", fullName: "Fatima Nasser", role: "customer" },
-  { id: "CUS-003", fullName: "Gilad Sarid", role: "customer" }
-];
+async function fetchUsers() {
+  const token = await getCurrentUserToken();
+  const response = await fetch("http://localhost:4000/api/admin/users", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
 
-// Allowed roles (existing + new)
+function splitUsersByRole(users) {
+  const employees = users.filter((u) => u.role && u.role !== "customer");
+  const customers = users.filter((u) => u.role === "customer");
+  return { employees, customers };
+}
+
+// This needs to be updated and make sure we are using the correct roles pls
 const allRoles = [
-  // Existing roles (match those used elsewhere)
+  "admin",
   "driver",
   "picker",
-  
   "farmer",
-  // New managerial roles
   "farmer manager",
   "transportation manager",
   "customer service manager",
-  // A generic "customer" role for customers section
-  "customer"
+  "customer",
+  "warehouse-worker",
+  "Operation-Maneger",
 ];
 
-// ********** HELPERS **********
-
-// Render the <select> of roles, pre-selecting `currentRole`
+// Create dropdown for user role
 function buildRoleDropdown(currentRole) {
   const select = document.createElement("select");
   select.classList.add("role-select");
 
-  allRoles.forEach((r) => {
+  allRoles.forEach((role) => {
     const opt = document.createElement("option");
-    opt.value = r;
-    opt.textContent = r
-      .split(" ")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-    if (r === currentRole) opt.selected = true;
+    opt.value = role;
+    opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+    if (role === currentRole) opt.selected = true;
     select.appendChild(opt);
   });
 
   return select;
 }
 
-// Format a user’s "View Information" popup (simple alert for now)
+// Show user info popup
 function viewUserInfo(user, isEmployee) {
   const type = isEmployee ? "Employee" : "Customer";
-  // In a real app, you might open a modal or navigate to a detail page.
-  alert(`${type} Info:\n\nID: ${user.id}\nName: ${user.fullName}\nRole: ${user.role}`);
+  alert(
+    `${type} Info:\n\nID: ${user.uid}\nName: ${
+      user.firstName + " " + user.lastName || "-"
+    }\nEmail: ${user.email || "-"}\nRole: ${user.role || "-"}\nStatus: ${
+      user.status || "-"
+    }`
+  );
 }
 
-// ********** RENDERING TABLE ROWS **********
-
-// Render one employee row
-function renderEmployeeRow(employee) {
-  const tr = document.createElement("tr");
-  tr.dataset.userid = employee.id;
-
-  // 1) Name cell
-  const nameTd = document.createElement("td");
-  nameTd.textContent = employee.fullName;
-  tr.appendChild(nameTd);
-
-  // 2) Role cell (dropdown)
-  const roleTd = document.createElement("td");
-  const roleSelect = buildRoleDropdown(employee.role);
-  roleSelect.addEventListener("change", () => {
-    const newRole = roleSelect.value;
-    employee.role = newRole; // update mock
-
-    // OPTIONAL: PUT to backend
-    // fetch(`/api/admin/users/${employee.id}`, {
-    //   method: "PUT",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ role: newRole })
-    // })
-    //   .catch((err) => console.error(err));
-
-    alert(`(FAKE) Employee "${employee.fullName}" role changed to "${newRole}".`);
-  });
-  roleTd.appendChild(roleSelect);
-  tr.appendChild(roleTd);
-
-  // 3) Actions cell ("View Information" button)
-  const actionsTd = document.createElement("td");
-  const viewBtn = document.createElement("button");
-  viewBtn.textContent = "View Information";
-  viewBtn.classList.add("view-info-btn");
-  viewBtn.addEventListener("click", () => viewUserInfo(employee, true));
-  actionsTd.appendChild(viewBtn);
-  tr.appendChild(actionsTd);
-
-  return tr;
-}
-
-// Populate the Employees table
-function populateEmployeesTable() {
-  const tbody = document
-    .getElementById("employees-table")
-    .querySelector("tbody");
+// Render table with user rows
+function renderUsersToTable(users, tableId, isEmployee) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
   tbody.innerHTML = "";
 
-  mockEmployees.forEach((emp) => {
-    const row = renderEmployeeRow(emp);
-    tbody.appendChild(row);
+  users.forEach((user) => {
+    const tr = document.createElement("tr");
+
+    // Name
+    const nameTd = document.createElement("td");
+    nameTd.textContent =
+      (user.firstName || "") + " " + (user.lastName || "") || "—";
+    tr.appendChild(nameTd);
+
+    // Role with dropdown
+    const roleTd = document.createElement("td");
+    const roleSelect = buildRoleDropdown(user.role);
+    roleSelect.addEventListener("change", () => {
+      const newRole = roleSelect.value;
+      updateUserRole(user.uid, newRole);
+    });
+    roleTd.appendChild(roleSelect);
+    tr.appendChild(roleTd);
+
+    // Actions (View Info + Delete)
+    const actionsTd = document.createElement("td");
+
+    // View Info Button
+    const viewBtn = document.createElement("button");
+    viewBtn.textContent = "View Information";
+    viewBtn.classList.add("view-info-btn");
+    viewBtn.addEventListener("click", () => viewUserInfo(user, isEmployee));
+    actionsTd.appendChild(viewBtn);
+
+    // Delete Button
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.classList.add("delete-user-btn");
+    deleteBtn.style.marginLeft = "10px";
+    deleteBtn.addEventListener("click", () =>
+      confirmDeleteUser(user.uid, user.fullName || user.firstName)
+    );
+    actionsTd.appendChild(deleteBtn);
+
+    tr.appendChild(actionsTd);
+
+    // ✅ FIX: Append the row to the table
+    tbody.appendChild(tr);
   });
 }
 
-// Render one customer row
-function renderCustomerRow(customer) {
-  const tr = document.createElement("tr");
-  tr.dataset.userid = customer.id;
+async function confirmDeleteUser(uid, name) {
+  if (
+    !confirm(
+      `Are you sure you want to delete user "${name}"? This cannot be undone.`
+    )
+  ) {
+    return;
+  }
 
-  // 1) Name cell
-  const nameTd = document.createElement("td");
-  nameTd.textContent = customer.fullName;
-  tr.appendChild(nameTd);
+  try {
+    const token = await getCurrentUserToken();
+    const response = await fetch(
+      `http://localhost:4000/api/admin/users/${uid}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-  // 2) Role cell (dropdown)
-  const roleTd = document.createElement("td");
-  const roleSelect = buildRoleDropdown(customer.role);
-  roleSelect.addEventListener("change", () => {
-    const newRole = roleSelect.value;
-    customer.role = newRole; // update mock
-
-    // OPTIONAL: PUT to backend
-    // fetch(`/api/admin/users/${customer.id}`, {
-    //   method: "PUT",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ role: newRole })
-    // })
-    //   .catch((err) => console.error(err));
-
-    alert(`(FAKE) Customer "${customer.fullName}" role changed to "${newRole}".`);
-  });
-  roleTd.appendChild(roleSelect);
-  tr.appendChild(roleTd);
-
-  // 3) Actions cell ("View Information" button)
-  const actionsTd = document.createElement("td");
-  const viewBtn = document.createElement("button");
-  viewBtn.textContent = "View Information";
-  viewBtn.classList.add("view-info-btn");
-  viewBtn.addEventListener("click", () => viewUserInfo(customer, false));
-  actionsTd.appendChild(viewBtn);
-  tr.appendChild(actionsTd);
-
-  return tr;
+    if (!response.ok) throw new Error("Failed to delete user");
+    alert(`User "${name}" deleted successfully.`);
+    location.reload(); // reload to refresh table
+  } catch (error) {
+    console.error(error);
+    alert("Failed to delete user.");
+  }
 }
 
-// Populate the Customers table
-function populateCustomersTable() {
-  const tbody = document
-    .getElementById("customers-table")
-    .querySelector("tbody");
-  tbody.innerHTML = "";
+// Update user role in Firestore
+async function updateUserRole(uid, newRole) {
+  const token = await getCurrentUserToken();
 
-  mockCustomers.forEach((cust) => {
-    const row = renderCustomerRow(cust);
-    tbody.appendChild(row);
-  });
+  try {
+    const response = await fetch(
+      `http://localhost:4000/api/admin/users/${uid}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: newRole }),
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to update user role");
+    alert("Role updated successfully!");
+  } catch (error) {
+    console.error("Error updating role:", error);
+    alert("Failed to update role.");
+  }
 }
 
-// ********** SUB-NAV TOGGLING **********
+// Tab switcher
+function showTab(tab) {
+  document.getElementById("employees-section").style.display =
+    tab === "employees" ? "block" : "none";
+  document.getElementById("customers-section").style.display =
+    tab === "customers" ? "block" : "none";
 
-function showEmployeesTab() {
-  document.getElementById("tab-employees").classList.add("sub-active");
-  document.getElementById("tab-customers").classList.remove("sub-active");
-  document.getElementById("employees-section").style.display = "block";
-  document.getElementById("customers-section").style.display = "none";
+  document
+    .getElementById("tab-employees")
+    .classList.toggle("sub-active", tab === "employees");
+  document
+    .getElementById("tab-customers")
+    .classList.toggle("sub-active", tab === "customers");
 }
-
-function showCustomersTab() {
-  document.getElementById("tab-customers").classList.add("sub-active");
-  document.getElementById("tab-employees").classList.remove("sub-active");
-  document.getElementById("customers-section").style.display = "block";
-  document.getElementById("employees-section").style.display = "none";
-}
-
-// ********** INITIALIZATION **********
-
-document.addEventListener("DOMContentLoaded", () => {
-  // Wire up sub-nav
-  document.getElementById("tab-employees").addEventListener("click", (e) => {
-    e.preventDefault();
-    showEmployeesTab();
-  });
-  document.getElementById("tab-customers").addEventListener("click", (e) => {
-    e.preventDefault();
-    showCustomersTab();
-  });
-  showEmployeesTab(); // default to employees
-
-  // Render both tables
-  populateEmployeesTable();
-  populateCustomersTable();
-});

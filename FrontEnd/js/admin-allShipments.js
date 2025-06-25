@@ -2,6 +2,8 @@
 // js/shipments.js
 // ==========================================
 
+//backend api not found in admin routes
+
 // ***** MOCK DATA *****
 // Now includes a fullReport object per shipment, with all requested fields.
 const mockShipments = [
@@ -70,9 +72,9 @@ const mockShipments = [
           rejectionPercent: "5%",
         },
         newBarcodes: {
-          gradeA: ["BAR-A-1001", "BAR-A-1002", /* … */],
-          gradeB: ["BAR-B-2001", /* … */],
-          gradeC: ["BAR-C-3001", /* … */],
+          gradeA: ["BAR-A-1001", "BAR-A-1002" /* … */],
+          gradeB: ["BAR-B-2001" /* … */],
+          gradeC: ["BAR-C-3001" /* … */],
         },
         endOfDay: {
           sold: 1900, // kilos
@@ -185,9 +187,9 @@ const mockShipments = [
           rejectionPercent: "3%",
         },
         newBarcodes: {
-          gradeA: ["BAR-A-1101", "BAR-A-1102", /* … */],
-          gradeB: ["BAR-B-2101", /* … */],
-          gradeC: ["BAR-C-3101", /* … */],
+          gradeA: ["BAR-A-1101", "BAR-A-1102" /* … */],
+          gradeB: ["BAR-B-2101" /* … */],
+          gradeC: ["BAR-C-3101" /* … */],
         },
         endOfDay: {
           sold: 1400,
@@ -304,9 +306,9 @@ const mockShipments = [
           rejectionPercent: "2.8%",
         },
         newBarcodes: {
-          gradeA: ["BAR-A-1201", "BAR-A-1202", /* … */],
-          gradeB: ["BAR-B-2201", /* … */],
-          gradeC: ["BAR-C-3201", /* … */],
+          gradeA: ["BAR-A-1201", "BAR-A-1202" /* … */],
+          gradeB: ["BAR-B-2201" /* … */],
+          gradeC: ["BAR-C-3201" /* … */],
         },
         endOfDay: {
           sold: 1700,
@@ -463,9 +465,15 @@ function renderShipmentCard(shipment) {
       <tr><td><strong>Status:</strong></td><td>${fr.status}</td></tr>
       <tr><td><strong>Farmer ID:</strong></td><td>${fr.farmerId}</td></tr>
       <tr><td><strong>Amount:</strong></td><td>${fr.amount}</td></tr>
-      <tr><td><strong>Pickup Time:</strong></td><td>${formatTimestamp(fr.pickupTime)}</td></tr>
-      <tr><td><strong>Driver:</strong></td><td>${fr.driver.name} / ${fr.driver.phone}</td></tr>
-      <tr><td><strong>Current Shipment Status:</strong></td><td>${fr.shipmentStatus}</td></tr>
+      <tr><td><strong>Pickup Time:</strong></td><td>${formatTimestamp(
+        fr.pickupTime
+      )}</td></tr>
+      <tr><td><strong>Driver:</strong></td><td>${fr.driver.name} / ${
+    fr.driver.phone
+  }</td></tr>
+      <tr><td><strong>Current Shipment Status:</strong></td><td>${
+        fr.shipmentStatus
+      }</td></tr>
     </table>
 
     <h4>Farmer Reports (per container)</h4>
@@ -500,17 +508,31 @@ function renderShipmentCard(shipment) {
 
     <h4>Logistics Center Results</h4>
     <table class="report-table">
-      <tr><td><strong>Grade A (kgs):</strong></td><td>${fr.logisticsResults.stats.gradeA}</td></tr>
-      <tr><td><strong>Grade B (kgs):</strong></td><td>${fr.logisticsResults.stats.gradeB}</td></tr>
-      <tr><td><strong>Grade C (kgs):</strong></td><td>${fr.logisticsResults.stats.gradeC}</td></tr>
-      <tr><td><strong>Rejection %:</strong></td><td>${fr.logisticsResults.stats.rejectionPercent}</td></tr>
+      <tr><td><strong>Grade A (kgs):</strong></td><td>${
+        fr.logisticsResults.stats.gradeA
+      }</td></tr>
+      <tr><td><strong>Grade B (kgs):</strong></td><td>${
+        fr.logisticsResults.stats.gradeB
+      }</td></tr>
+      <tr><td><strong>Grade C (kgs):</strong></td><td>${
+        fr.logisticsResults.stats.gradeC
+      }</td></tr>
+      <tr><td><strong>Rejection %:</strong></td><td>${
+        fr.logisticsResults.stats.rejectionPercent
+      }</td></tr>
     </table>
 
     <h5>New Barcodes by Grade</h5>
     <ul>
-      <li><strong>Grade A:</strong> ${fr.logisticsResults.newBarcodes.gradeA.join(", ")}</li>
-      <li><strong>Grade B:</strong> ${fr.logisticsResults.newBarcodes.gradeB.join(", ")}</li>
-      <li><strong>Grade C:</strong> ${fr.logisticsResults.newBarcodes.gradeC.join(", ")}</li>
+      <li><strong>Grade A:</strong> ${fr.logisticsResults.newBarcodes.gradeA.join(
+        ", "
+      )}</li>
+      <li><strong>Grade B:</strong> ${fr.logisticsResults.newBarcodes.gradeB.join(
+        ", "
+      )}</li>
+      <li><strong>Grade C:</strong> ${fr.logisticsResults.newBarcodes.gradeC.join(
+        ", "
+      )}</li>
     </ul>
 
     <h5>End-of-Day Statistics</h5>
@@ -601,8 +623,12 @@ function populateShipmentsList(shipmentsData) {
 
   // Problems first
   const problemsFirst = [
-    ...shipmentsData.filter((s) => s.stages.some((x) => x.status === "problem")),
-    ...shipmentsData.filter((s) => !s.stages.some((x) => x.status === "problem")),
+    ...shipmentsData.filter((s) =>
+      s.stages.some((x) => x.status === "problem")
+    ),
+    ...shipmentsData.filter(
+      (s) => !s.stages.some((x) => x.status === "problem")
+    ),
   ];
 
   problemsFirst.forEach((sh) => {
@@ -613,7 +639,10 @@ function populateShipmentsList(shipmentsData) {
 
 // (Optional) Filter logic
 function applyFilterLogic() {
-  const searchTerm = document.getElementById("search-shipment").value.trim().toLowerCase();
+  const searchTerm = document
+    .getElementById("search-shipment")
+    .value.trim()
+    .toLowerCase();
   const stageFilter = document.getElementById("filter-stage").value;
 
   let filtered = mockShipments.slice();
@@ -645,5 +674,7 @@ document.addEventListener("DOMContentLoaded", () => {
   populateShipmentsList(mockShipments);
 
   // Wire up filter button
-  document.getElementById("apply-filters").addEventListener("click", applyFilterLogic);
+  document
+    .getElementById("apply-filters")
+    .addEventListener("click", applyFilterLogic);
 });

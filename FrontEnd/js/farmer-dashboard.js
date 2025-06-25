@@ -14,35 +14,66 @@ const shipmentRequests = [
   { id: 2, item: "Spinach", amount: 40, pickupTime: "2025-06-05T13:30" },
 ];
 
-const cropsData = [
+const parsedLands = [
   {
-    id: 1,
-    item: "Tomato",
-    plantedAmount: 10,
-    plantedOn: "2025-05-01",
-    status: "Planting",
-    percentage: 17,
-    imageUrl: "https://via.placeholder.com/50",
+    LandId: "00001",
+    name: "North Field",
+    acres: "22",
+    Crops: {
+      id: 2,
+      itemId: "002",
+      plantedAmount: 5,
+      plantedOn: "2025-05-10",
+      status: "Growing",
+      updatedOn: "2025-05-12",
+      percentage: 20,
+      imageUrl: "https://via.placeholder.com/50",
+    },
   },
   {
-    id: 2,
-    item: "Lettuce",
-    plantedAmount: 5,
-    plantedOn: "2025-05-10",
-    status: "Growing",
-    percentage: 20,
-    imageUrl: "https://via.placeholder.com/50",
+    LandId: "00002",
+    name: "South Plot",
+    acres: "10",
+    Crops: {
+      id: 1,
+      itemId: "001",
+      plantedAmount: 10,
+      plantedOn: "2025-05-01",
+      status: "Growing",
+      updatedOn: "2025-05-13",
+      percentage: 17,
+      imageUrl: "https://via.placeholder.com/50",
+    },
   },
   {
-    id: 3,
-    item: "Potato",
-    plantedAmount: 8,
-    plantedOn: "2025-04-20",
-    status: "Harvesting",
-    percentage: 30,
-    imageUrl: "https://via.placeholder.com/50",
+    LandId: "00003",
+    name: "East Field",
+    acres: "14",
+    Crops: {
+      id: 3,
+      itemId: "003",
+      plantedAmount: 8,
+      plantedOn: "2025-04-20",
+      status: "Harvesting",
+      updatedOn: "2025-05-15",
+      percentage: 30,
+      imageUrl: "https://via.placeholder.com/50",
+    },
   },
 ];
+
+const itemList = [
+  { itemName: "Tomato", variety: "Cherry", itemId: "001" },
+  { itemName: "Lettuce", variety: "Iceberg", itemId: "002" },
+  { itemName: "Potato", variety: "White", itemId: "003" },
+  { itemName: "Carrot", variety: "Nantes", itemId: "004" },
+  { itemName: "Spinach", variety: "Savoy", itemId: "005" },
+];
+
+function getItemDisplayName(itemId) {
+  const item = itemList.find((i) => i.itemId === itemId);
+  return item ? `${item.itemName} - ${item.variety}` : "Unknown";
+}
 
 // ===== 2) Helpers =====
 function formatDateOnly(isoString) {
@@ -108,17 +139,21 @@ function populateCropsTable() {
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  cropsData.forEach((crop) => {
+  parsedLands.forEach((land) => {
     const tr = document.createElement("tr");
+    const crop = land.Crops;
     tr.innerHTML = `
-      <td>${crop.item}</td>
+      <td>${land.name}</td>
+      <td>${getItemDisplayName(crop.itemId)}</td>
       <td>${crop.plantedAmount}</td>
       <td>${formatDateOnly(crop.plantedOn)}</td>
       <td>${crop.status}</td>
+      <td>${formatDateOnly(crop.updatedOn)}</td>
       <td>${crop.percentage !== null ? crop.percentage + "%" : "N/A"}</td>
-      <td><img src="${crop.imageUrl}" alt="${
-      crop.item
-    }" width="50" height="50"/></td>
+      <td><img src="${crop.imageUrl}" alt="${getItemDisplayName(
+      crop.itemId
+    )}" width="50" height="50"/></td>
+
     `;
     tbody.appendChild(tr);
   });

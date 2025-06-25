@@ -2,16 +2,25 @@
 // Handles rendering a weekly availability schedule and extracting the selected values
 
 // Days of the week for the schedule
-export const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // Simulate fetching shift definitions from a database or API
 export async function fetchShifts() {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([
-        { name: "Morning",    start: "07:00", end: "09:00" },
-        { name: "Afternoon",  start: "12:00", end: "13:00" },
-        { name: "Evening",    start: "18:00", end: "19:00" }
+        { name: "Morning", start: "07:00", end: "09:00" },
+        { name: "Afternoon", start: "12:00", end: "13:00" },
+        { name: "Evening", start: "18:00", end: "19:00" },
+        { name: "Night", start: "21:00", end: "23:00" },
       ]);
     }, 50);
   });
@@ -22,7 +31,7 @@ function formatTime(timeStr) {
   const [h, m] = timeStr.split(":").map((x) => parseInt(x, 10));
   const suffix = h >= 12 && h < 24 ? "PM" : "AM";
   const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${m.toString().padStart(2, '0')} ${suffix}`;
+  return `${hour12}:${m.toString().padStart(2, "0")} ${suffix}`;
 }
 
 /**
@@ -32,14 +41,14 @@ function formatTime(timeStr) {
 export async function initSchedule(container) {
   const shifts = await fetchShifts();
   // The <tbody> of #scheduleTable or within the form
-  const tbody = container.querySelector('tbody');
-  tbody.innerHTML = '';
+  const tbody = container.querySelector("tbody");
+  tbody.innerHTML = "";
 
   shifts.forEach((shift) => {
-    const row = document.createElement('tr');
+    const row = document.createElement("tr");
 
     // Shift label cell with name and times
-    const labelCell = document.createElement('td');
+    const labelCell = document.createElement("td");
     labelCell.innerHTML = `
       <strong>${shift.name}</strong><br>
       <small>(${formatTime(shift.start)} - ${formatTime(shift.end)})</small>
@@ -48,13 +57,13 @@ export async function initSchedule(container) {
 
     // One checkbox cell per day
     days.forEach((day) => {
-      const cell = document.createElement('td');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
+      const cell = document.createElement("td");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
       checkbox.name = day;
       checkbox.value = shift.name;
       checkbox.id = `chk-${day}-${shift.name}`;
-      const label = document.createElement('label');
+      const label = document.createElement("label");
       label.htmlFor = checkbox.id;
       label.appendChild(checkbox);
       cell.appendChild(label);
@@ -83,4 +92,48 @@ export function getScheduleData(container) {
     }
   });
   return schedule;
+}
+
+export async function getScheduleBitmaskArray(container) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Reverse index: Morning is 3
+    return acc;
+  }, {});
+
+  const result = [];
+
+  days.forEach((day) => {
+    let bitmask = 0;
+    const checkboxes = container.querySelectorAll(
+      `input[name="${day}"]:checked`
+    );
+    checkboxes.forEach((cb) => {
+      const shiftBit = shiftIndices[cb.value];
+      bitmask |= 1 << shiftBit;
+    });
+    result.push(bitmask);
+  });
+
+  return result;
+}
+
+export async function applyScheduleBitmaskArray(container, bitmaskArray) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Morning is bit 3
+    return acc;
+  }, {});
+
+  days.forEach((day, dayIndex) => {
+    const dayMask = bitmaskArray[dayIndex];
+    Object.entries(shiftIndices).forEach(([shiftName, bit]) => {
+      const checkbox = container.querySelector(
+        `input[name="${day}"][value="${shiftName}"]`
+      );
+      if (checkbox) {
+        checkbox.checked = (dayMask & (1 << bit)) !== 0;
+      }
+    });
+  });
 }
