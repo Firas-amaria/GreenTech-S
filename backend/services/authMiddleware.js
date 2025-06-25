@@ -10,8 +10,6 @@ const authenticate = async (req, res, next) => {
     const decoded = await admin.auth().verifyIdToken(token);
     req.user = { uid: decoded.uid, email: decoded.email }; // Initialize user object with uid and email //  role: decoded.role
 
-   
-
     // Fetch user role from Firestore
     const userDoc = await db.collection("users").doc(decoded.uid).get();
     if (!userDoc.exists) {
@@ -24,7 +22,7 @@ const authenticate = async (req, res, next) => {
     if (!userData.role) {
       throw new Error("unauthenticated user ");
     }
-console.log("-================================:", userData.role);
+    // console.log("-================================:", userData.role);
     req.user.role = userData.role;
 
     next();
@@ -36,9 +34,8 @@ console.log("-================================:", userData.role);
 
 // Middleware to check if user's role is included in allowed roles array
 const requireRole = (roles) => {
- 
   return (req, res, next) => {
-     console.log("Required roles:", roles);
+    console.log("Required roles:", roles);
     // Ensure roles is always an array
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
 

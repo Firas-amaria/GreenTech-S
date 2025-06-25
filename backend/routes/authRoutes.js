@@ -12,5 +12,5 @@ const { authenticate } = require("../services/authMiddleware");
 router.post("/register-customer", registerCustomer); // for customers
 router.post("/register-employee", requestEmployment); // for job applicants
 router.post("/get-role", getUserRole);
-router.post("/login",authenticate, login); // login
+router.post("/login", authenticate, login); // login
 module.exports = router;

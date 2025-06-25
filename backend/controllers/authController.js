@@ -34,9 +34,6 @@ const registerCustomer = async (req, res) => {
     const userRecord = await admin.auth().createUser({ email, password });
     const uid = userRecord.uid;
 
-    // Assign role
-    // await admin.auth().setCustomUserClaims(uid, { role: "customer" });
-
     // Hash the password before storing
     const salt = await bcrypt.genSalt(12);
     const hashPass = await bcrypt.hash(password, salt);
@@ -58,28 +55,31 @@ const registerCustomer = async (req, res) => {
 
     res.status(201).send({ firstName, lastName });
   } catch (error) {
+    if (error.code === "auth/email-already-exists") {
+      return res.status(400).send({ error: "Email already registered" });
+    }
     res.status(400).send({ error: error.message });
   }
 };
 
 //TODO : remove after checing if this is needed
 // Get role from custom claims
-// const getUserRole = async (req, res) => {
-//   const authHeader = req.headers.authorization;
-//   if (!authHeader?.startsWith("Bearer ")) {
-//     return res.status(401).send({ error: "Missing or invalid token" });
-//   }
-//   const idToken = authHeader.split(" ")[1];
+const getUserRole = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).send({ error: "Missing or invalid token" });
+  }
+  const idToken = authHeader.split(" ")[1];
 
-//   try {
-//     const decodedToken = await admin.auth().verifyIdToken(idToken);
-//     const role = decodedToken.role || "unknown";
-//     res.status(200).send({ role });
-//   } catch (error) {
-//     console.error("Error verifying token:", error);
-//     res.status(401).send({ error: "Unauthorized" });
-//   }
-// };
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const role = decodedToken.role || "unknown";
+    res.status(200).send({ role });
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    res.status(401).send({ error: "Unauthorized" });
+  }
+};
 
 const validateExtraFields = (position, fields) => {
   const isString = (v) => typeof v === "string";
@@ -270,20 +270,20 @@ const requestEmployment = async (req, res) => {
     });
 
     // Save full application details
-    await db
-      .collection("employmentApplications")
-      .doc(uid)
-      .set({
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        birthDate,
-        position,
+    // await db
+    //   .collection("employmentApplications")
+    //   .doc(uid)
+    //   .set({
+    //     firstName,
+    //     lastName,
+    //     email,
+    //     phone,
+    //     address,
+    //     birthDate,
+    //     position,
 
-        ...extraFields,
-      });
+    //     ...extraFields,
+    //   });
 
     res.status(201).send({
       success: true,
@@ -317,8 +317,12 @@ const login = async (req, res) => {
       { merge: true }
     );
 
-    const profileData = filterFields(doc.data());
-    res.json(profileData);
+    const user = doc.data();
+    // console.log("user", user);
+    res.status(200).json({
+      role: user.role,
+      name: user.firstName + " " + user.lastName,
+    });
   } catch (err) {
     console.error("Login error:", err);
     if (err.code === "auth/user-not-found") {
