@@ -62,23 +62,24 @@ const registerCustomer = async (req, res) => {
   }
 };
 
+//TODO : remove after checing if this is needed
 // Get role from custom claims
-const getUserRole = async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).send({ error: "Missing or invalid token" });
-  }
-  const idToken = authHeader.split(" ")[1];
+// const getUserRole = async (req, res) => {
+//   const authHeader = req.headers.authorization;
+//   if (!authHeader?.startsWith("Bearer ")) {
+//     return res.status(401).send({ error: "Missing or invalid token" });
+//   }
+//   const idToken = authHeader.split(" ")[1];
 
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const role = decodedToken.role || "unknown";
-    res.status(200).send({ role });
-  } catch (error) {
-    console.error("Error verifying token:", error);
-    res.status(401).send({ error: "Unauthorized" });
-  }
-};
+//   try {
+//     const decodedToken = await admin.auth().verifyIdToken(idToken);
+//     const role = decodedToken.role || "unknown";
+//     res.status(200).send({ role });
+//   } catch (error) {
+//     console.error("Error verifying token:", error);
+//     res.status(401).send({ error: "Unauthorized" });
+//   }
+// };
 
 const validateExtraFields = (position, fields) => {
   const isString = (v) => typeof v === "string";
@@ -147,8 +148,6 @@ const requestEmployment = async (req, res) => {
     acceptAgreement,
     certifyAccuracy,
   } = req.body;
-
-
 
   // ─── Server-side Validation ─────────────────────────────────────────────
 
@@ -300,15 +299,16 @@ const login = async (req, res) => {
   const { uid, password } = req.body;
 
   try {
-    // 1. Fetch user record to get custom role
-    const userRecord = await admin.auth().getUser(uid);
-    const role = userRecord.customClaims?.role || "unknown";
-
-    // 2. Generate a salt & hash the plain password
+    // 1. Generate a salt & hash the plain password
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
-
+    // 2. Get user role from db > doc
+    const doc = await db.collection("users").doc(uid).get();
     // 3. Save hashed password into users/{uid}.password
+    if (!doc.exists) {
+      return res.status(404).send({ error: "Profile not found 222" });
+    }
+
     await db.collection("users").doc(uid).set(
       {
         password: hashedPassword,
@@ -317,8 +317,8 @@ const login = async (req, res) => {
       { merge: true }
     );
 
-    // 4. Return the role
-    res.status(200).json({ role });
+    const profileData = filterFields(doc.data());
+    res.json(profileData);
   } catch (err) {
     console.error("Login error:", err);
     if (err.code === "auth/user-not-found") {
