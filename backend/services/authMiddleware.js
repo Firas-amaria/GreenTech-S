@@ -35,11 +35,11 @@ const authenticate = async (req, res, next) => {
 // Middleware to check if user's role is included in allowed roles array
 const requireRole = (roles) => {
   return (req, res, next) => {
-    console.log("Required roles:", roles);
+    // console.log("Required roles:", roles);
     // Ensure roles is always an array
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
-    console.log("req.user?.role:", req.user?.role);
+    // console.log("req.user?.role:", req.user?.role);
 
     // Check if user's role is allowed
     if (!req.user?.role || !allowedRoles.includes(req.user.role)) {

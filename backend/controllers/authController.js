@@ -49,6 +49,7 @@ const registerCustomer = async (req, res) => {
       address,
       role: "customer",
       password: hashPass,
+      logisticCenterId: "0001",
       createdAt: now,
       updatedAt: now,
     });
@@ -136,86 +137,21 @@ const validateExtraFields = (position, fields) => {
 
 // Request employment: save in role-specific, in employmentApplications AND in users
 const requestEmployment = async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    birthDate,
-    position,
-    extraFields,
-    acceptAgreement,
-    certifyAccuracy,
-  } = req.body;
+  const { role, extraFields, certifyAccuracy, submittedAt } = req.body;
+  const authHeader = req.headers.authorization;
 
-  // ─── Server-side Validation ─────────────────────────────────────────────
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+  const token = authHeader.split(" ")[1];
 
-  // 1. Names: required, ≥2 chars, letters only
-  if (!firstName || firstName.length < 2 || !/^[A-Za-z]+$/.test(firstName)) {
-    return res.status(400).send({
-      error: !firstName
-        ? "First name is required."
-        : firstName.length < 2
-        ? "First name must be at least 2 characters."
-        : "First name must contain only letters.",
-    });
+  const col = roleCollectionMap[role];
+  if (!col) {
+    return res.status(400).send({ error: "Unknown Role" });
   }
-  if (!lastName || lastName.length < 2 || !/^[A-Za-z]+$/.test(lastName)) {
-    return res.status(400).send({
-      error: !lastName
-        ? "Last name is required."
-        : lastName.length < 2
-        ? "Last name must be at least 2 characters."
-        : "Last name must contain only letters.",
-    });
-  }
-
-  // 2. Email: required, Gmail only
-  if (!email) {
-    return res.status(400).send({ error: "Email is required." });
-  }
-  if (!/^[A-Za-z0-9._%+-]+@gmail\.com$/.test(email)) {
-    return res
-      .status(400)
-      .send({ error: "Email must be a valid Gmail address." });
-  }
-
-  // 3. Phone: required, international format (e.g. +972509876543)
-  if (!phone) {
-    return res.status(400).send({ error: "Phone number is required." });
-  }
-  if (!/^\+\d{9,14}$/.test(phone)) {
-    return res.status(400).send({
-      error: "Phone must be in international format, e.g. +972509876543.",
-    });
-  }
-
-  // 4. Address
-  if (!address) {
-    return res.status(400).send({ error: "Address is required." });
-  }
-
-  // 5. Birth date: required, ≥18 years old
-  if (!birthDate) {
-    return res.status(400).send({ error: "Birth date is required." });
-  }
-  {
-    const today = new Date();
-    const bd = new Date(birthDate);
-    let age = today.getFullYear() - bd.getFullYear();
-    const m = today.getMonth() - bd.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < bd.getDate())) age--;
-    if (age < 18) {
-      return res
-        .status(400)
-        .send({ error: "You must be at least 18 years old to register." });
-    }
-  }
-
   // ─── End Validation ──────────────────────────────────────────────────────
 
-  if (!acceptAgreement || !certifyAccuracy) {
+  if (!certifyAccuracy) {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
 
@@ -225,65 +161,31 @@ const requestEmployment = async (req, res) => {
       .send({ error: "Extra fields are missing or invalid." });
   }
 
-  if (!validateExtraFields(position, extraFields)) {
+  if (!validateExtraFields(role, extraFields)) {
     return res.status(400).send({
-      error: `Invalid or missing extra fields for position '${position}'. Check required inputs.`,
+      error: `Invalid or missing extra fields for position '${role}'. Check required inputs.`,
     });
   }
 
-  const col = roleCollectionMap[position];
-  if (!col) {
-    return res.status(400).send({ error: "Unknown position" });
-  }
-
   try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const uid = decodedToken.uid;
     // Prevent duplicate application
-    const existing = await db.collection(col).doc(email).get();
+    const existing = await db
+      .collection("employmentApplications")
+      .doc(uid)
+      .get();
     if (existing.exists) {
       return res.status(400).send({ error: "Application already submitted." });
     }
 
-    // Ensure Auth user exists (using email as password stub if needed)
-    let userRecord;
-    try {
-      userRecord = await admin.auth().getUserByEmail(email);
-    } catch {
-      userRecord = await admin.auth().createUser({
-        email,
-        password: email,
-      });
-    }
-    const uid = userRecord.uid;
-
     // Save in role-specific sub-collection
-    await db.collection("Pending-employment").doc(uid).set({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      birthDate,
-      position,
+    await db.collection("employmentApplications").doc(uid).set({
+      role,
       extraFields,
       status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      submittedAt,
     });
-
-    // Save full application details
-    // await db
-    //   .collection("employmentApplications")
-    //   .doc(uid)
-    //   .set({
-    //     firstName,
-    //     lastName,
-    //     email,
-    //     phone,
-    //     address,
-    //     birthDate,
-    //     position,
-
-    //     ...extraFields,
-    //   });
 
     res.status(201).send({
       success: true,
@@ -296,9 +198,17 @@ const requestEmployment = async (req, res) => {
 
 // Login: encrypt incoming password, store hash in users collection, then return role
 const login = async (req, res) => {
-  const { uid, password } = req.body;
+  const { password } = req.body;
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
   try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const uid = decodedToken.uid;
     // 1. Generate a salt & hash the plain password
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
