@@ -220,7 +220,7 @@ window.login = async (event) => {
 
     // Get token using shared utility
     const token = await getCurrentUserToken();
-
+    console.log("User token");
     // Post password user to DB
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
@@ -228,7 +228,7 @@ window.login = async (event) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ uid: user.uid, password }),
+      body: JSON.stringify({ password }),
     });
 
     // // Fetch user info from backend

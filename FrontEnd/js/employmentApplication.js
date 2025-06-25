@@ -37,10 +37,10 @@ const RolesTable = [
       { label: "Vehicle Make", type: "text" },
       { label: "Vehicle Model", type: "text" },
       { label: "Vehicle Type", type: "text" },
-      { label: "Year", type: "number" },
+      { label: "Vehicle Year", type: "number" },
       { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License #", type: "text" },
-      { label: "Vehicle Reg. #", type: "text", pattern: "[0-9]+" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
       { label: "Vehicle Insurance", type: "checkbox" },
     ],
   },
@@ -54,10 +54,10 @@ const RolesTable = [
       { label: "Vehicle Make", type: "text" },
       { label: "Vehicle Model", type: "text" },
       { label: "Vehicle Type", type: "text" },
-      { label: "Year", type: "number" },
+      { label: "Vehicle Year", type: "number" },
       { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License #", type: "text" },
-      { label: "Vehicle Reg. #", type: "text", pattern: "[0-9]+" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
       { label: "Vehicle Insurance", type: "checkbox" },
       { label: "Refrigerated", type: "checkbox" },
     ],
@@ -102,27 +102,14 @@ async function renderApplicationForm() {
   const container = document.getElementById("application-form-container");
   const token = await getCurrentUserToken();
 
-  const res = await fetch("http://localhost:4000/api/user/profile", {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  const data = await res.json();
-
-  const profile = {
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phone: "+972" + data.phone,
-    address: data.address,
-    birthDate: data.birthDate,
-    role: data.role,
-  };
-
-  if (profile.role && profile.role !== "customer") {
-    alert("You already submitted for a role.");
-    return (window.location.href = "index.html");
+  const userRaw = localStorage.getItem("user");
+  if (userRaw) {
+    const user = JSON.parse(userRaw); // convert back to object
+    const Urole = user.role;
+    if (Urole !== "customer") {
+      alert("You already submitted for a role.");
+      return (window.location.href = "index.html");
+    }
   }
 
   const roleName = getQueryParam("role")?.toLowerCase();
@@ -134,33 +121,13 @@ async function renderApplicationForm() {
 
   container.innerHTML = "";
   container.innerHTML += `
+    <h2>Employment Application for ${role.name}</h2>
     <p>Ensure your personal details are up to date. If not, sign up again with correct information.</p>
     <p>We will contact you using the details below.</p>
   `;
 
   const form = document.createElement("form");
   form.id = "application-form";
-
-  const createStaticField = (label, value) => `
-    <div class="form-group">
-      <label>${label}</label>
-      <div class="static-field">${value}</div>
-      <input type="hidden" name="${label
-        .replace(/\s+/g, "")
-        .toLowerCase()}" value="${value}" />
-    </div>
-  `;
-
-  [
-    ["First Name", profile.firstName],
-    ["Last Name", profile.lastName],
-    ["Email", profile.email],
-    ["Phone", profile.phone],
-    ["Address", profile.address],
-    ["Birth Date", profile.birthDate],
-  ].forEach(
-    ([label, value]) => (form.innerHTML += createStaticField(label, value))
-  );
 
   form.innerHTML += `<input type="hidden" name="role" value="${role.name}" />`;
   const extraFields = document.createElement("div");
@@ -176,7 +143,7 @@ async function renderApplicationForm() {
     label.textContent = field.label;
     const input = document.createElement("input");
     input.type = field.type;
-    input.name = field.label.replace(/\s+/g, "").toLowerCase();
+    input.name = toCamelCase(field.label);
     input.required = true;
 
     if (field.step) input.step = field.step;
@@ -204,13 +171,12 @@ async function renderApplicationForm() {
     // Append button after section
     extraFields.appendChild(addBtn);
 
-    // 🔄 Attach event listener after DOM is fully updated
+    //  Attach event listener after DOM is fully updated
     setTimeout(() => {
       const section = document.getElementById("lands-section");
       const button = document.getElementById("add-land-btn");
       if (section && button) {
         button.addEventListener("click", () => addLand(section));
-        console.log("✅ Add Land button ready");
       } else {
         console.warn("❌ Button or section not found at timeout");
       }
@@ -243,31 +209,12 @@ async function renderApplicationForm() {
     e.preventDefault();
 
     const formData = new FormData(form);
-    const reserved = [
-      "uid",
-      "agreement",
-      "firstname",
-      "lastname",
-      "email",
-      "phone",
-      "address",
-      "birthdate",
-      "role",
-      "submittedat",
-    ];
+    const reserved = ["role", "submittedAt", "agreement"];
 
     const ReqBody = {
-      uid: auth.currentUser?.uid,
-      acceptAgreement: formData.get("agreement") === "on",
       certifyAccuracy: formData.get("agreement") === "on",
       submittedAt: new Date().toISOString(),
-      firstName: formData.get("firstname"),
-      lastName: formData.get("lastname"),
-      email: formData.get("email"),
-      phone: formData.get("phone").replace(/[^+\d]/g, ""),
-      address: formData.get("address"),
-      birthDate: formData.get("birthdate"),
-      position: formData.get("role"),
+      role: roleName,
       extraFields: {},
     };
 
@@ -279,26 +226,27 @@ async function renderApplicationForm() {
 
     if (role.includeLand) {
       const lands = [];
+
       document.querySelectorAll(".land-block").forEach((block, i) => {
         const get = (name) =>
           block.querySelector(`[name="land[${i}][${name}]"]`)?.value;
         lands.push({
-          name: get("customName") || `Land #${i + 1}`,
+          landName: get("customName") || `Land ${i + 1}`,
           ownership: get("ownership"),
           acres: get("acres"),
           pickupAddress: get("pickupAddress"),
-          pickupLat: get("pickupLat"),
-          pickupLng: get("pickupLng"),
+          pickupLat: 0,
+          pickupLng: 0,
           location: get("location"),
-          locLat: get("locLat"),
-          locLng: get("locLng"),
+          locLat: 0,
+          locLng: 0,
         });
       });
       ReqBody.extraFields.lands = lands;
     }
 
     for (let [key, val] of formData.entries()) {
-      if (!reserved.includes(key)) {
+      if (!reserved.includes(key) && !key.startsWith("land[")) {
         if (val === "on") ReqBody.extraFields[key] = true;
         else if (!isNaN(val) && val.trim() !== "")
           ReqBody.extraFields[key] = Number(val);
@@ -316,17 +264,9 @@ async function renderApplicationForm() {
 
     // Optional renaming
     const mapKeys = {
-      licensetype: "licenseType",
-      vehiclemake: "vehicleMake",
-      vehiclemodel: "vehicleModel",
-      vehicletype: "vehicleType",
-      year: "vehicleYear",
-      "vehiclecapacity(t)": "vehicleCapacity",
-      "driverlicense#": "driverLicenseNumber",
-      "vehiclereg.#": "vehicleRegistrationNumber",
-      vehicleinsurance: "vehicleInsurance",
-      agriculturalinsurance: "agriculturalInsurance",
+      "Vehicle_Capacity_(t)": "vehicleCapacity",
     };
+
     Object.entries(mapKeys).forEach(([oldK, newK]) => {
       if (oldK in ReqBody.extraFields) {
         ReqBody.extraFields[newK] = ReqBody.extraFields[oldK];
@@ -370,44 +310,67 @@ async function renderApplicationForm() {
   });
 }
 
+function toCamelCase(label) {
+  return label
+    .replace(/\(.*?\)/g, "") // Remove anything in parentheses (e.g., "(t)")
+    .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters (keep letters/numbers/spaces)
+    .trim()
+    .split(/\s+/) // Split by space
+    .map((word, index) => {
+      if (index === 0) return word.toLowerCase();
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join("");
+}
+
 let landIndex = 0;
 window.addLand = function (landsSection) {
   if (!landsSection) return;
 
+  const index = landIndex++; // use current index, then increment
   const block = document.createElement("div");
   block.className = "land-block";
+
   block.innerHTML = `
-    <h5>Land #${++landIndex}</h5>
-    ${[
-      "customName",
-      "ownership",
-      "acres",
-      "pickupAddress",
-      "pickupLat",
-      "pickupLng",
-      "location",
-      "locLat",
-      "locLng",
-    ]
-      .map(
-        (field) => `<label>${capitalize(field.replace(/([A-Z])/g, " $1"))}: 
-          <input type="${
-            field.toLowerCase().includes("lat") ||
-            field.toLowerCase().includes("lng") ||
-            field === "acres"
-              ? "number"
-              : "text"
-          }"
-          step="any" name="land[${landIndex - 1}][${field}]" /></label>`
-      )
-      .join("<br/>")}
-    
-    <br/>
+    <h5>Land ${index + 1}</h5>
+
+    <!-- Custom Name -->
+    <label>Custom Name:
+      <input type="text" name="land[${index}][customName]" placeholder="Land ${
+    index + 1
+  }" />
+    </label><br/>
+
+    <!-- Ownership Dropdown -->
+    <label>Ownership:
+      <select name="land[${index}][ownership]">
+        <option value="Owned">Owned</option>
+        <option value="Rented">Rented</option>
+      </select>
+    </label><br/>
+
+    <!-- Acres -->
+    <label>Acres:
+      <input type="number" step="any" name="land[${index}][acres]" />
+    </label><br/>
+
+    <!-- Pickup Address -->
+    <label>Pickup Address:
+      <input type="text" name="land[${index}][pickupAddress]" />
+    </label><br/>
+
+    <!-- Location -->
+    <label>Location:
+      <input type="text" name="land[${index}][location]" />
+    </label><br/>
+
+    <!-- Delete button -->
     <button type="button" class="delete-land-btn" style="margin-top:5px; background:#d9534f; color:white; border:none; padding:5px 10px; cursor:pointer;">Delete Land</button>
     <hr/>
   `;
 
   landsSection.appendChild(block);
+
   // Bind delete button
   block.querySelector(".delete-land-btn").addEventListener("click", () => {
     landsSection.removeChild(block);
