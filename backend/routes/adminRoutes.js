@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { authenticate, requireRole } = require("../services/authMiddleware");
 const {
-  approveEmployee,
+  updateApplicationStatus,
   getApplication,
   setRole,
   getProfileById,
@@ -12,18 +12,18 @@ const {
   deleteUser,
 } = require("../controllers/adminController");
 
-router.post(
-  "/approve-employee",
+router.put(
+  "/updateApplication/:uid",
   authenticate,
   requireRole("admin"),
-  approveEmployee
+  updateApplicationStatus
 ); // Route restricted to admin for approving employee accounts
 router.get("/application", authenticate, requireRole("admin"), getApplication); // Get user's employment application
 router.post("/set-role", authenticate, requireRole("admin"), setRole);
 router.get("/profile/:id", authenticate, requireRole("admin"), getProfileById); // get any user's profile
 router.get("/users", authenticate, requireRole("admin"), getAllUsers); // get all users
 router.get(
-  "/applications",
+  "/getApplications",
   authenticate,
   requireRole("admin"),
   getAllApplications

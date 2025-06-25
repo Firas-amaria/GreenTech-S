@@ -7,51 +7,71 @@ const roleCollectionMap = {
   "industrial-driver": "industrialDrivers",
   sorting: "sorters",
   picker: "pickers",
-  "warehouse-worker": "warehouseWorkers"
+  "warehouse-worker": "warehouseWorkers",
 };
 
-const approveEmployee = async (req, res) => {
-  const { uid, role } = req.body;
-  const pendingRef = db.collection("Pending-employment").doc(uid);
+async function updateApplicationStatus(req, res) {
+  const uid = req.params.uid;
+  const { status, role } = req.body;
+
+  if (!uid || !status) {
+    return res.status(400).send({ error: "Missing UID or status" });
+  }
+
+  const validStatuses = ["pending", "contacted", "denied", "approved"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).send({ error: `Invalid status: ${status}` });
+  }
+
+  const appRef = db.collection("employmentApplications").doc(uid);
 
   try {
-    // 1. Fetch the pending application
-    const pendingSnap = await pendingRef.get();
-    if (!pendingSnap.exists) {
-      return res.status(404).send({ error: "Pending application not found" });
+    const appSnap = await appRef.get();
+    if (!appSnap.exists) {
+      return res.status(404).send({ error: "Application not found" });
     }
-    const data = pendingSnap.data();
 
-    // 2. Update Firebase Auth custom claim
-    // await admin.auth().setCustomUserClaims(uid, { role });
+    const appData = appSnap.data();
 
-    // 3. Copy into the new role-specific collection
-    const targetCol = roleCollectionMap[role];
-    if (!targetCol) {
-      return res.status(400).send({ error: `Unknown role: ${role}` });
+    // If status is approved, do the full approval process
+    if (status === "approved") {
+      const targetCol = roleCollectionMap[role];
+      if (!targetCol) {
+        return res.status(400).send({ error: `Unknown role: ${role}` });
+      }
+
+      // 1. Copy to the role-specific collection
+      await db
+        .collection(targetCol)
+        .doc(uid)
+        .set({
+          ...appData,
+          status: "approved",
+          approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      // 2. Update user's main role
+      await db.collection("users").doc(uid).set(
+        {
+          role,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
-    await db.collection(targetCol).doc(uid).set({
-      ...data,
-      status: "approved",
-      approvedAt: admin.firestore.FieldValue.serverTimestamp()
+
+    // For all statuses (including "approved"), update the application status
+    await appRef.update({
+      status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 4. Update top-level users collection with new role
-    await db.collection("users").doc(uid).set(
-      { role, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-
-    // 5. Delete the pending document
-    await pendingRef.delete();
-
-    res.send({ message: `User approved as ${role}` });
+    res.send({ message: `Application marked as ${status}` });
   } catch (error) {
-    console.error("Error approving employee:", error);
+    console.error("Error updating status:", error);
     res.status(500).send({ error: error.message });
   }
-};
-
+}
 
 // Allows an admin to update another user's role in Firebase Authentication and Firestore
 // Requires admin authentication via middleware
@@ -121,12 +141,46 @@ const getProfileById = async (req, res) => {
 const getAllApplications = async (req, res) => {
   try {
     const snapshot = await db.collection("employmentApplications").get();
-    const applications = snapshot.docs.map((doc) => ({
-      uid: doc.id,
-      ...doc.data(),
-    }));
-    res.send(applications);
+
+    const applications = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const uid = doc.id;
+        const applicationData = doc.data();
+
+        // Only allow 'pending' or 'contacted' statuses
+        if (
+          applicationData.status !== "pending" &&
+          applicationData.status !== "contacted"
+        ) {
+          return null;
+        }
+        // Get the user profile using the same UID
+        const userDoc = await db.collection("users").doc(uid).get();
+        if (!userDoc.exists) {
+          console.warn(`User profile not found for UID: ${uid}`);
+          return null; // <- return null so we can filter it out
+        }
+        const userData = userDoc.data();
+        return {
+          uid: uid,
+          role: applicationData.role,
+          status: applicationData.status,
+          submittedAt: applicationData.submittedAt,
+          extraFields: applicationData.extraFields,
+
+          // Append user profile fields
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          phone: userData.phone,
+          address: userData.address,
+          birthDate: userData.birthDate,
+        };
+      })
+    );
+    res.send(applications.filter((a) => a !== null));
   } catch (error) {
+    console.error("Error fetching applications:", error);
     res.status(500).send({ error: error.message });
   }
 };
@@ -174,7 +228,7 @@ const getAllUsers = async (req, res) => {
 };
 
 module.exports = {
-  approveEmployee,
+  updateApplicationStatus,
   setRole,
   getApplication,
   getProfileById,
