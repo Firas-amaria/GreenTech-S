@@ -292,6 +292,9 @@ function renderDynamicApplicationCard(app) {
           body: JSON.stringify({
             status: newStatus,
             role: app.role || app.position, // ensure role is passed (needed for acceptance)
+            firstName: app.firstName,
+            lastName: app.lastName,
+            phone: app.phone,
           }),
         }
       );
@@ -331,21 +334,21 @@ function formatVal(val) {
   return val;
 }
 
-async function updateApplicationStatus(id, status) {
-  const token = await getCurrentUserToken();
-  const res = await fetch(
-    `http://localhost:4000/api/admin/applications/${id}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    }
-  );
-  if (!res.ok) throw new Error("Failed to update application status");
-}
+// async function updateApplicationStatus(id, status) {
+//   const token = await getCurrentUserToken();
+//   const res = await fetch(
+//     `http://localhost:4000/api/admin/applications/${id}`,
+//     {
+//       method: "PUT",
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({ status }),
+//     }
+//   );
+//   if (!res.ok) throw new Error("Failed to update application status");
+// }
 
 // ====== Populate Role Filter ======
 function populateRoleFilter() {
