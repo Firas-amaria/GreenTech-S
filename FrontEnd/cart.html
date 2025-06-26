@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Cart</title>
+  <link rel="stylesheet" href="css/market.css" />
+</head>
+<body>
+  <!-- === NAVIGATION === -->
+  <nav class="navbar">
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="market.html">Market</a>
+      <a href="profile.html">Profile</a>
+      <a href="myOrders.html">My Orders</a>
+      <a href="logout.html">Logout</a>
+    </div>
+  </nav>
+
+  <!-- === MAIN CART SECTION === -->
+  <main class="section" style="max-width: 800px;">
+    <h2>My Cart</h2>
+    <div id="cart-items" class="market-container" style="flex-direction: column;"></div>
+
+    <div id="cart-summary" style="margin-top: 20px; text-align: right;">
+      <p><strong>Total: $<span id="total-price">0.00</span></strong></p>
+      <button onclick="checkout()" class="add-to-cart-btn">Checkout</button>
+    </div>
+  </main>
+
+  <!-- === FOOTER === -->
+  <footer class="footer">
+    <a href="jobs.html">Job Opportunities</a>
+  </footer>
+
+  <script src="js/cart.js" type="module"></script>
+</body>
+</html>

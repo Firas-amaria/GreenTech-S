@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market</title>
+  <link rel="stylesheet" href="css/market.css" />
+</head>
+<body>
+  <!-- === NAVIGATION BAR === -->
+  <nav class="navbar">
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="cart.html">Cart</a>
+      <a href="profile.html">Profile</a>
+      <a href="myOrders.html">My Orders</a>
+      <a href="logout.html">Logout</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- === DELIVERY SELECTION SECTION === -->
+    <section class="section" id="delivery-selection">
+      <h3>Select Delivery Address and Shift</h3>
+
+      <!-- Address Selection -->
+      <label for="address-select">Saved Address:</label>
+      <select id="address-select" onchange="handleAddressChange()">
+        <option value="">-- Choose saved address --</option>
+        <!-- Filled dynamically from mock data -->
+      </select>
+
+      <input
+        type="text"
+        id="custom-address"
+        placeholder="Enter new address"
+        style="display: none; margin-top: 10px;"
+      />
+
+      <!-- Shift Selection -->
+      <label for="shift-select" style="margin-top: 20px;">Delivery Shift:</label>
+      <select id="shift-select" onchange="handleShiftSelect()">
+        <option value="">-- Choose shift --</option>
+        <option value="morning">Morning</option>
+        <option value="afternoon">Afternoon</option>
+        <option value="evening">Evening</option>
+        <option value="night">Night</option>
+      </select>
+    </section>
+
+  <!-- === SEARCH PANEL === -->
+<section class="section" id="search-section" style="display: none;">
+  <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+    <input
+      type="text"
+      id="search-input"
+      placeholder="e.g., Lettuce"
+    />
+    <button id="search-button" onclick="handleSearch()">Search</button>
+  </div>
+  <div id="search-results" class="market-container"></div>
+</section>
+
+    <!-- === CATEGORY FILTERS === -->
+   <section class="market-nav" id="category-selection" style="display: none;">
+  <nav class="category-navbar">
+    <button onclick="filterCategory('All')" id="cat-All" class="active">All</button>
+    <button onclick="filterCategory('Fruits')" id="cat-Fruits">Fruits</button>
+    <button onclick="filterCategory('Vegetables')" id="cat-Vegetables">Vegetables</button>
+  </nav>
+</section>
+
+
+
+    <!-- === MAIN ITEM DISPLAY === -->
+    <div id="market-container" class="market-container"></div>
+
+  </main>
+
+  <!-- === FOOTER === -->
+  <footer class="footer">
+    <a href="jobs.html">Job Opportunities</a>
+  </footer>
+
+  <!-- === JS === -->
+  <script type="module" src="js/market.js"></script>
+</body>
+</html>

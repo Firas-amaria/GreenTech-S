@@ -27,12 +27,17 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "a_all_shipments.html", text: "Shipments" },
       { href: "schedule.html", text: "Schedule" },
     ];
-  } else if (role === "farmer manager") {
+  } else if (role === "farmer-manager") {
     menuItems = [
       { href: "a_manage_users.html", text: "Manage Farmers" },
       { href: "schedule.html", text: "Schedule" },
     ];
-  } else if (role === "customer service manager") {
+  }else if (role === "costumer"){//costumer service 
+    menuItems = [
+      { href: "a_manage_users.html", text: "Manage Customers" },
+      { href: "a_reports.html", text: "Reports" },
+    ];
+  }else if (role === "cs"){//costumer service 
     menuItems = [
       { href: "a_manage_users.html", text: "Manage Customers" },
       { href: "a_reports.html", text: "Reports" },
