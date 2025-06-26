@@ -82,71 +82,71 @@ export const mockApplications = [
 
 // Additional mock item list
 export const mockItemList = [
-  { id: "ITEM-001", itemName: "Tomato", variety: "Cherry" },
-  { id: "ITEM-002", itemName: "Tomato", variety: "Roma" },
-  { id: "ITEM-003", itemName: "Cucumber", variety: "Slicing" },
-  { id: "ITEM-004", itemName: "Cucumber", variety: "Pickling" },
-  { id: "ITEM-005", itemName: "Lettuce", variety: "Romaine" },
-  { id: "ITEM-006", itemName: "Lettuce", variety: "Iceberg" }
+  { itemId: "VEG-001", itemName: "Tomato", variety: "Cherry" },
+  { itemId: "VEG-002", itemName: "Tomato", variety: "Roma" },
+  { itemId: "VEG-003", itemName: "Cucumber", variety: "Slicing" },
+  { itemId: "VEG-004", itemName: "Cucumber", variety: "Pickling" },
+  { itemId: "VEG-005", itemName: "Lettuce", variety: "Romaine" },
+  { itemId: "VEG-006", itemName: "Lettuce", variety: "Iceberg" }
 ];
 
-// Roles definitions
-export const mockRoles = [
-  {
-    name: "deliverer",
-    description: "Pickup and deliver shipments to customers.",
-    fields: [
-      { label: "First Name", type: "text" },
-      { label: "Last Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-      { label: "Address", type: "text" },
-      { label: "Birth Date", type: "date" },
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity", type: "number" },
-      { label: "Driver License #", type: "text" },
-      { label: "Vehicle Registration #", type: "text" },
-      { label: "Insurance Confirmed", type: "checkbox" }
-    ]
-  },
-  {
-    name: "industrial-driver",
-    description: "Deliver refrigerated or hazardous shipments.",
-    fields: [
-      { label: "First Name", type: "text" },
-      { label: "Last Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-      { label: "Address", type: "text" },
-      { label: "Birth Date", type: "date" },
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity", type: "number" },
-      { label: "Driver License #", type: "text" },
-      { label: "Vehicle Registration #", type: "text" },
-      { label: "Insurance Confirmed", type: "checkbox" },
-      { label: "Refrigerated Capable", type: "checkbox" }
-    ]
-  },
-  {
-    name: "farmer",
-    description: "Supply produce and manage lands.",
-    fields: [
-      { label: "First Name", type: "text" },
-      { label: "Last Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-      { label: "Agricultural Insurance", type: "checkbox" },
-      { label: "Farm Name", type: "text" },
-      { label: "Agreement Signed", type: "checkbox" },
-      { label: "Lands (JSON)", type: "textarea" }
-    ]
-  }
+export const mockStock = {
+  morning: [
+    {
+      stockid:1 ,
+      itemId: "FRT-001",
+      itemDisplayName: "Apple Fuji",
+      itemPictureUrl: "https://via.placeholder.com/100?text=Apple",
+      category: "Fruits",
+      sourceFarmerName: "Farmer John",
+      currentAvailableQuantityKg: 100,
+      pricePerUnit: 2.99
+    },
+    {
+      itemId: "VEG-001",
+      itemDisplayName: "Cucumber",
+      itemPictureUrl: "https://via.placeholder.com/100?text=Cucumber",
+      category: "Vegetables",
+      sourceFarmerName: "Farmer Jane",
+      currentAvailableQuantityKg:10,
+      pricePerUnit: 1.8
+    },
+    {
+      itemId: "VEG-002",
+      itemDisplayName: "Tomato Roma",
+      itemPictureUrl: "https://via.placeholder.com/100?text=Tomato",
+      category: "Vegetables",
+      sourceFarmerName: "Farmer Amir",
+      currentAvailableQuantityKg: 10,
+      pricePerUnit: 2.2
+    },
+    {
+      itemId: "VEG-004",
+      itemDisplayName: "Pickling Cucumber",
+      itemPictureUrl: "https://via.placeholder.com/100?text=Pickle",
+      category: "Vegetables",
+      sourceFarmerName: "Farmer Dana",
+      currentAvailableQuantityKg: 25,
+      pricePerUnit: 1.5
+    }
+  ],
+  afternoon: [],
+  night: [
+    {
+      itemId: "VEG-003",
+      itemDisplayName: "Spinach Bunch",
+      itemPictureUrl: "https://via.placeholder.com/100?text=Spinach",
+      category: "Vegetables",
+      sourceFarmerName: "Farmer Ezra",
+      currentAvailableQuantityKg: 55,
+      pricePerUnit: 2.3
+    }
+  ]
+};
+
+export const mockAddresses = [
+  "123 Green Rd",
+  "45 Market St",
+  "678 Orchard Lane"
 ];
+
