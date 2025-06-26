@@ -12,7 +12,7 @@ const roleCollectionMap = {
 
 async function updateApplicationStatus(req, res) {
   const uid = req.params.uid;
-  const { status, role } = req.body;
+  const { status, role, firstName, lastName, phoneNumber } = req.body;
 
   if (!uid || !status) {
     return res.status(400).send({ error: "Missing UID or status" });
@@ -45,8 +45,11 @@ async function updateApplicationStatus(req, res) {
         .collection(targetCol)
         .doc(uid)
         .set({
+          //add name and phone number
           ...appData,
-          status: "approved",
+          firstName,
+          lastName,
+          phoneNumber,
           approvedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
