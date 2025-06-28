@@ -1,1625 +1,147 @@
 const { db, admin } = require("../firebaseConfig");
 const QRCode = require("qrcode");
 
-// --- Farm Handlers ---
-async function listFarms(req, res) {
-  try {
-    const snapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .get();
+// --- Helper Functions ---
 
-    if (snapshot.empty) {
-      return res.json({ farms: [], message: "No farms found" });
-    }
-
-    const farms = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json({ farms });
-  } catch (err) {
-    console.error("Error fetching farms:", err);
-    res.status(500).send({ error: err.message });
+// Get farmer's lands from extraFields
+async function getFarmerLands(farmerId) {
+  const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+  if (!farmerDoc.exists) {
+    throw new Error("Farmer not found");
   }
+  
+  const farmerData = farmerDoc.data();
+  return farmerData.extraFields?.lands || [];
 }
 
-
-
-
-async function getFarm(req, res) {
-  try {
-    const { farmId } = req.params;
-    const farmDoc = await db.collection("farms").doc(farmId).get();
-
-    if (!farmDoc.exists) {
-      return res.status(404).send({ error: "Farm not found" });
-    }
-
-    const farmData = farmDoc.data();
-    if (farmData.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    res.json({ farm: { id: farmDoc.id, ...farmData } });
-  } catch (err) {
-    console.error("Error fetching farm:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getFarmerFarms(req, res) {
-  try {
-    const farmsSnapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-
-    if (farmsSnapshot.empty) {
-      return res.status(404).send({ error: "No farms found for this user" });
-    }
-
-    const farms = farmsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json({ farms });
-  } catch (err) {
-    console.error("Error fetching farms:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// List crops with computed expected harvest quantity
-async function listCrops(req, res) {
-  try {
-    const { farmId } = req.params;
-    const { status, itemId } = req.query;
-
-    if (farmId) {
-      const farmDoc = await db.collection("farms").doc(farmId).get();
-      if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
-        return res.status(404).send({ error: "Farm not found" });
-      }
-    }
-
-    let query = db.collection("crops").where("farmerId", "==", req.user.uid);
-    if (farmId) query = query.where("farmId", "==", farmId);
-    if (status) query = query.where("status", "==", status);
-    if (itemId) query = query.where("itemId", "==", itemId);
-
-    const snapshot = await query.get();
-    if (snapshot.empty) {
-      return res.json({ crops: [], message: "No crops found" });
-    }
-
-    const crops = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const data = doc.data();
-        const crop = {
-          id: doc.id,
-          farmId: data.farmId,
-          itemId: data.itemId,
-          variety: data.variety || null,
-          quantity: data.quantity,
-          avgRatePerUnit: data.avgRatePerUnit,
-          fruitingPerPlant: data.fruitingPerPlant,
-          statusPercentage: data.statusPercentage,
-          agreementPercentage: data.agreementPercentage,
-          status: data.status,
-          plantedDate: data.plantedDate,
-          expectedHarvestDate: data.expectedHarvestDate,
-          notes: data.notes || "",
-        };
-
-        // Compute expected harvest quantity if not stored
-        crop.expectedHarvestQuantity = data.expectedHarvestQuantity !== undefined
-          ? data.expectedHarvestQuantity
-          : (crop.quantity * crop.fruitingPerPlant * crop.avgRatePerUnit);
-
-        // Attach item details
-        if (crop.itemId) {
-          const itemDoc = await db.collection("items").doc(crop.itemId).get();
-          if (itemDoc.exists) {
-            crop.itemName = itemDoc.data().name;
-            crop.itemDetails = itemDoc.data();
-          }
-        }
-        return crop;
-      })
-    );
-
-    res.json({ crops });
-  } catch (err) {
-    console.error("Error fetching crops:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// Get a single crop with computed expected harvest quantity
-async function getCrop(req, res) {
-  try {
-    const { farmId, cropId } = req.params;
-    const farmDoc = await db.collection("farms").doc(farmId).get();
-    if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
-      return res.status(404).send({ error: "Farm not found" });
-    }
-
-    const cropDoc = await db.collection("crops").doc(cropId).get();
-    if (!cropDoc.exists) {
-      return res.status(404).send({ error: "Crop not found" });
-    }
-    const data = cropDoc.data();
-    if (data.farmId !== farmId || data.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    const crop = {
-      id: cropDoc.id,
-      farmId: data.farmId,
-      itemId: data.itemId,
-      variety: data.variety || null,
-      quantity: data.quantity,
-      avgRatePerUnit: data.avgRatePerUnit,
-      fruitingPerPlant: data.fruitingPerPlant,
-      statusPercentage: data.statusPercentage,
-      agreementPercentage: data.agreementPercentage,
-      status: data.status,
-      plantedDate: data.plantedDate,
-      expectedHarvestDate: data.expectedHarvestDate,
-      notes: data.notes || "",
-    };
-    crop.expectedHarvestQuantity = data.expectedHarvestQuantity !== undefined
-      ? data.expectedHarvestQuantity
-      : (crop.quantity * crop.fruitingPerPlant * crop.avgRatePerUnit);
-
-    // Attach item details
-    if (crop.itemId) {
-      const itemDoc = await db.collection("items").doc(crop.itemId).get();
-      if (itemDoc.exists) {
-        crop.itemDetails = itemDoc.data();
-      }
-    }
-
-    res.json({ crop });
-  } catch (err) {
-    console.error("Error fetching crop:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// Create crop with computed expected harvest quantity
-async function createCrop(req, res) {
-  try {
-    const {
-      farmId,
-      itemId,
-      variety,
-      avgRatePerUnit,
-      fruitingPerPlant,
-      statusPercentage,
-      agreementPercentage,
-      status,
-      quantity,
-      plantedDate,
-      expectedHarvestDate,
-      notes,
-    } = req.body;
-
-    if (!farmId || !itemId || !status) {
-      return res.status(400).send({ error: "Missing required fields: farmId, itemId, status" });
-    }
-
-    const farmDoc = await db.collection("farms").doc(farmId).get();
-    if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
-      return res.status(404).send({ error: "Farm not found or access denied" });
-    }
-
-    const itemDoc = await db.collection("items").doc(itemId).get();
-    if (!itemDoc.exists) {
-      return res.status(404).send({ error: "Item not found" });
-    }
-
-    const qty = parseInt(quantity, 10);
-    const avgRate = parseFloat(avgRatePerUnit);
-    const fruiting = parseInt(fruitingPerPlant, 10);
-
-    const expectedQty = qty * fruiting * avgRate;
-
-    const cropData = {
-      farmId,
-      farmerId: req.user.uid,
-      itemId,
-      variety: variety || null,
-      avgRatePerUnit: avgRate,
-      fruitingPerPlant: fruiting,
-      statusPercentage: statusPercentage ? parseFloat(statusPercentage) : 0,
-      agreementPercentage: agreementPercentage ? parseFloat(agreementPercentage) : 0,
-      status,
-      quantity: qty,
-      plantedDate: plantedDate || null,
-      expectedHarvestDate: expectedHarvestDate || null,
-      expectedHarvestQuantity: expectedQty,
-      notes: notes || "",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const docRef = await db.collection("crops").add(cropData);
-    await docRef.update({ id: docRef.id });
-
-    res.status(201).json({
-      id: docRef.id,
-      message: "Crop created successfully",
-      crop: { id: docRef.id, ...cropData },
-    });
-  } catch (err) {
-    console.error("Error creating crop:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// Update crop with recomputed expected harvest quantity
-async function updateCrop(req, res) {
-  try {
-    const { cropId } = req.params;
-    const updates = req.body;
-
-    const cropDoc = await db.collection("crops").doc(cropId).get();
-    if (!cropDoc.exists) {
-      return res.status(404).send({ error: "Crop not found" });
-    }
-    const data = cropDoc.data();
-    if (data.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    // Prepare updated fields
-    const updateData = { ...updates, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-    if (updates.avgRatePerUnit !== undefined) updateData.avgRatePerUnit = parseFloat(updates.avgRatePerUnit);
-    if (updates.fruitingPerPlant !== undefined) updateData.fruitingPerPlant = parseInt(updates.fruitingPerPlant, 10);
-    if (updates.statusPercentage !== undefined) updateData.statusPercentage = parseFloat(updates.statusPercentage);
-    if (updates.agreementPercentage !== undefined) updateData.agreementPercentage = parseFloat(updates.agreementPercentage);
-    if (updates.quantity !== undefined) updateData.quantity = parseInt(updates.quantity, 10);
-
-    // Recompute expected harvest quantity if key fields changed
-    const finalQty = updateData.quantity !== undefined ? updateData.quantity : data.quantity;
-    const finalFruiting = updateData.fruitingPerPlant !== undefined ? updateData.fruitingPerPlant : data.fruitingPerPlant;
-    const finalAvgRate = updateData.avgRatePerUnit !== undefined ? updateData.avgRatePerUnit : data.avgRatePerUnit;
-    updateData.expectedHarvestQuantity = finalQty * finalFruiting * finalAvgRate;
-
-    await db.collection("crops").doc(cropId).update(updateData);
-    res.json({ message: "Crop updated successfully" });
-  } catch (err) {
-    console.error("Error updating crop:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// Delete crop (unchanged)
-async function deleteCrop(req, res) {
-  try {
-    const { cropId } = req.params;
-    const cropDoc = await db.collection("crops").doc(cropId).get();
-    if (!cropDoc.exists) return res.status(404).send({ error: "Crop not found" });
-    if (cropDoc.data().farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-    await db.collection("crops").doc(cropId).delete();
-    res.json({ message: "Crop deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting crop:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// --- Shipment Handlers ---
-async function createShipment(req, res) {
-  try {
-    const { farmId, destination, scheduledDate, pickupTime, driver, items } =
-      req.body;
-
-    // Validate required fields
-    if (
-      !farmId ||
-      !destination ||
-      !items ||
-      !Array.isArray(items) ||
-      items.length === 0
-    ) {
-      return res.status(400).send({
-        error: "Missing required fields: farmId, destination, items (array)",
-      });
-    }
-
-    // Verify farm belongs to farmer
-    const farmDoc = await db.collection("farms").doc(farmId).get();
-    if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
-      return res.status(404).send({ error: "Farm not found or access denied" });
-    }
-
-    // Calculate totals from items
-    let totalWeight = 0;
-    let totalVolume = 0;
-
-    for (const item of items) {
-      totalWeight += parseFloat(item.weight || 0);
-      totalVolume += parseFloat(item.volume || 0);
-    }
-
-    // Create shipment document with NEW_DATA structure
-    const shipmentData = {
-      farmId,
-      farmerId: req.user.uid,
-      destination,
-      //logistic_center
-      scheduledDate: scheduledDate
-        ? admin.firestore.Timestamp.fromDate(new Date(scheduledDate))
-        : null,
-      pickupTime: pickupTime || null,
-      driver: driver || null,
-      items,
-      status: "pending",
-      totalWeight,
-      totalVolume,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      qrCodeData: null, // Will be generated when requested
-    };
-
-    // Add to Firestore
-    const docRef = await db.collection("shipments").add(shipmentData);
-
-    // Add the document ID to the document itself
-    await docRef.update({ id: docRef.id });
-
-    res.status(201).json({
-      id: docRef.id,
-      message: "Shipment created successfully",
-      shipment: {
-        id: docRef.id,
-        ...shipmentData,
-      },
-    });
-  } catch (err) {
-    console.error("Error creating shipment:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-
-async function createFarmerShipment(req, res) {
-  try {
-    const { item, quantity, pickupTime, variety } = req.body;
-
-    if (!item || !quantity || !pickupTime) {
-      return res.status(400).send({ error: "item, quantity, and pickupTime are required" });
-    }
-
-    // Find the farmer's farm
-    const farmsSnapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .limit(1)
-      .get();
-
-    if (farmsSnapshot.empty) {
-      return res.status(404).send({ error: "No farm found for this farmer" });
-    }
-
-    const farmDoc = farmsSnapshot.docs[0];
-    const farmId = farmDoc.id;
-
-    const shipmentData = {
-      farmerId: req.user.uid,
-      farmId,
-      pickupTime,
-      items: [
-        {
-          name: item,
-          quantity: parseInt(quantity),
-          variety: variety || null,
-        },
-      ],
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const shipmentRef = await db.collection("shipments").add(shipmentData);
-    await shipmentRef.update({ id: shipmentRef.id });
-
-    res.status(201).json({
-      message: "Shipment created successfully",
-      shipment: { id: shipmentRef.id, ...shipmentData },
-    });
-  } catch (err) {
-    console.error("Error creating farmer shipment:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function listShipments(req, res) {
-  try {
-    const { status, farmId } = req.query;
-
-    let query = db
-      .collection("shipments")
-      .where("farmerId", "==", req.user.uid);
-
-    if (status) {
-      query = query.where("status", "==", status);
-    }
-    if (farmId) {
-      query = query.where("farmId", "==", farmId);
-    }
-
-    const snapshot = await query.orderBy("createdAt", "desc").get();
-
-    if (snapshot.empty) {
-      return res.json({ shipments: [], message: "No shipments found" });
-    }
-
-    const shipments = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const shipmentData = { id: doc.id, ...doc.data() };
-
-        // Get farm details
-        if (shipmentData.farmId) {
-          try {
-            const farmDoc = await db
-              .collection("farms")
-              .doc(shipmentData.farmId)
-              .get();
-            if (farmDoc.exists) {
-              shipmentData.farmName = farmDoc.data().name;
-              shipmentData.pickupAddress =
-                farmDoc.data().pickupAddress || farmDoc.data().location;
-            }
-          } catch (err) {
-            console.log(
-              `Could not fetch farm ${shipmentData.farmId}:`,
-              err.message
-            );
-          }
-        }
-
-        return shipmentData;
-      })
-    );
-
-    res.json({ shipments });
-  } catch (err) {
-    console.error("Error fetching shipments:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getShipment(req, res) {
-  try {
-    const { shipmentId } = req.params;
-    const shipmentDoc = await db.collection("shipments").doc(shipmentId).get();
-
-    if (!shipmentDoc.exists) {
-      return res.status(404).send({ error: "Shipment not found" });
-    }
-
-    const shipmentData = shipmentDoc.data();
-
-    // Check access for farmers
-    if (req.user.role === "farmer" && shipmentData.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    // Get farm details
-    let farmDetails = {};
-    if (shipmentData.farmId) {
-      const farmDoc = await db
-        .collection("farms")
-        .doc(shipmentData.farmId)
-        .get();
-      if (farmDoc.exists) {
-        farmDetails = farmDoc.data();
-      }
-    }
-
-    res.json({
-      shipment: {
-        id: shipmentDoc.id,
-        ...shipmentData,
-        farmDetails,
-      },
-    });
-  } catch (err) {
-    console.error("Error fetching shipment:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// ...existing code...
-
-// Keep all the existing functions for reports, deliveries, ratings, dashboard, etc.
-// (The rest of the functions remain the same as in the original file)
-
-async function getFarmerReport(req, res) {
-  try {
-    const { type, limit = 10 } = req.query;
-
-    let query = db
-      .collection("reports")
-      .where("farmerId", "==", req.user.uid)
-      .orderBy("generatedAt", "desc")
-      .limit(parseInt(limit));
-
-    if (type) {
-      query = query.where("type", "==", type);
-    }
-
-    const reportsSnapshot = await query.get();
-
-    if (reportsSnapshot.empty) {
-      return res.json({
-        reports: [],
-        total: 0,
-        message: "No reports found",
-      });
-    }
-
-    const reports = reportsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json({
-      reports,
-      total: reports.length,
-      filters: { type, limit: parseInt(limit) },
-    });
-  } catch (err) {
-    console.error("Error fetching farmer reports:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getCropReport(req, res) {
-  try {
-    const { cropId } = req.params;
-
-    const cropDoc = await db.collection("crops").doc(cropId).get();
-
-    if (!cropDoc.exists) {
-      return res.status(404).send({ error: "Crop not found" });
-    }
-
-    const cropData = cropDoc.data();
-
-    if (req.user.role === "farmer" && cropData.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    // Get farm details
-    let farmDetails = {};
-    if (cropData.farmId) {
-      const farmDoc = await db.collection("farms").doc(cropData.farmId).get();
-      if (farmDoc.exists) {
-        farmDetails = farmDoc.data();
-      }
-    }
-
-    // Get item details
-    let itemDetails = {};
-    if (cropData.itemId) {
-      const itemDoc = await db.collection("items").doc(cropData.itemId).get();
-      if (itemDoc.exists) {
-        itemDetails = itemDoc.data();
-      }
-    }
-
-    const reportId = `report_crop_${cropId}_${Date.now()}`;
-
-    // Calculate progress based on NEW_DATA structure
-    const progressPercentage = cropData.percentage_status || 0;
-    const expectedYield =
-      cropData.expected_fruiting_per_plant * cropData.quantity || 0;
-    const avgWeight = cropData.avg_Weight_per_Unit || 0;
-
-    const reportData = {
-      id: reportId,
-      reportId: reportId,
-      type: "crop",
-      entityId: cropId,
-      farmerId: cropData.farmerId,
-      farmId: cropData.farmId,
-      title: `Crop Report - ${itemDetails.name || "Unknown Item"} (${
-        cropData.variety || "Standard"
-      })`,
-      data: {
-        // Basic crop information
-        cropId: cropDoc.id,
-        itemId: cropData.itemId,
-        itemName: itemDetails.name || "Unknown",
-        variety: cropData.variety || "",
-        status: cropData.status,
-        quantity: cropData.quantity,
-
-        // Growth metrics from NEW_DATA
-        avg_Weight_per_Unit: cropData.avg_Weight_per_Unit,
-        expected_fruiting_per_plant: cropData.expected_fruiting_per_plant,
-        percentage_status: cropData.percentage_status,
-        percentage_total: cropData.percentage_total,
-
-        // Dates
-        plantedDate: cropData.plantedDate,
-        expectedHarvest: cropData.expectedHarvest,
-        notes: cropData.notes,
-
-        // Farm information
-        farmName: farmDetails.name || "Unknown Farm",
-        farmLocation: farmDetails.location || "Unknown Location",
-
-        // Calculated metrics
-        expectedTotalYield: expectedYield,
-        expectedTotalWeight: expectedYield * avgWeight,
-        progressPercentage: progressPercentage,
-        daysPlanted: cropData.plantedDate
-          ? Math.floor(
-              (new Date() - new Date(cropData.plantedDate)) /
-                (1000 * 60 * 60 * 24)
-            )
-          : null,
-        daysToHarvest: cropData.expectedHarvest
-          ? Math.floor(
-              (new Date(cropData.expectedHarvest) - new Date()) /
-                (1000 * 60 * 60 * 24)
-            )
-          : null,
-      },
-      generatedBy: req.user.uid,
-      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await db.collection("reports").doc(reportId).set(reportData);
-
-    res.json({
-      message: "Crop report generated successfully",
-      report: reportData,
-    });
-  } catch (err) {
-    console.error("Error generating crop report:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getAllReports(req, res) {
-  try {
-    const { type, farmerId, limit = 20 } = req.query;
-
-    let query = db
-      .collection("reports")
-      .orderBy("generatedAt", "desc")
-      .limit(parseInt(limit));
-
-    if (type) {
-      query = query.where("type", "==", type);
-    }
-    if (farmerId) {
-      query = query.where("farmerId", "==", farmerId);
-    }
-
-    const reportsSnapshot = await query.get();
-
-    if (reportsSnapshot.empty) {
-      return res.json({
-        reports: [],
-        total: 0,
-        message: "No reports found",
-      });
-    }
-
-    const reports = reportsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json({
-      reports,
-      total: reports.length,
-      filters: { type, farmerId, limit: parseInt(limit) },
-    });
-  } catch (err) {
-    console.error("Error fetching all reports:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function createReport(req, res) {
-  try {
-    const { type, entityId, title, customData } = req.body;
-
-    if (!type || !entityId || !title) {
-      return res.status(400).send({
-        error: "Missing required fields: type, entityId, title",
-      });
-    }
-
-    const reportId = `report_${type}_${entityId}_${Date.now()}`;
-
-    const reportData = {
-      id: reportId,
-      reportId: reportId,
-      type: type,
-      entityId: entityId,
-      farmerId: req.user.uid,
-      title: title,
-      data: customData || {},
-      generatedBy: req.user.uid,
-      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await db.collection("reports").doc(reportId).set(reportData);
-
-    res.status(201).json({
-      message: "Report created successfully",
-      report: reportData,
-    });
-  } catch (err) {
-    console.error("Error creating report:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getReport(req, res) {
-  try {
-    const { reportId } = req.params;
-
-    const reportDoc = await db.collection("reports").doc(reportId).get();
-
-    if (!reportDoc.exists) {
-      return res.status(404).send({ error: "Report not found" });
-    }
-
-    const reportData = reportDoc.data();
-
-    let entityDetails = {};
-    if (reportData.type === "crop" && reportData.entityId) {
-      const cropDoc = await db
-        .collection("crops")
-        .doc(reportData.entityId)
-        .get();
-      if (cropDoc.exists) {
-        entityDetails.crop = { id: cropDoc.id, ...cropDoc.data() };
-      }
-    }
-
-    res.json({
-      report: {
-        id: reportDoc.id,
-        ...reportData,
-        entityDetails,
-      },
-    });
-  } catch (err) {
-    console.error("Error fetching report:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// Create a simplified shipment request for the authenticated farmer
-async function shipmentRequest(req, res) {
-  try {
-    const { item, quantity, pickupTime } = req.body;
-
-    // Validate required input fields
-    if (!item || !quantity || !pickupTime) {
-      return res.status(400).send({
-        error: "Missing required fields: item, quantity, pickupTime",
-      });
-    }
-
-    // Fetch the first farm associated with the current authenticated farmer
-    const farmsSnapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .limit(1)
-      .get();
-
-    // If no farm is found, return an error
-    if (farmsSnapshot.empty) {
-      return res.status(404).send({ error: "No farm found for this farmer" });
-    }
-
-    // Extract the farm ID from the fetched document
-    const farmDoc = farmsSnapshot.docs[0];
-    const farmId = farmDoc.id;
-
-    // Build the shipment data structure
-    const shipmentData = {
-      farmerId: req.user.uid,
-      farmId,
-      pickupTime,
-      items: [
-        {
-          name: item,
-          quantity: parseInt(quantity),
-        },
-      ],
-      status: "pending", // default status
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    // Save the shipment to Firestore
-    const shipmentRef = await db.collection("shipments").add(shipmentData);
-
-    // Attach the generated ID to the document
-    await shipmentRef.update({ id: shipmentRef.id });
-
-    // Respond with success and shipment details
-    res.status(201).json({
-      message: "Shipment request created successfully",
-      shipment: { id: shipmentRef.id, ...shipmentData },
-    });
-  } catch (err) {
-    console.error("Error creating shipment request:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-// CREATE: Approved shipment submission for a specific farmer
-async function createApprovedShipment(req, res) {
-  try {
-    const { item, quantity, pickupTime } = req.body;
-
-    // Basic validation
-    if (!item || !quantity || !pickupTime) {
-      return res.status(400).send({
-        error: "Missing required fields: item, quantity, pickupTime",
-      });
-    }
-
-    // Find the farmer's first farm
-    const farmsSnapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .limit(1)
-      .get();
-
-    if (farmsSnapshot.empty) {
-      return res.status(404).send({ error: "No farm found for this farmer" });
-    }
-
-    const farmDoc = farmsSnapshot.docs[0];
-    const farmId = farmDoc.id;
-
-    // Prepare shipment data with status "approved"
-    const shipmentData = {
-      farmerId: req.user.uid,
-      farmId,
-      pickupTime,
-      items: [
-        {
-          name: item,
-          quantity: parseInt(quantity),
-        },
-      ],
-      status: "approved", // DIFFERENCE: status is set to approved
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const shipmentRef = await db.collection("shipments").add(shipmentData);
-    await shipmentRef.update({ id: shipmentRef.id });
-
-    res.status(201).json({
-      message: "Approved shipment created successfully",
-      shipment: { id: shipmentRef.id, ...shipmentData },
-    });
-  } catch (err) {
-    console.error("Error creating approved shipment:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-
-
-// Continue with all other existing functions...
-// (Keep all delivery, barcode, item, rating, and dashboard functions as they were)
-
-async function createDelivery(req, res) {
-  try {
-    const { produceType, weight, volume, farmId, notes } = req.body;
-
-    if (!produceType || !weight || !farmId) {
-      return res.status(400).send({
-        error: "Missing required fields: produceType, weight, farmId",
-      });
-    }
-
-    const farmDoc = await db.collection("farms").doc(farmId).get();
-    if (!farmDoc.exists || farmDoc.data().farmerId !== req.user.uid) {
-      return res.status(404).send({ error: "Farm not found" });
-    }
-
-    const itemDoc = await db.collection("items").doc(produceType).get();
-    if (!itemDoc.exists) {
-      return res.status(404).send({ error: "Produce type not found" });
-    }
-
-    const deliveryData = {
-      farmerId: req.user.uid,
-      farmId,
-      produceType,
-      weight: parseFloat(weight),
-      volume: volume ? parseFloat(volume) : null,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      status: "pending",
-      barcodeUrl: null,
-      barcodeGenerated: false,
-      notes: notes || "",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const docRef = await db.collection("deliveries").add(deliveryData);
-    await docRef.update({ id: docRef.id });
-
-    res.status(201).json({
-      id: docRef.id,
-      message: "Delivery created successfully",
-      delivery: {
-        id: docRef.id,
-        ...deliveryData,
-      },
-    });
-  } catch (err) {
-    console.error("Error creating delivery:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getDeliveryHistory(req, res) {
-  try {
-    const { status, farmId, limit = 10 } = req.query;
-
-    let query = db
-      .collection("deliveries")
-      .where("farmerId", "==", req.user.uid)
-      .limit(parseInt(limit));
-
-    if (status) {
-      query = query.where("status", "==", status);
-    }
-    if (farmId) {
-      query = query.where("farmId", "==", farmId);
-    }
-
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      return res.json({
-        deliveries: [],
-        total: 0,
-        message: "No deliveries found",
-      });
-    }
-
-    const deliveries = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const deliveryData = {
-          id: doc.id,
-          ...doc.data(),
-        };
-
-        // Get farm details
-        try {
-          const farmDoc = await db
-            .collection("farms")
-            .doc(deliveryData.farmId)
-            .get();
-          if (farmDoc.exists) {
-            deliveryData.farmName = farmDoc.data().name;
-          }
-        } catch (farmErr) {
-          console.log(
-            `Could not fetch farm ${deliveryData.farmId}:`,
-            farmErr.message
-          );
-        }
-
-        // Get item details
-        try {
-          const itemDoc = await db
-            .collection("items")
-            .doc(deliveryData.produceType)
-            .get();
-          if (itemDoc.exists) {
-            deliveryData.produceTypeName = itemDoc.data().name;
-          }
-        } catch (itemErr) {
-          console.log(
-            `Could not fetch item ${deliveryData.produceType}:`,
-            itemErr.message
-          );
-        }
-
-        return deliveryData;
-      })
-    );
-
-    res.json({
-      deliveries,
-      total: deliveries.length,
-      filters: { status, farmId, limit: parseInt(limit) },
-    });
-  } catch (err) {
-    console.error("Error in getDeliveryHistory:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function generateShipmentBarcode(req, res) {
-  try {
-    const { shipmentId } = req.params;
-
-    const shipmentDoc = await db.collection("shipments").doc(shipmentId).get();
-
-    if (!shipmentDoc.exists) {
-      return res.status(404).send({ error: "Shipment not found" });
-    }
-
-    const shipmentData = shipmentDoc.data();
-
-    if (shipmentData.barcodeGenerated && shipmentData.qrCodeData) {
-      return res.json({
-        message: "Barcode already exists",
-        barcodeUrl: shipmentData.qrCodeData,
-        shipmentId: shipmentDoc.id,
-        trackingNumber: shipmentData.trackingNumber || `TRK${Date.now()}`,
-        trackingUrl:
-          shipmentData.trackingUrl || `https://greentech-tracking.com/track/`,
-        trackingData: {
-          shipmentId: shipmentDoc.id,
-          farmerId: shipmentData.farmerId,
-          trackingNumber: shipmentData.trackingNumber || `TRK${Date.now()}`,
-          trackingUrl:
-            shipmentData.trackingUrl || `https://greentech-tracking.com/track/`,
-        },
-      });
-    }
-
-    const farmDoc = await db.collection("farms").doc(shipmentData.farmId).get();
-    const farmData = farmDoc.exists ? farmDoc.data() : {};
-
-    let farmerName = "Unknown Farmer";
-    try {
-      const userRecord = await admin.auth().getUser(req.user.uid);
-      farmerName = userRecord.displayName || userRecord.email || "Farmer";
-    } catch (userErr) {
-      console.log("Could not fetch user info:", userErr.message);
-    }
-
-    const trackingData = {
-      shipmentId: shipmentDoc.id,
-      farmerId: shipmentData.farmerId,
-      farmerName: farmerName,
-      farmName: farmData.name || "Unknown Farm",
-      destination: shipmentData.destination || "",
-      trackingNumber: shipmentData.trackingNumber || `TRK${Date.now()}`,
-      trackingUrl:
-        shipmentData.trackingUrl ||
-        `https://greentech-tracking.com/track/${shipmentDoc.id}`,
-    };
-
-    const qrData = {
-      type: "shipment",
-      id: shipmentDoc.id,
-      shipmentId: shipmentDoc.id,
-      farmId: shipmentData.farmId,
-      farmerId: shipmentData.farmerId,
-      items: shipmentData.items,
-      destination: shipmentData.destination,
-      status: shipmentData.status,
-      totalWeight: shipmentData.totalWeight,
-      totalVolume: shipmentData.totalVolume,
-      trackingNumber: trackingData.trackingNumber,
-      trackingUrl: trackingData.trackingUrl,
-      farmerName: trackingData.farmerName,
-      farmName: trackingData.farmName,
-      timestamp: new Date().toISOString(),
-      generatedAt: new Date().toISOString(),
-    };
-
-    const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
-
-    await db.collection("shipments").doc(shipmentId).update({
-      qrCodeData: qrCodeUrl,
-      barcodeGenerated: true,
-      barcodeGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    const barcodeData = {
-      id: `barcode_${shipmentDoc.id}`,
-      shipmentId: shipmentDoc.id,
-      farmerId: shipmentData.farmerId,
-      qrCodeBase64: qrCodeUrl,
-      trackingData: trackingData,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const barcodeDocRef = await db.collection("barcodes").add(barcodeData);
-    await barcodeDocRef.update({ id: barcodeDocRef.id });
-
-    res.json({
-      message: "Barcode generated successfully",
-      barcodeUrl: qrCodeUrl,
-      shipmentId: shipmentDoc.id,
-      barcodeId: barcodeDocRef.id,
-      trackingNumber: trackingData.trackingNumber,
-      trackingUrl: trackingData.trackingUrl,
-      trackingData: trackingData,
-      farmerId: shipmentData.farmerId,
-      farmName: trackingData.farmName,
-      destination: shipmentData.destination,
-    });
-  } catch (err) {
-    console.error("Error generating shipment barcode:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function generateDeliveryBarcode(req, res) {
-  try {
-    const { deliveryId } = req.params;
-
-    const deliveryDoc = await db.collection("deliveries").doc(deliveryId).get();
-
-    if (!deliveryDoc.exists) {
-      return res.status(404).send({ error: "Delivery not found" });
-    }
-
-    const deliveryData = deliveryDoc.data();
-    if (deliveryData.farmerId !== req.user.uid) {
-      return res.status(403).send({ error: "Access denied" });
-    }
-
-    if (deliveryData.barcodeGenerated && deliveryData.barcodeUrl) {
-      return res.json({
-        message: "QR code already exists",
-        barcodeUrl: deliveryData.barcodeUrl,
-        deliveryId: deliveryDoc.id,
-      });
-    }
-
-    const qrData = {
-      type: "delivery",
-      id: deliveryDoc.id,
-      farmId: deliveryData.farmId,
-      produceType: deliveryData.produceType,
-      weight: deliveryData.weight,
-      timestamp: new Date().toISOString(),
-    };
-
-    const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData));
-
-    await db.collection("deliveries").doc(deliveryId).update({
-      barcodeUrl: qrCodeUrl,
-      barcodeGenerated: true,
-      barcodeGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    res.json({
-      message: "QR code generated successfully",
-      barcodeUrl: qrCodeUrl,
-      deliveryId: deliveryDoc.id,
-    });
-  } catch (err) {
-    console.error("Error generating delivery QR code:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function listItems(req, res) {
-  try {
-    const { category, season } = req.query;
-
-    let query = db.collection("items");
-
-    if (category) {
-      query = query.where("category", "==", category);
-    }
-    if (season) {
-      query = query.where("season", "==", season);
-    }
-
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      return res.json({ items: [], message: "No items found" });
-    }
-
-    const items = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json({ items });
-  } catch (err) {
-    console.error("Error fetching items:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getItem(req, res) {
-  try {
-    const { itemId } = req.params;
-    const itemDoc = await db.collection("items").doc(itemId).get();
-
-    if (!itemDoc.exists) {
-      return res.status(404).send({ error: "Item not found" });
-    }
-
-    res.json({ item: { id: itemDoc.id, ...itemDoc.data() } });
-  } catch (err) {
-    console.error("Error fetching item:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// Rating functions (keep existing implementation)
-async function getAllFarmerRatings(req, res) {
-  try {
-    const farmersSnapshot = await db
-      .collection("users")
-      .where("role", "==", "farmer")
-      .get();
-
-    if (farmersSnapshot.empty) {
-      return res.json({ farmers: [], message: "No farmers found" });
-    }
-
-    const farmers = farmersSnapshot.docs.map((doc) => {
-      const farmerData = doc.data();
+// Update farmer's lands in extraFields
+async function updateFarmerLands(farmerId, lands) {
+  console.log(`🔧 DEBUG: updateFarmerLands called for farmerId: ${farmerId}`);
+  console.log(`🔧 DEBUG: Lands to save:`, JSON.stringify(lands, null, 2));
+  
+  const farmerRef = db.collection("farmers").doc(farmerId);
+  
+  // Convert any FieldValue.serverTimestamp() to actual timestamp before saving
+  const cleanedLands = lands.map(land => {
+    if (land.crop && land.crop.updatedAt && land.crop.updatedAt.constructor && land.crop.updatedAt.constructor.name === 'FieldValue') {
+      // Replace FieldValue.serverTimestamp() with actual timestamp
       return {
-        farmerId: doc.id,
-        farmerName: `${farmerData.firstName} ${farmerData.lastName}`,
-        email: farmerData.email,
-        totalL: farmerData.totalL || 0,
-        totalC: farmerData.totalC || 0,
-        averageRating: farmerData.averageRating || 0,
+        ...land,
+        crop: {
+          ...land.crop,
+          updatedAt: admin.firestore.Timestamp.now()
+        }
       };
-    });
-
-    farmers.sort((a, b) => b.averageRating - a.averageRating);
-
-    res.json({ farmers });
-  } catch (err) {
-    console.error("Error fetching all farmer ratings:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getFarmerRating(req, res) {
+    }
+    return land;
+  });
+  
+  console.log(`🔧 DEBUG: Cleaned lands for Firebase:`, JSON.stringify(cleanedLands, null, 2));
+  
   try {
-    const { farmerId } = req.params;
-
-    const farmerDoc = await db.collection("users").doc(farmerId).get();
-    if (!farmerDoc.exists || farmerDoc.data().role !== "farmer") {
-      return res.status(404).send({ error: "Farmer not found" });
-    }
-
-    const ratingDoc = await db.collection("ratings").doc(farmerId).get();
-
-    if (!ratingDoc.exists) {
-      return res.json({
-        rating: {
-          ratingId: `rating_${farmerId}_001`,
-          totalL: 0,
-          totalC: 0,
-          custmerArray: [],
-        },
-        averageRating: 0,
-        farmerId: farmerId,
-        farmerName: `${farmerDoc.data().firstName} ${
-          farmerDoc.data().lastName
-        }`,
-      });
-    }
-
-    const ratingData = ratingDoc.data();
-    const totalStars = ratingData.custmerArray.reduce(
-      (sum, customer) => sum + customer.rate,
-      0
-    );
-    const averageRating =
-      ratingData.totalC > 0
-        ? parseFloat((totalStars / ratingData.totalC).toFixed(1))
-        : 0;
-
-    res.json({
-      rating: {
-        ratingId: ratingData.ratingId,
-        totalL: ratingData.totalL,
-        totalC: ratingData.totalC,
-        custmerArray: ratingData.custmerArray,
-      },
-      averageRating: averageRating,
-      farmerId: farmerId,
-      farmerName: `${farmerDoc.data().firstName} ${farmerDoc.data().lastName}`,
+    await farmerRef.update({
+      "extraFields.lands": cleanedLands,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-  } catch (err) {
-    console.error("Error fetching farmer rating:", err);
-    res.status(500).send({ error: err.message });
+    console.log(`🔧 DEBUG: Firebase update completed successfully`);
+  } catch (error) {
+    console.error(`🔧 DEBUG: Firebase update failed:`, error);
+    throw error;
   }
 }
 
-async function getMyRatings(req, res) {
-  try {
-    const ratingDoc = await db.collection("ratings").doc(req.user.uid).get();
+// --- Data Transformation Functions ---
 
-    if (!ratingDoc.exists) {
-      return res.json({
-        rating: {
-          ratingId: `rating_${req.user.uid}_001`,
-          totalL: 0,
-          totalC: 0,
-          custmerArray: [],
-        },
-        averageRating: 0,
-        farmerName: "Unknown",
-      });
-    }
+// Transform Firebase land data to frontend format
+function transformLandToFrontendFormat(land, index) {
+  return {
+    LandId: String(index + 1).padStart(5, '0'), // Generate LandId: "00001", "00002", etc.
+    name: land.landName || `Land ${index + 1}`,
+    acres: land.acres || "0",
+    Crops: land.crop ? transformCropToFrontendFormat(land.crop, index) : null
+  };
+}
 
-    const ratingData = ratingDoc.data();
-    const totalStars = ratingData.custmerArray.reduce(
-      (sum, customer) => sum + customer.rate,
-      0
-    );
-    const averageRating =
-      ratingData.totalC > 0
-        ? parseFloat((totalStars / ratingData.totalC).toFixed(1))
-        : 0;
+// Transform Firebase crop data to frontend format
+function transformCropToFrontendFormat(crop, landIndex) {
+  return {
+    id: landIndex + 1, // Generate crop id from land index
+    itemId: crop.itemId || "001",
+    plantedAmount: crop.quantity || crop.plantedAmount || 0,
+    plantedOn: crop.plantedDate ? formatDateForFrontend(crop.plantedDate) : formatDateForFrontend(new Date()),
+    status: crop.status || "Growing",
+    updatedOn: crop.updatedAt ? formatDateForFrontend(crop.updatedAt) : formatDateForFrontend(new Date()),
+    percentage: crop.statusPercentage || crop.percentage || 0,
+    imageUrl: crop.imageUrl || "https://via.placeholder.com/50",
+    name: crop.name || "Unknown Crop"
+  };
+}
 
-    const farmerDoc = await db.collection("users").doc(req.user.uid).get();
-    const farmerData = farmerDoc.data();
+// Transform Firebase item data to frontend format
+function transformItemToFrontendFormat(item) {
+  return {
+    id: item.id,
+    itemId: item.id,
+    itemName: item.name || "Unknown Item",
+    name: item.name || "Unknown Item",
+    category: item.category || "Standard",
+    variety: item.category || "Standard",
+    imageUrl: item.imageUrl,
+    season: item.season,
+    caloriesPer100g: item.caloriesPer100g,
+    farmerTips: item.farmerTips,
+    customerInfo: item.customerInfo,
+    qualityStandards: item.qualityStandards
+  };
+}
 
-    res.json({
-      rating: {
-        ratingId: ratingData.ratingId,
-        totalL: ratingData.totalL,
-        totalC: ratingData.totalC,
-        custmerArray: ratingData.custmerArray,
-      },
-      averageRating: averageRating,
-      farmerName: `${farmerData.firstName} ${farmerData.lastName}`,
-    });
-  } catch (err) {
-    console.error("Error fetching farmer ratings:", err);
-    res.status(500).send({ error: err.message });
+// Transform Firebase shipment data to frontend format
+function transformShipmentToFrontendFormat(shipment, shipmentDoc) {
+  const shipmentData = shipmentDoc ? shipmentDoc.data() : shipment;
+  const shipmentId = shipmentDoc ? shipmentDoc.id : shipment.id;
+  
+  // Extract item name from items array if available
+  let itemName = "Unknown Item";
+  if (shipmentData.items && shipmentData.items.length > 0) {
+    itemName = shipmentData.items[0].name || "Mixed Items";
   }
+  
+  return {
+    id: shipmentId,
+    item: itemName,
+    amount: shipmentData.totalWeight || shipmentData.amount || 0,
+    pickupTime: shipmentData.pickupTime || new Date().toISOString()
+  };
 }
 
-async function addOrUpdateRating(req, res) {
-  try {
-    const { farmerId } = req.params;
-    const { rate } = req.body;
-
-    if (!rate || rate < 1 || rate > 5) {
-      return res.status(400).send({ error: "Rate must be between 1 and 5" });
-    }
-
-    const farmerDoc = await db.collection("users").doc(farmerId).get();
-    if (!farmerDoc.exists || farmerDoc.data().role !== "farmer") {
-      return res.status(404).send({ error: "Farmer not found" });
-    }
-
-    const ratingDoc = await db.collection("ratings").doc(farmerId).get();
-
-    let ratingData;
-    if (!ratingDoc.exists) {
-      ratingData = {
-        ratingId: `rating_${farmerId}_001`,
-        farmerId: farmerId,
-        totalL: 0,
-        totalC: 0,
-        custmerArray: [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-    } else {
-      ratingData = ratingDoc.data();
-    }
-
-    const existingCustomerIndex = ratingData.custmerArray.findIndex(
-      (customer) => customer.CUSTOMERID === req.user.uid
-    );
-
-    if (existingCustomerIndex !== -1) {
-      const oldRate = ratingData.custmerArray[existingCustomerIndex].rate;
-      ratingData.custmerArray[existingCustomerIndex].rate = parseInt(rate);
-
-      if (oldRate >= 4 && rate < 4) {
-        ratingData.totalL = Math.max(0, ratingData.totalL - 1);
-      } else if (oldRate < 4 && rate >= 4) {
-        ratingData.totalL += 1;
-      }
-    } else {
-      ratingData.custmerArray.push({
-        CUSTOMERID: req.user.uid,
-        rate: parseInt(rate),
-      });
-
-      ratingData.totalC += 1;
-
-      if (rate >= 4) {
-        ratingData.totalL += 1;
-      }
-    }
-
-    ratingData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-
-    const totalStars = ratingData.custmerArray.reduce(
-      (sum, customer) => sum + customer.rate,
-      0
-    );
-    const averageRating =
-      ratingData.totalC > 0
-        ? parseFloat((totalStars / ratingData.totalC).toFixed(1))
-        : 0;
-
-    await db.collection("ratings").doc(farmerId).set(ratingData);
-
-    await db.collection("users").doc(farmerId).update({
-      totalL: ratingData.totalL,
-      totalC: ratingData.totalC,
-      averageRating: averageRating,
-      lastRatingUpdate: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    res.status(200).json({
-      message:
-        existingCustomerIndex !== -1
-          ? "Rating updated successfully"
-          : "Rating added successfully",
-      rating: {
-        ratingId: ratingData.ratingId,
-        totalL: ratingData.totalL,
-        totalC: ratingData.totalC,
-        custmerArray: ratingData.custmerArray,
-      },
-      averageRating: averageRating,
-      farmerName: `${farmerDoc.data().firstName} ${farmerDoc.data().lastName}`,
-    });
-  } catch (err) {
-    console.error("Error adding/updating rating:", err);
-    res.status(500).send({ error: err.message });
+// Helper function to format Firebase Timestamp to frontend date string
+function formatDateForFrontend(timestamp) {
+  if (!timestamp) return new Date().toISOString().split('T')[0];
+  
+  let date;
+  if (timestamp.toDate) {
+    // Firebase Timestamp
+    date = timestamp.toDate();
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else {
+    // String timestamp
+    date = new Date(timestamp);
   }
+  
+  return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
 }
 
-async function getDashboard(req, res) {
-  try {
-    const farmsSnapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-    const cropsSnapshot = await db
-      .collection("crops")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-    const deliveriesSnapshot = await db
-      .collection("deliveries")
-      .where("farmerId", "==", req.user.uid)
-      .limit(5)
-      .get();
-    const shipmentsSnapshot = await db
-      .collection("shipments")
-      .where("farmerId", "==", req.user.uid)
-      .limit(5)
-      .get();
+// --- Land Handlers ---
 
-    const dashboard = {
-      totalFarms: farmsSnapshot.size,
-      totalCrops: cropsSnapshot.size,
-      totalDeliveries: deliveriesSnapshot.size,
-      totalShipments: shipmentsSnapshot.size,
-      recentDeliveries: deliveriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })),
-      recentShipments: shipmentsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })),
-    };
-
-    res.json({ dashboard });
-  } catch (err) {
-    console.error("Error fetching dashboard:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getPerformanceMetrics(req, res) {
-  try {
-    const deliveriesSnapshot = await db
-      .collection("deliveries")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-    const shipmentsSnapshot = await db
-      .collection("shipments")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-
-    const deliveries = deliveriesSnapshot.docs.map((doc) => doc.data());
-    const shipments = shipmentsSnapshot.docs.map((doc) => doc.data());
-
-    const totalWeight = deliveries.reduce(
-      (sum, delivery) => sum + (delivery.weight || 0),
-      0
-    );
-    const totalVolume = deliveries.reduce(
-      (sum, delivery) => sum + (delivery.volume || 0),
-      0
-    );
-
-    const pendingDeliveries = deliveries.filter(
-      (d) => d.status === "pending"
-    ).length;
-    const completedDeliveries = deliveries.filter(
-      (d) => d.status === "completed"
-    ).length;
-
-    const performance = {
-      totalDeliveries: deliveries.length,
-      totalShipments: shipments.length,
-      totalWeight,
-      totalVolume,
-      pendingDeliveries,
-      completedDeliveries,
-      completionRate:
-        deliveries.length > 0
-          ? ((completedDeliveries / deliveries.length) * 100).toFixed(1)
-          : 0,
-    };
-
-    res.json({ performance });
-  } catch (err) {
-    console.error("Error fetching performance metrics:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// Alias functions
-async function generateBarcode(req, res) {
-  return generateShipmentBarcode(req, res);
-}
-
-async function getPerformance(req, res) {
-  return getPerformanceMetrics(req, res);
-}
-
-
-
-
-
-
-// Get all lands (farmer’s farms)
 async function getLands(req, res) {
   try {
-    const snapshot = await db
-      .collection("farms")
-      .where("farmerId", "==", req.user.uid)
-      .get();
-    const lands = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const farmerId = req.user.uid;
+    console.log(`[getLands] Fetching lands for farmerId: ${farmerId}`);
+    
+    const lands = await getFarmerLands(farmerId);
+    console.log(`[getLands] Found ${lands.length} lands`);
+    
     res.json({ lands });
   } catch (err) {
     console.error("Error fetching lands:", err);
@@ -1627,205 +149,770 @@ async function getLands(req, res) {
   }
 }
 
-// Mark a land (farm) as ready for harvest
-async function markLandReady(req, res) {
+async function getFrontendLands(req, res) {
   try {
-    const { landId } = req.params;
-    // update all crops under this land to status 'ready for harvest'
-    const cropsSnap = await db.collection("crops")
-      .where("farmId", "==", landId)
-      .where("farmerId", "==", req.user.uid)
+    const farmerId = req.user.uid;
+    console.log(`[getFrontendLands] Fetching lands for farmerId: ${farmerId}`);
+    
+    const lands = await getFarmerLands(farmerId);
+    console.log(`[getFrontendLands] Found ${lands.length} lands`);
+    
+    // Transform lands to include farm info for frontend compatibility
+    const transformedLands = lands.map((land, index) => ({
+      id: `land_${farmerId}_${index}`,
+      landName: land.landName,
+      acres: land.acres,
+      location: land.location,
+      ownership: land.ownership,
+      pickupAddress: land.pickupAddress,
+      locLat: land.locLat,
+      locLng: land.locLng,
+      pickupLat: land.pickupLat,
+      pickupLng: land.pickupLng,
+      farmName: land.farmName || "Farm", // For backward compatibility
+      crop: land.crop
+    }));
+
+    console.log(`[getFrontendLands] Returning ${transformedLands.length} transformed lands`);
+    res.json({ lands: transformedLands });
+  } catch (err) {
+    console.error("[getFrontendLands] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Crop Handlers ---
+
+async function listCrops(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    console.log(`[listCrops] Fetching crops for farmerId: ${farmerId}`);
+    
+    const lands = await getFarmerLands(farmerId);
+    const crops = [];
+    
+    // Extract crops from all lands
+    lands.forEach((land, landIndex) => {
+      if (land.crop) {
+        crops.push({
+          id: `crop_${farmerId}_${landIndex}`,
+          landIndex: landIndex,
+          landName: land.landName,
+          landAcres: land.acres,
+          ...land.crop
+        });
+      }
+    });
+    
+    console.log(`[listCrops] Found ${crops.length} crops`);
+    res.json({ crops });
+  } catch (err) {
+    console.error("Error fetching crops:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function getCrop(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { cropId } = req.params;
+    
+    console.log(`[getCrop] Fetching crop ${cropId} for farmerId: ${farmerId}`);
+    
+    // Extract land index from cropId (format: crop_farmerId_landIndex)
+    const landIndex = parseInt(cropId.split('_').pop());
+    
+    const lands = await getFarmerLands(farmerId);
+    
+    if (landIndex >= 0 && landIndex < lands.length && lands[landIndex].crop) {
+      const crop = {
+        id: cropId,
+        landIndex: landIndex,
+        landName: lands[landIndex].landName,
+        landAcres: lands[landIndex].acres,
+        ...lands[landIndex].crop
+      };
+      
+      res.json({ crop });
+    } else {
+      res.status(404).send({ error: "Crop not found" });
+    }
+  } catch (err) {
+    console.error("Error fetching crop:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function createCrop(req, res) {
+  try {
+    console.log('🔧 DEBUG: createCrop called');
+    console.log('🔧 DEBUG: req.user:', req.user);
+    console.log('🔧 DEBUG: req.body:', req.body);
+    
+    const farmerId = req.user.uid;
+    const { 
+      farmId, itemId, quantity, avgRatePerUnit, fruitingPerPlant, 
+      plantedDate, expectedHarvestDate, status, statusPercentage, imageUrl 
+    } = req.body;
+    
+    console.log(`[createCrop] Creating crop for farmerId: ${farmerId}, farmId: ${farmId}`);
+    
+    // Get current lands
+    const lands = await getFarmerLands(farmerId);
+    console.log('🔧 DEBUG: Retrieved lands count:', lands.length);
+    
+    // Since farmId doesn't match landId, let's find land by name or use as index
+    let landIndex = -1;
+    
+    // Try to parse farmId as direct index first
+    // Frontend sends "00001", "00002", "00003" which should map to index 0, 1, 2
+    if (!isNaN(farmId)) {
+      const index = parseInt(farmId) - 1; // Convert "00001" to 0, "00002" to 1, etc.
+      if (index >= 0 && index < lands.length) {
+        landIndex = index;
+        console.log(`🔧 DEBUG: Converted farmId ${farmId} to landIndex: ${landIndex}`);
+      }
+    }
+    
+    // If still not found, try to find by comparing land names or properties
+    if (landIndex === -1) {
+      // For now, let's find the first land without a crop
+      landIndex = lands.findIndex(land => !land.crop);
+      console.log(`🔧 DEBUG: Found first empty land at index: ${landIndex}`);
+    }
+    
+    // If still not found, default to first land
+    if (landIndex === -1 && lands.length > 0) {
+      landIndex = 0;
+      console.log(`🔧 DEBUG: Defaulting to first land (index 0)`);
+    }
+    
+    if (landIndex === -1 || landIndex >= lands.length) {
+      console.log('🔧 DEBUG: No suitable land found!');
+      return res.status(400).json({ error: "No suitable land found" });
+    }
+    
+    console.log(`🔧 DEBUG: Using landIndex: ${landIndex}, landName: ${lands[landIndex].landName}`);
+    
+    console.log(`[createCrop] Found land at index: ${landIndex}`);
+    
+    // Check if item exists and get item details
+    const itemDoc = await db.collection("items").doc(itemId).get();
+    if (!itemDoc.exists) {
+      return res.status(400).json({ error: "Item not found" });
+    }
+    
+    const itemData = itemDoc.data();
+    console.log(`[createCrop] Item found: ${itemData.name}`);
+    
+    // Create crop data combining frontend fields + auto-generated fields
+    const cropData = {
+      // Frontend fields (use as-is)
+      quantity: quantity || 0,
+      avgRatePerUnit: avgRatePerUnit || 0,
+      fruitingPerPlant: fruitingPerPlant || 0,
+      status: status || "Planting",
+      statusPercentage: statusPercentage || 10,
+      imageUrl: imageUrl || "https://via.placeholder.com/50",
+      plantedDate: plantedDate ? admin.firestore.Timestamp.fromDate(new Date(plantedDate)) : admin.firestore.Timestamp.now(),
+      expectedHarvestDate: expectedHarvestDate ? admin.firestore.Timestamp.fromDate(new Date(expectedHarvestDate)) : null,
+      
+      // Auto-generated fields (for backend compatibility)
+      name: `${itemData.name} Crop`,
+      variety: itemData.category || "Standard",
+      notes: `${itemData.name} planted on ${plantedDate}. Expected harvest: ${expectedHarvestDate}`,
+      expectedYield: Math.round((quantity || 0) * (fruitingPerPlant || 1.5)), // Use fruitingPerPlant for yield calculation
+      actualYield: 0,
+      itemId: itemId,
+      createdAt: admin.firestore.Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now()
+    };
+    
+    console.log(`[createCrop] Crop data prepared:`, cropData);
+    
+    // Update the specific land with crop data
+    console.log(`🔧 DEBUG: Before updating land ${landIndex} with crop`);
+    lands[landIndex].crop = cropData;
+    console.log(`🔧 DEBUG: Updated land object:`, JSON.stringify(lands[landIndex], null, 2));
+    
+    // Save updated lands
+    console.log(`🔧 DEBUG: Calling updateFarmerLands...`);
+    try {
+      await updateFarmerLands(farmerId, lands);
+      console.log(`🔧 DEBUG: updateFarmerLands completed successfully`);
+    } catch (saveError) {
+      console.error(`🔧 DEBUG: updateFarmerLands failed:`, saveError);
+      throw saveError;
+    }
+    
+    console.log(`[createCrop] Successfully created crop in land ${landIndex}`);
+    res.status(201).json({ 
+      message: "Crop created successfully",
+      crop: {
+        id: `crop_${farmerId}_${landIndex}`,
+        landIndex: landIndex,
+        landName: lands[landIndex].landName,
+        ...cropData
+      }
+    });
+  } catch (err) {
+    console.error("Error creating crop:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function updateCrop(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { cropId } = req.params;
+    const updateData = req.body;
+    
+    console.log(`[updateCrop] Updating crop ${cropId} for farmerId: ${farmerId}`);
+    console.log(`[updateCrop] Update data:`, updateData);
+    
+    // Handle different cropId formats
+    let landIndex;
+    if (cropId.includes('_')) {
+      // Format: crop_farmerId_landIndex
+      landIndex = parseInt(cropId.split('_').pop());
+    } else {
+      // Format: simple number (from frontend transformation)
+      landIndex = parseInt(cropId) - 1; // Convert 1-based to 0-based index
+    }
+    
+    console.log(`[updateCrop] Calculated land index: ${landIndex}`);
+    
+    const lands = await getFarmerLands(farmerId);
+    
+    if (isNaN(landIndex) || landIndex < 0 || landIndex >= lands.length || !lands[landIndex].crop) {
+      console.log(`[updateCrop] Crop not found. landIndex: ${landIndex}, landsCount: ${lands.length}`);
+      return res.status(404).send({ error: "Crop not found" });
+    }
+    
+    // Update crop data (map frontend field names to backend field names)
+    const updatedCropData = {
+      ...lands[landIndex].crop,
+      updatedAt: admin.firestore.Timestamp.now() // Use actual timestamp instead of FieldValue
+    };
+    
+    // Map frontend fields to backend fields
+    if (updateData.status) updatedCropData.status = updateData.status;
+    if (updateData.statusPercentage !== undefined) updatedCropData.statusPercentage = updateData.statusPercentage;
+    if (updateData.percentage !== undefined) updatedCropData.statusPercentage = updateData.percentage; // Handle both field names
+    if (updateData.quantity !== undefined) updatedCropData.quantity = updateData.quantity;
+    if (updateData.notes) updatedCropData.notes = updateData.notes;
+    
+    lands[landIndex].crop = updatedCropData;
+    
+    // Save updated lands
+    await updateFarmerLands(farmerId, lands);
+    
+    console.log(`[updateCrop] Successfully updated crop in land ${landIndex}`);
+    res.json({ 
+      message: "Crop updated successfully",
+      crop: {
+        id: cropId,
+        landIndex: landIndex,
+        landName: lands[landIndex].landName,
+        ...lands[landIndex].crop
+      }
+    });
+  } catch (err) {
+    console.error("Error updating crop:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function deleteCrop(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { cropId } = req.params;
+    
+    console.log(`[deleteCrop] Deleting crop ${cropId} for farmerId: ${farmerId}`);
+    
+    // Handle different cropId formats
+    let landIndex;
+    if (cropId.includes('_')) {
+      // Format: crop_farmerId_landIndex
+      landIndex = parseInt(cropId.split('_').pop());
+    } else {
+      // Format: simple number (from frontend transformation)
+      landIndex = parseInt(cropId) - 1; // Convert 1-based to 0-based index
+    }
+    
+    console.log(`[deleteCrop] Calculated land index: ${landIndex}`);
+    
+    const lands = await getFarmerLands(farmerId);
+    
+    if (isNaN(landIndex) || landIndex < 0 || landIndex >= lands.length || !lands[landIndex].crop) {
+      console.log(`[deleteCrop] Crop not found. landIndex: ${landIndex}, landsCount: ${lands.length}`);
+      return res.status(404).send({ error: "Crop not found" });
+    }
+    
+    // Remove crop from land
+    delete lands[landIndex].crop;
+    
+    // Save updated lands
+    await updateFarmerLands(farmerId, lands);
+    
+    console.log(`[deleteCrop] Successfully deleted crop from land ${landIndex}`);
+    res.json({ message: "Crop deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting crop:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Item Handlers ---
+
+async function getItems(req, res) {
+  try {
+    console.log("[getItems] Fetching all generic items");
+    
+    const snapshot = await db.collection("items").get();
+    
+    if (snapshot.empty) {
+      return res.json({ items: [], message: "No items found" });
+    }
+    
+    const items = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    
+    console.log(`[getItems] Found ${items.length} generic items`);
+    res.json({ items });
+  } catch (err) {
+    console.error("Error fetching items:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Frontend Shipments Function
+async function getFrontendShipments(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    console.log(`[getFrontendShipments] Fetching shipments for farmerId: ${farmerId}`);
+
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
       .get();
-    const batch = db.batch();
-    cropsSnap.forEach(doc => {
-      batch.update(doc.ref, {
-        status: "ready for harvest",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+
+    // Transform shipments using our transformation function
+    const approvedShipments = shipmentsSnapshot.docs
+      .filter(doc => ['approved', 'delivered'].includes(doc.data().status))
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    const shipmentRequests = shipmentsSnapshot.docs
+      .filter(doc => doc.data().status === 'pending')
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    const responseData = {
+      approvedShipments,
+      shipmentRequests
+    };
+
+    console.log(`[getFrontendShipments] Returning ${approvedShipments.length} approved, ${shipmentRequests.length} requests`);
+    res.json(responseData);
+  } catch (err) {
+    console.error("[getFrontendShipments] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Frontend Items Function
+async function getFrontendItems(req, res) {
+  try {
+    console.log("[getFrontendItems] Fetching all generic items");
+    
+    const snapshot = await db.collection("items").get();
+    
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+    
+    // Transform items to frontend format
+    const items = snapshot.docs.map(doc => 
+      transformItemToFrontendFormat({ id: doc.id, ...doc.data() })
+    );
+    
+    console.log(`[getFrontendItems] Returning ${items.length} transformed items`);
+    res.json(items);
+  } catch (err) {
+    console.error("Error fetching frontend items:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Shipment Handlers ---
+
+async function createShipment(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { destination, scheduledDate, pickupTime, driver, items } = req.body;
+
+    console.log(`[createShipment] Creating shipment for farmerId: ${farmerId}`);
+
+    if (
+      !destination ||
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      return res.status(400).send({
+        error: "Missing required fields: destination, items (array)",
       });
+    }
+
+    // Calculate totals from items
+    let totalWeight = 0;
+    let totalVolume = 0;
+
+    for (const item of items) {
+      totalWeight += item.quantity || 0;
+      totalVolume += (item.quantity || 0) * 1.5; // Estimate volume
+    }
+
+    const shipmentData = {
+      farmerId,
+      destination,
+      status: "pending",
+      items,
+      pickupTime: pickupTime || new Date().toISOString(),
+      scheduledDate: scheduledDate || new Date().toISOString(),
+      totalWeight,
+      totalVolume,
+      driver: driver || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db.collection("shipments").add(shipmentData);
+
+    console.log(`[createShipment] Successfully created shipment: ${docRef.id}`);
+    res.status(201).json({
+      message: "Shipment created successfully",
+      shipment: { id: docRef.id, ...shipmentData },
     });
-    await batch.commit();
-    res.json({ message: "Land marked ready for harvest" });
   } catch (err) {
-    console.error("Error marking land ready:", err);
+    console.error("Error creating shipment:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
-
-// Quality-test an item (per container)
-async function qualityTestItem(req, res) {
+async function getShipments(req, res) {
   try {
-    const { itemId } = req.params;
-    const { containerId, results } = req.body;
-    // TODO: store `results` under a subcollection on this container
-    await db.collection("containers")
-      .doc(containerId)
-      .collection("qualityTests")
-      .add({
-        itemId,
-        results,
-        testedAt: admin.firestore.FieldValue.serverTimestamp(),
-        testerId: req.user.uid
-      });
-    res.json({ message: "Quality test recorded" });
-  } catch (err) {
-    console.error("Error recording quality test:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
+    const farmerId = req.user.uid;
+    console.log(`[getShipments] Fetching shipments for farmerId: ${farmerId}`);
 
+    const snapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .orderBy("createdAt", "desc")
+      .get();
 
+    if (snapshot.empty) {
+      return res.json({ shipments: [], message: "No shipments found" });
+    }
 
-// Generate barcode for a shipment container
-async function generateShipmentBarcode(req, res) {
-  try {
-    const { shipmentId } = req.params;
-    const barcodeData = await QRCode.toDataURL(shipmentId);
-    res.json({ shipmentId, barcode: barcodeData });
-  } catch (err) {
-    console.error("Error generating shipment barcode:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// --- Demand & Ordering Handlers ---
-
-// Get item-demand per shift/day
-async function getDemands(req, res) {
-  try {
-    // TODO: fetch from `itemDemands` collection
-    const snapshot = await db.collection("itemDemands").get();
-    const demands = snapshot.docs.map(d => d.data());
-    res.json({ demands });
-  } catch (err) {
-    console.error("Error fetching demands:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-// Notify farmer to be ready for a predicted order
-async function informFarmer(req, res) {
-  try {
-    const { farmerId, itemId, quantity, shift, day } = req.body;
-    // TODO: send notification/record in `notifications`
-    await db.collection("notifications").add({
-      to: farmerId,
-      itemId,
-      quantity,
-      shift,
-      day,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    const shipments = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Firestore timestamps to ISO strings for frontend
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+      };
     });
-    res.json({ message: "Farmer informed" });
+
+    console.log(`[getShipments] Found ${shipments.length} shipments`);
+    res.json({ shipments });
   } catch (err) {
-    console.error("Error informing farmer:", err);
+    console.error("Error fetching shipments:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
-// Get order summaries (consumer orders aggregated per farmer)
-async function getOrderSummaries(req, res) {
+async function getFrontendShipments(req, res) {
   try {
-    // TODO: aggregate from `orders` collection
-    const snapshot = await db.collection("orders").get();
-    const summaries = snapshot.docs.map(d => d.data());
-    res.json({ summaries });
+    const farmerId = req.user.uid;
+    console.log(`[getFrontendShipments] Fetching shipments for farmerId: ${farmerId}`);
+
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Transform shipments using our transformation function
+    const approvedShipments = shipmentsSnapshot.docs
+      .filter(doc => ['approved', 'delivered'].includes(doc.data().status))
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    const shipmentRequests = shipmentsSnapshot.docs
+      .filter(doc => doc.data().status === 'pending')
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    const responseData = {
+      approvedShipments,
+      shipmentRequests
+    };
+
+    console.log(`[getFrontendShipments] Returning ${approvedShipments.length} approved, ${shipmentRequests.length} requests`);
+    res.json(responseData);
   } catch (err) {
-    console.error("Error fetching order summaries:", err);
+    console.error("[getFrontendShipments] Error:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
-// Post farmer shipment info (pickup time, etc.)
-async function postFarmerShipmentInfo(req, res) {
+// --- Dashboard Handlers ---
+
+async function getDashboardData(req, res) {
   try {
-    const { shipmentId } = req.body;
-    const info = { ...req.body, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
-    await db.collection("shipments").doc(shipmentId).update(info);
-    res.json({ message: "Shipment info updated" });
+    const farmerId = req.user.uid;
+    console.log(`[getDashboardData] Fetching dashboard data for farmerId: ${farmerId}`);
+
+    // Get farmer's lands and count crops
+    const lands = await getFarmerLands(farmerId);
+    const cropsCount = lands.filter(land => land.crop).length;
+    
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Get farmer info
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    const farmerData = farmerDoc.exists ? farmerDoc.data() : {};
+
+    const dashboardData = {
+      totalLands: lands.length,
+      totalCrops: cropsCount,
+      totalShipments: shipmentsSnapshot.size,
+      pendingShipments: shipmentsSnapshot.docs.filter(
+        (doc) => doc.data().status === "pending"
+      ).length,
+      farmName: farmerData.extraFields?.farmName || "Farm",
+      farmerName: `${farmerData.firstName || "Farmer"} ${farmerData.lastName || ""}`.trim(),
+    };
+
+    console.log(`[getDashboardData] Dashboard data:`, dashboardData);
+    res.json(dashboardData);
   } catch (err) {
-    console.error("Error updating shipment info:", err);
+    console.error("Error fetching dashboard data:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
-// Post driver assignment/notification
-async function postDriverInfo(req, res) {
+// Frontend Dashboard Function
+async function getFrontendDashboard(req, res) {
   try {
-    const { shipmentId, driverName, driverContact } = req.body;
-    await db.collection("shipments").doc(shipmentId).update({
-      driver: { name: driverName, contact: driverContact },
+    const farmerId = req.user.uid;
+    console.log(`[getFrontendDashboard] Fetching frontend dashboard data for farmerId: ${farmerId}`);
+
+    // Get farmer's lands and count crops
+    const lands = await getFarmerLands(farmerId);
+    const cropsCount = lands.filter(land => land.crop).length;
+    
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Get farmer info
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    const farmerData = farmerDoc.exists ? farmerDoc.data() : {};
+
+    // Transform shipments to frontend format
+    const allShipments = shipmentsSnapshot.docs.map(doc => 
+      transformShipmentToFrontendFormat(null, doc)
+    );
+
+    // Filter and format approved shipments
+    const approvedShipments = shipmentsSnapshot.docs
+      .filter(doc => ['approved', 'delivered'].includes(doc.data().status))
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    // Filter and format shipment requests
+    const shipmentRequests = shipmentsSnapshot.docs
+      .filter(doc => doc.data().status === 'pending')
+      .map(doc => transformShipmentToFrontendFormat(null, doc));
+
+    // Transform lands to frontend format
+    const parsedLands = lands.map((land, index) => 
+      transformLandToFrontendFormat(land, index)
+    );
+
+    // Summary data for dashboard metrics
+    const summary = {
+      totalLands: lands.length,
+      totalCrops: cropsCount,
+      totalShipments: allShipments.length,
+      totalRevenue: approvedShipments.reduce((sum, shipment) => sum + (shipment.amount * 25), 0), // Estimate ₹25 per kg
+      totalFarms: 1, // Each farmer has one main farm in our structure
+      pendingShipments: shipmentRequests.length,
+      farmName: farmerData.extraFields?.farmName || "Farm",
+      farmerName: `${farmerData.firstName || "Farmer"} ${farmerData.lastName || ""}`.trim()
+    };
+
+    const responseData = {
+      approvedShipments,
+      shipmentRequests,
+      parsedLands,
+      summary
+    };
+
+    console.log(`[getFrontendDashboard] Returning data:`, {
+      approvedShipmentsCount: approvedShipments.length,
+      shipmentRequestsCount: shipmentRequests.length,
+      parsedLandsCount: parsedLands.length,
+      summary
+    });
+
+    res.json(responseData);
+  } catch (err) {
+    console.error("[getFrontendDashboard] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// Approve shipment request function
+async function approveShipmentRequest(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { requestId } = req.params;
+    
+    console.log(`[approveShipmentRequest] Approving shipment ${requestId} for farmerId: ${farmerId}`);
+
+    // Get the shipment document
+    const shipmentRef = db.collection("shipments").doc(requestId);
+    const shipmentDoc = await shipmentRef.get();
+
+    if (!shipmentDoc.exists) {
+      return res.status(404).send({ error: "Shipment request not found" });
+    }
+
+    const shipmentData = shipmentDoc.data();
+
+    // Verify this shipment belongs to the farmer
+    if (shipmentData.farmerId !== farmerId) {
+      return res.status(403).send({ error: "Access denied" });
+    }
+
+    // Verify this is a pending request
+    if (shipmentData.status !== 'pending') {
+      return res.status(400).send({ error: "Only pending shipments can be approved" });
+    }
+
+    // Update shipment status to approved
+    await shipmentRef.update({
+      status: 'approved',
+      approvedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    res.json({ message: "Driver info recorded" });
+
+    console.log(`[approveShipmentRequest] Successfully approved shipment ${requestId}`);
+    res.json({ 
+      message: "Shipment request approved successfully",
+      shipmentId: requestId,
+      status: 'approved'
+    });
   } catch (err) {
-    console.error("Error recording driver info:", err);
+    console.error("Error approving shipment request:", err);
     res.status(500).send({ error: err.message });
   }
 }
 
+// Submit Shipment Report
+async function submitShipmentReport(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { shipmentId } = req.params;
+    const { containers, totalWeight, notes } = req.body;
 
+    console.log(`[submitShipmentReport] Submitting report for shipment ${shipmentId} by farmer ${farmerId}`);
 
+    // Validate required fields
+    if (!containers || !Array.isArray(containers) || containers.length === 0) {
+      return res.status(400).json({ error: "Containers data is required" });
+    }
 
+    // Get the shipment to verify it belongs to this farmer
+    const shipmentDoc = await db.collection("shipments").doc(shipmentId).get();
+    
+    if (!shipmentDoc.exists) {
+      return res.status(404).json({ error: "Shipment not found" });
+    }
 
+    const shipmentData = shipmentDoc.data();
+    
+    if (shipmentData.farmerId !== farmerId) {
+      return res.status(403).json({ error: "Access denied - shipment belongs to different farmer" });
+    }
 
+    // Update shipment with report data
+    const reportData = {
+      status: "ready_for_pickup",
+      containers: containers,
+      reportedWeight: totalWeight || containers.reduce((sum, container) => sum + (container.weightKg || 0), 0),
+      reportNotes: notes || "",
+      reportSubmittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      reportSubmittedBy: farmerId,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection("shipments").doc(shipmentId).update(reportData);
+
+    console.log(`[submitShipmentReport] Successfully updated shipment ${shipmentId} with report data`);
+
+    res.json({
+      success: true,
+      message: "Shipment report submitted successfully",
+      shipmentId: shipmentId,
+      status: "ready_for_pickup"
+    });
+
+  } catch (err) {
+    console.error("[submitShipmentReport] Error:", err);
+    res.status(500).json({ error: "Failed to submit shipment report" });
+  }
+}
+
+// --- Export all functions ---
 module.exports = {
-  // Farm functions
-  listFarms,
-  getFarm,
-  getFarmerFarms,
-    getLands,
-  markLandReady,
-    getDemands,
-  informFarmer,
-  getOrderSummaries,
-  postFarmerShipmentInfo,
-  postDriverInfo,
-  qualityTestItem,
-
+  // Land functions
+  getLands,
+  getFrontendLands,
+  
   // Crop functions
   listCrops,
   getCrop,
   createCrop,
   updateCrop,
   deleteCrop,
-
-  // Report functions
-  getReport,
-  getFarmerReport,
-  getCropReport,
-  getAllReports,
-  createReport,
-  createFarmerShipment,
-
-  // Shipment functions
-  listShipments,
-  getShipment,
-  createShipment,
-  shipmentRequest,
-  createApprovedShipment,
-
-  // Delivery functions
-  createDelivery,
-  getDeliveryHistory,
-
-  // Barcode functions
-  generateShipmentBarcode,
-  generateDeliveryBarcode,
-  generateBarcode,
-
+  
   // Item functions
-  listItems,
-  getItem,
-
-  // Rating functions
-  addOrUpdateRating,
-  getMyRatings,
-  getFarmerRating,
-  getAllFarmerRatings,
-
+  getItems,
+  getFrontendItems,
+  
+  // Shipment functions
+  createShipment,
+  getShipments,
+  getFrontendShipments,
+  
   // Dashboard functions
-  getDashboard,
-  getPerformanceMetrics,
-  getPerformance,
+  getDashboardData,
+  getFrontendDashboard,
+
+  // Approve shipment request function
+  approveShipmentRequest,
+
+  // Submit Shipment Report
+  submitShipmentReport,
 };

@@ -88,5 +88,4 @@ module.exports = {
   getProfile,
   getEmailDocumnets,
   getApplication
-  
 };
