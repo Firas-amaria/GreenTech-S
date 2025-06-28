@@ -203,12 +203,18 @@ window.register = async (event) => {
 };
 
 window.login = async (event) => {
+  alert("Login function called!"); // Simple test to see if function runs
   event.preventDefault();
+  
+  console.log("Login function called");
 
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("password").value;
+  
+  console.log("Login credentials:", { email, password: password ? "***" : "MISSING" });
 
   try {
+    console.log("Attempting Firebase authentication...");
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
@@ -216,11 +222,37 @@ window.login = async (event) => {
     );
 
     const user = userCredential.user;
-    // console.log(user.uid " " + user.email);
+    console.log("Firebase auth successful, user:", user.uid, user.email);
 
     // Get token using shared utility
-    const token = await getCurrentUserToken();
-    console.log("User token");
+    console.log("Getting token from Firebase...");
+    let token;
+    try {
+      // Try direct method first
+      token = await user.getIdToken();
+      console.log("Got token directly from user:", token ? `${token.substring(0, 20)}...` : "NO TOKEN");
+    } catch (directError) {
+      console.error("Direct token fetch failed:", directError);
+      // Fallback to shared utility
+      try {
+        token = await getCurrentUserToken();
+        console.log("Got token from utility:", token ? `${token.substring(0, 20)}...` : "NO TOKEN");
+      } catch (utilityError) {
+        console.error("Utility token fetch failed:", utilityError);
+      }
+    }
+    
+    // Store the authentication token immediately after getting it
+    if (token) {
+      localStorage.setItem("authToken", token);
+      console.log("Token stored in localStorage");
+      // Verify storage
+      const storedToken = localStorage.getItem("authToken");
+      console.log("Verified stored token:", storedToken ? `${storedToken.substring(0, 20)}...` : "NOT STORED");
+    } else {
+      console.error("No token received from Firebase");
+    }
+    
     // Post password user to DB
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
@@ -230,6 +262,14 @@ window.login = async (event) => {
       },
       body: JSON.stringify({ password }),
     });
+
+    console.log("Backend login response status:", res.status);
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("Backend login failed:", errorData);
+      throw new Error(`Backend login failed: ${res.status}`);
+    }
 
     // // Fetch user info from backend
     // await fetch("http://localhost:4000/api/user/profile", {

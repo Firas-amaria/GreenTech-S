@@ -1,12 +1,143 @@
 /*******************************************************
- * In‐Memory Sample Data for Shipment (replace with real API later)
+ * 🔌 API INTEGRATED SHIPMENT REPORT
  *******************************************************/
-// BACKEND: GET /api/shipments  → returns list of shipments
-const sampleShipments = [
-  { id: 301, item: "Tomato", amount: 120, pickupTime: "2025-06-02T08:00" },
-  { id: 302, item: "Lettuce", amount: 80, pickupTime: "2025-06-01T09:30" },
-  { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
-];
+
+// API Configuration
+const API_BASE_URL = "http://localhost:4000/api/farmer";
+
+// Helper function to get auth token
+function getAuthToken() {
+  return localStorage.getItem("authToken") || null;
+}
+
+// Helper function for API calls
+async function apiCall(endpoint, options = {}) {
+  const token = getAuthToken();
+
+  const config = {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("API call failed:", error);
+    throw error;
+  }
+}
+
+// =================================================================
+// 🔌 API INTEGRATION FUNCTIONS
+// =================================================================
+
+async function loadShipmentData(shipmentId) {
+  try {
+    console.log('DEBUG: loadShipmentData called with shipmentId:', shipmentId);
+    // Try to load specific shipment from API
+    const shipmentData = await apiCall(`/shipments/${shipmentId}`);
+    console.log('DEBUG: Received shipment data from API:', shipmentData);
+    return shipmentData;
+  } catch (error) {
+    console.warn(
+      "Failed to load shipment from API, using fallback data:",
+      error
+    );
+
+    // Fallback to mock data
+    const sampleShipments = [
+      { id: 301, item: "Tomato", amount: 120, pickupTime: "2025-06-02T08:00" },
+      { id: 302, item: "Lettuce", amount: 80, pickupTime: "2025-06-01T09:30" },
+      { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
+    ];
+
+    const fallbackShipment = sampleShipments.find((s) => String(s.id) === shipmentId) || {};
+    console.log('DEBUG: Using fallback shipment data:', fallbackShipment);
+    return fallbackShipment;
+  }
+}
+
+async function loadQualityStandards(itemId) {
+  try {
+    return await apiCall(`/frontend/quality-standards/${itemId}`);
+  } catch (error) {
+    console.warn(
+      "Failed to load quality standards from API, using fallback:",
+      error
+    );
+
+    // Fallback quality standards
+    return [
+      { parameter: "Brix (סוכר)", a: "≥ 12", b: "8–11", c: "< 8" },
+      {
+        parameter: "Acidity (חומציות)",
+        a: "Balanced (מאוזנת)",
+        b: "Slight (חמוץ/תפל)",
+        c: "Very Sour (חמוץ מאוד)",
+      },
+      {
+        parameter: "Size (גודל)",
+        a: "Medium",
+        b: "Small or Too Large",
+        c: "Inconsistent/Abnormal",
+      },
+    ];
+  }
+}
+
+async function submitShipmentReport(shipmentId, payload) {
+  try {
+    return await apiCall(`/shipments/${shipmentId}/report-complete`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.error("Failed to submit shipment report via API:", error);
+    throw error;
+  }
+}
+
+// =================================================================
+// 🎨 UI HELPER FUNCTIONS
+// =================================================================
+
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  const colors = {
+    success: "#4CAF50",
+    error: "#F44336",
+    warning: "#FF9800",
+    info: "#2196F3",
+  };
+
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 1001;
+    padding: 12px 20px; border-radius: 4px; color: white;
+    background: ${colors[type] || colors.info};
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-width: 300px; word-wrap: break-word;
+  `;
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      document.body.removeChild(toast);
+    }
+  }, 4000);
+}
 
 // ===== Parse query param "shipmentId" =====
 function getQueryParam(param) {
@@ -15,11 +146,38 @@ function getQueryParam(param) {
 }
 
 const shipmentId = getQueryParam("shipmentId");
-// In a real app:
-// fetch(`/api/shipments/${shipmentId}`)
-//   .then(res => res.json())
-//   .then(data => { shipment = data; populateShipmentDetails(); });
-const shipment = sampleShipments.find((s) => String(s.id) === shipmentId) || {};
+console.log('DEBUG: Extracted shipmentId from URL:', shipmentId);
+console.log('DEBUG: Current URL:', window.location.href);
+console.log('DEBUG: URL search params:', window.location.search);
+let shipment = {};
+let qualityStandards = [];
+
+// Load shipment data and quality standards
+async function initializeShipmentReport() {
+  try {
+    console.log('DEBUG: Initializing shipment report with shipmentId:', shipmentId);
+    
+    // Load shipment data
+    shipment = await loadShipmentData(shipmentId);
+    console.log('DEBUG: Loaded shipment data:', shipment);
+
+    // Load quality standards for this item
+    if (shipment.item) {
+      // Try to get itemId from the item name - this might need adjustment based on your data structure
+      qualityStandards = await loadQualityStandards(
+        shipment.itemId || shipment.item
+      );
+    }
+
+    // Populate UI
+    populateShipmentDetails();
+
+    console.log("Shipment report initialized with API data");
+  } catch (error) {
+    console.error("Failed to initialize shipment report:", error);
+    showToast("Failed to load shipment data", "error");
+  }
+}
 
 // ===== Populate Shipment Details at Top =====
 function populateShipmentDetails() {
@@ -31,13 +189,10 @@ function populateShipmentDetails() {
     ? new Date(shipment.pickupTime).toLocaleString()
     : "N/A";
 }
-populateShipmentDetails();
 
 // ===== Placeholder for Quality Standards (to be fetched from backend) =====
-// BACKEND: fetch(`/api/quality-standards?item=${shipment.item}`)
-//   .then(res => res.json())
-//   .then(data => { qualityStandards = data; });
-let qualityStandards = [
+// This will be loaded dynamically from API
+qualityStandards = [
   // Example format; replace with real API response
   { parameter: "Brix (סוכר)", a: "≥ 12", b: "8–11", c: "< 8" },
   {
@@ -388,46 +543,65 @@ function updateReadyForPickupButton() {
 }
 
 // ===== "Shipment is Ready" Button Handler =====
-document.getElementById("btnReadyPickup").addEventListener("click", () => {
-  const totalShipmentKg = shipment.amount || 0;
-  const remaining = totalShipmentKg - sumReadyWeight;
-  const reportBtn = document.getElementById("reportProblemBtn");
+document
+  .getElementById("btnReadyPickup")
+  .addEventListener("click", async () => {
+    const totalShipmentKg = shipment.amount || 0;
+    const remaining = totalShipmentKg - sumReadyWeight;
+    const reportBtn = document.getElementById("reportProblemBtn");
 
-  if (remaining > 0) {
-    alert(
-      `You need to fill ${remaining.toFixed(
-        2
-      )} more kg before marking shipment as ready.`
-    );
-    reportBtn.style.display = "inline-block";
-    return;
-  }
-  // All filled: send readyContainersData + timestamp to backend, then redirect
-  const payload = {
-    containers: readyContainersData,
-    readyTimestamp: new Date().toISOString(),
-  };
-  // BACKEND: Replace URL with real endpoint
-  //working and update api
-  fetch(`/api/shipments/${shipment.id}/report-complete`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
-    .then((res) => {
-      if (res.ok) {
-        alert("Shipment marked ready for pickup.");
-        // Redirect to f_dashboard page
+    if (remaining > 0) {
+      alert(
+        `You need to fill ${remaining.toFixed(
+          2
+        )} more kg before marking shipment as ready.`
+      );
+      reportBtn.style.display = "inline-block";
+      return;
+    }
+
+    // Show loading state
+    const readyBtn = document.getElementById("btnReadyPickup");
+    const originalText = readyBtn.textContent;
+    readyBtn.textContent = "Submitting...";
+    readyBtn.disabled = true;
+
+    try {
+      // All filled: send readyContainersData + timestamp to backend
+      const payload = {
+        containers: readyContainersData,
+        readyTimestamp: new Date().toISOString(),
+      };
+
+      // Try to submit via API
+      console.log('DEBUG: About to submit shipment report');
+      console.log('DEBUG: shipment object:', shipment);
+      console.log('DEBUG: shipment.id:', shipment.id);
+      console.log('DEBUG: global shipmentId:', shipmentId);
+      
+      // Use the global shipmentId if shipment.id is not available
+      const finalShipmentId = shipment.id || shipmentId;
+      console.log('DEBUG: Using final shipmentId:', finalShipmentId);
+      
+      await submitShipmentReport(finalShipmentId, payload);
+
+      showToast("Shipment marked ready for pickup successfully!", "success");
+      reportBtn.style.display = "none";
+
+      // Redirect to dashboard after success
+      setTimeout(() => {
         window.location.href = "f_dashboard.html";
-      } else {
-        alert("Error submitting shipment data. Please try again.");
-      }
-    })
-    .catch(() => {
-      alert("Network error while submitting shipment data.");
-    });
-  reportBtn.style.display = "none";
-});
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to submit shipment report:", error);
+      showToast("Failed to submit report. Please try again.", "error");
+      reportBtn.style.display = "inline-block";
+    } finally {
+      // Restore button
+      readyBtn.textContent = originalText;
+      readyBtn.disabled = false;
+    }
+  });
 
 // ===== "Report a Problem" Button Handler =====
 document.getElementById("reportProblemBtn").addEventListener("click", () => {
@@ -441,4 +615,10 @@ document.getElementById("logoutLink4").addEventListener("click", (e) => {
   e.preventDefault();
   alert("Logging out... (placeholder)");
   // BACKEND: POST /api/logout → window.location.href = '/login.html';
+});
+
+// ===== Initialize when page loads =====
+document.addEventListener("DOMContentLoaded", async () => {
+  await initializeShipmentReport();
+  console.log("Shipment report page initialized with API integration");
 });
