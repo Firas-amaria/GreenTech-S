@@ -60,7 +60,8 @@ async function loadShipmentData(shipmentId) {
       { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
     ];
 
-    const fallbackShipment = sampleShipments.find((s) => String(s.id) === shipmentId) || {};
+    const fallbackShipment =
+      sampleShipments.find((s) => String(s.id) === shipmentId) || {};
     return fallbackShipment;
   }
 }
@@ -143,14 +144,12 @@ function getQueryParam(param) {
 }
 
 const shipmentId = getQueryParam("shipmentId");
-
 let shipment = {};
 let qualityStandards = [];
 
 // Load shipment data and quality standards
 async function initializeShipmentReport() {
   try {
-    
     // Load shipment data
     shipment = await loadShipmentData(shipmentId);
 
@@ -358,7 +357,7 @@ function appendContainerBlock(index) {
   rowAcidity.classList.add("inline-row");
   rowAcidity.innerHTML = `
         <label for="acidity-${code}">Acidity (חומציות):</label>
-        <input type="number" id="acidity-${code}" placeholder=" persantage" /> %` ;
+        <input type="number" id="acidity-${code}" placeholder=" persantage" /> %`;
 
   block.appendChild(rowAcidity);
 
@@ -391,7 +390,7 @@ function appendContainerBlock(index) {
   block.appendChild(rowPressure);
 
   // weight per unit
-  const rowWeightPerUnit = document.createElement("div"); 
+  const rowWeightPerUnit = document.createElement("div");
   rowWeightPerUnit.classList.add("inline-row");
   rowWeightPerUnit.innerHTML = `
         <label for="weightPerUnit-${code}">Weight per Unit:</label>
@@ -407,8 +406,6 @@ function appendContainerBlock(index) {
         <input type="number" id="diameter-${code}" placeholder="e.g.5.5" />
       `;
   block.appendChild(rowDiameter);
-
-
 
   // "Container Ready" Button
   const readyBtn = document.createElement("button");
@@ -595,11 +592,9 @@ document
         readyTimestamp: new Date().toISOString(),
       };
 
-
-      
       // Use the global shipmentId if shipment.id is not available
       const finalShipmentId = shipment.id || shipmentId;
-      
+
       await submitShipmentReport(finalShipmentId, payload);
 
       showToast("Shipment marked ready for pickup successfully!", "success");
