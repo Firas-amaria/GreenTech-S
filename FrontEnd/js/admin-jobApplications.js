@@ -1,73 +1,82 @@
 import { getCurrentUserToken } from "../js/firebase-init.js";
-import { renderScheduleTable } from "./schedule.js";
 
 // ====== Local Role Definitions ======
-const RolesTable = [
+const mockRoles = [
   {
     name: "deliverer",
     description: "Responsible for transporting shipments.",
-    includeSchedule: true,
-    includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+      { label: "License Number", type: "text" },
       { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
-      { label: "Vehicle Insurance", type: "checkbox" },
+      { label: "Bank Account", type: "text" },
+      { label: "Bank Name", type: "text" },
+      { label: "Driver License Doc", type: "file" },
+      { label: "Vehicle Registration", type: "file" },
     ],
   },
   {
     name: "picker",
     description: "Packages and labels containers before shipping.",
-    includeSchedule: false,
-    includeLand: false,
-    fields: [{ label: "Years of Experience", type: "text" }],
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+      { label: "Years of Experience", type: "text" },
+      { label: "Preferred Shift", type: "text" },
+      { label: "Bank Account", type: "text" },
+      { label: "Bank Name", type: "text" },
+      { label: "Resume", type: "file" },
+    ],
   },
   {
     name: "industrial-driver",
     description: "delivering goods from farms to logistic center",
-    includeSchedule: true,
-    includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
-      { label: "Vehicle Insurance", type: "checkbox" },
-      { label: "Refrigerated", type: "checkbox" },
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+      { label: "Years of Experience", type: "text" },
+      { label: "Previous Company", type: "text" },
+      { label: "Bank Account", type: "text" },
+      { label: "Bank Name", type: "text" },
+      { label: "Resume", type: "file" },
     ],
   },
   {
     name: "farmer",
     description: "Supplies produce and quality reports.",
-    includeSchedule: false,
-    includeLand: true,
     fields: [
-      { label: "Agricultural Insurance", type: "checkbox" },
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
       { label: "Farm Name", type: "text" },
+      { label: "Experience", type: "text" },
+      { label: "Bank Account", type: "text" },
+      { label: "Bank Name", type: "text" },
+      { label: "ID Document", type: "file" },
+      { label: "Bank Statement", type: "file" },
     ],
   },
   {
     name: "sorting",
     description: "general worker in the logistics center , sorting employee.",
-    includeSchedule: false,
-    includeLand: false,
-    fields: [],
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
   },
   {
     name: "warehouse-worker",
     description: "Operates heavy-duty vehicles and equipment.",
-    includeSchedule: false,
-    includeLand: false,
-    fields: [],
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
   },
 ];
 
@@ -87,10 +96,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Render each application using the new viewer
     const container = document.getElementById("applications-list");
     container.innerHTML = "";
-    for (const app of applicationsFromBackend) {
-      const card = await renderDynamicApplicationCard(app);
+    applicationsFromBackend.forEach((app) => {
+      const card = renderDynamicApplicationCard(app);
       container.appendChild(card);
-    }
+    });
   } catch (e) {
     console.error("Failed to load applications:", e);
   }
@@ -155,12 +164,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const container = document.getElementById("applications-list");
     container.innerHTML = "";
-    (async () => {
-      for (const app of filtered) {
-        const card = await renderDynamicApplicationCard(app);
-        container.appendChild(card);
-      }
-    })();
+    filtered.forEach((app) => {
+      const card = renderDynamicApplicationCard(app);
+      container.appendChild(card);
+    });
   }
 });
 
@@ -188,16 +195,15 @@ async function fetchApplications() {
   return await res.json();
 }
 
-async function renderDynamicApplicationCard(app) {
+function renderDynamicApplicationCard(app) {
   const card = document.createElement("div");
   card.className = "application-card";
-  const roleDef = RolesTable.find((r) => r.name === app.role);
 
   // === Header with basic info ===
   const header = document.createElement("div");
   header.className = "application-header";
   header.innerHTML = `
-    <span><strong>Applied Role:</strong> ${app.role || "-"}</span>
+    <span><strong>Position:</strong> ${app.role || "-"}</span>
     <span><strong>Name:</strong> ${
       (app.firstName || "") + " " + (app.lastName || "")
     }</span>
@@ -217,82 +223,25 @@ async function renderDynamicApplicationCard(app) {
   detailsDiv.className = "app-details";
   detailsDiv.style.display = "none";
 
-  // === Contact + Personal Info Table ===
-  let detailHTML = `
-    <table class="details-table">
-      <tr><td><strong>Contact Info</strong></td><td>${app.email || "-"}<br>${
-    app.phone || "-"
-  }</td></tr>
-      <tr><td><strong>Personal Info</strong></td><td>${app.address || "-"}<br>${
-    app.birthDate || "-"
-  }</td></tr>
-    </table>
-  `;
+  // === Build details table ===
+  let tableHTML = "<table class='details-table'>";
+  for (const [key, value] of Object.entries(app)) {
+    if (["uid", "status", "role", "createdAt", "updatedAt"].includes(key))
+      continue;
 
-  if (hasRoleDetails(app, roleDef)) {
-    detailHTML += `<h4>Role Requirement</h4>`;
-    detailHTML += `
-  <table class="details-table">
-    <thead>
-      <tr>
-        <th>Field</th>
-        <th>Value</th>
-        <th>Checked</th>
-      </tr>
-    </thead>
-    <tbody>
-`;
-
-    roleDef.fields.forEach((field) => {
-      const key = toCamelCase(field.label);
-      const val = app.extraFields?.[key];
-      detailHTML += `
-    <tr>
-      <td>${field.label}</td>
-      <td>${formatValue(val)}</td>
-      <td><input type="checkbox" class="review-checkbox" /></td>
-    </tr>`;
-    });
-
-    if (roleDef.includeLand && Array.isArray(app.extraFields?.lands)) {
-      detailHTML += `<tr><td>Lands</td><td>${formatLands(
-        app.extraFields.lands
-      )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
+    let formattedValue = "";
+    if (typeof value === "object" && value !== null) {
+      formattedValue = formatComplexField(value);
+    } else {
+      formattedValue = formatVal(value);
     }
 
-    if (
-      roleDef.includeSchedule &&
-      Array.isArray(app.extraFields?.scheduleBitmask)
-    ) {
-      detailHTML += `<tr><td>Schedule</td><td>${await renderScheduleTable(
-        app.extraFields.scheduleBitmask
-      )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
-    }
-
-    detailHTML += `</table>`;
+    tableHTML += `<tr><td><strong>${key}</strong></td><td>${formattedValue}</td></tr>`;
   }
-
-  // === Role Requirement Section ===
-
-  // === Submitted At ===
-  const shortTime = app.submittedAt
-    ? new Date(app.submittedAt).toLocaleString(undefined, {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "-";
-
-  detailHTML += `
-    <table class="details-table">
-      <tr><td><strong>Submitted At</strong></td><td>${shortTime}</td></tr>
-    </table>
-  `;
+  tableHTML += "</table>";
 
   // === Status dropdown ===
-  detailHTML += `
+  tableHTML += `
     <div class="status-update-section">
       <label><strong>Update Status:</strong></label>
       <select class="status-select">
@@ -313,7 +262,7 @@ async function renderDynamicApplicationCard(app) {
     </div>
   `;
 
-  detailsDiv.innerHTML = detailHTML;
+  detailsDiv.innerHTML = tableHTML;
   card.appendChild(detailsDiv);
 
   // === Expand/collapse handler ===
@@ -343,9 +292,6 @@ async function renderDynamicApplicationCard(app) {
           body: JSON.stringify({
             status: newStatus,
             role: app.role || app.position, // ensure role is passed (needed for acceptance)
-            firstName: app.firstName,
-            lastName: app.lastName,
-            phone: app.phone,
           }),
         }
       );
@@ -364,111 +310,48 @@ async function renderDynamicApplicationCard(app) {
   return card;
 }
 
-function hasRoleDetails(app, roleDef) {
-  if (!roleDef) return false;
-
-  const fieldsHaveData = roleDef.fields.some((field) => {
-    const key = toCamelCase(field.label);
-    return app.extraFields?.[key] != null && app.extraFields[key] !== "";
-  });
-
-  const hasLands =
-    roleDef.includeLand &&
-    Array.isArray(app.extraFields?.lands) &&
-    app.extraFields.lands.length > 0;
-
-  const hasSchedule =
-    roleDef.includeSchedule &&
-    Array.isArray(app.extraFields?.scheduleBitmask) &&
-    app.extraFields.scheduleBitmask.some((val) => val !== 0);
-
-  return fieldsHaveData || hasLands || hasSchedule;
+// === Utility to render objects/arrays ===
+function formatComplexField(obj) {
+  if (Array.isArray(obj)) {
+    return obj.join(", ");
+  }
+  if (typeof obj === "object") {
+    return Object.entries(obj)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+      .join("<br>");
+  }
+  return String(obj);
 }
 
-function formatValue(val) {
-  if (val === true) return "✅";
-  if (val === false) return "❌";
+// === Format basic values (e.g., links) ===
+function formatVal(val) {
   if (typeof val === "string" && val.startsWith("http")) {
     return `<a href="${val}" target="_blank">View</a>`;
   }
-  if (Array.isArray(val)) return val.join(", ");
-  if (typeof val === "object" && val !== null)
-    return Object.entries(val)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("<br>");
-  return val !== undefined ? val : "-";
+  return val;
 }
 
-function formatLands(lands) {
-  if (!Array.isArray(lands)) return "-";
-  return lands
-    .map((land, i) => {
-      return (
-        `<strong>Land ${i + 1}</strong><br>` +
-        Object.entries(land)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("<br>")
-      );
-    })
-    .join("<hr>");
+async function updateApplicationStatus(id, status) {
+  const token = await getCurrentUserToken();
+  const res = await fetch(
+    `http://localhost:4000/api/admin/applications/${id}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to update application status");
 }
-
-function toCamelCase(label) {
-  return label
-    .replace(/\(.*?\)/g, "")
-    .replace(/[^a-zA-Z0-9 ]/g, "")
-    .trim()
-    .split(/\s+/)
-    .map((word, index) =>
-      index === 0
-        ? word.toLowerCase()
-        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    )
-    .join("");
-}
-
-// // === Utility to render objects/arrays ===
-// function formatComplexField(obj) {
-//   if (Array.isArray(obj)) {
-//     return obj.join(", ");
-//   }
-//   if (typeof obj === "object") {
-//     return Object.entries(obj)
-//       .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
-//       .join("<br>");
-//   }
-//   return String(obj);
-// }
-
-// // === Format basic values (e.g., links) ===
-// function formatVal(val) {
-//   if (typeof val === "string" && val.startsWith("http")) {
-//     return `<a href="${val}" target="_blank">View</a>`;
-//   }
-//   return val;
-// }
-
-// async function updateApplicationStatus(id, status) {
-//   const token = await getCurrentUserToken();
-//   const res = await fetch(
-//     `http://localhost:4000/api/admin/applications/${id}`,
-//     {
-//       method: "PUT",
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({ status }),
-//     }
-//   );
-//   if (!res.ok) throw new Error("Failed to update application status");
-// }
 
 // ====== Populate Role Filter ======
 function populateRoleFilter() {
   const filter = document.getElementById("filter-role");
   filter.innerHTML = "<option value=''>All Roles</option>";
-  RolesTable.forEach((role) => {
+  mockRoles.forEach((role) => {
     const opt = document.createElement("option");
     opt.value = role.name;
     opt.textContent = role.name.charAt(0).toUpperCase() + role.name.slice(1);
@@ -481,7 +364,7 @@ function renderRolesTable() {
   const tbody = document.querySelector("#roles-table tbody");
   tbody.innerHTML = "";
 
-  RolesTable.forEach((role) => {
+  mockRoles.forEach((role) => {
     const tr = document.createElement("tr");
     const nameTd = document.createElement("td");
     nameTd.textContent = role.name;
@@ -502,7 +385,7 @@ function setupRoleEditorHandlers() {
     }
     if (e.target.classList.contains("delete-role-btn")) {
       if (confirm("Delete this role?")) {
-        RolesTable.splice(idx, 1);
+        mockRoles.splice(idx, 1);
         renderRolesTable();
       }
     }
@@ -519,7 +402,7 @@ function setupAddRoleForm() {
       .toLowerCase();
     const desc = document.getElementById("new-role-desc").value.trim();
     if (!name || !desc) return alert("Please enter name and description");
-    RolesTable.push({ name, description: desc, fields: [] });
+    mockRoles.push({ name, description: desc, fields: [] });
     renderRolesTable();
     form.reset();
   });

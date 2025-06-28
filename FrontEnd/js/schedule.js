@@ -137,34 +137,3 @@ export async function applyScheduleBitmaskArray(container, bitmaskArray) {
     });
   });
 }
-
-export async function renderScheduleTable(bitmaskArray) {
-  if (!Array.isArray(bitmaskArray)) return "<em>Invalid schedule</em>";
-
-  const shifts = await fetchShifts(); // Morning → Night
-  const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const shiftOrder = shifts.map((s) => s.name); // ["Morning", ...]
-
-  let html = `<table class="schedule-table"><thead><tr><th>Shift/Day</th>`;
-  daysShort.forEach((day) => (html += `<th>${day}</th>`));
-  html += `</tr></thead><tbody>`;
-
-  for (let shiftIndex = 0; shiftIndex < 4; shiftIndex++) {
-    const shift = shiftOrder[shiftIndex];
-    const shiftTimes = shifts.find((s) => s.name === shift);
-    html += `<tr><td><strong>${shift}</strong><br><small>(${formatTime(
-      shiftTimes.start
-    )} - ${formatTime(shiftTimes.end)})</small></td>`;
-
-    for (let day = 0; day < 7; day++) {
-      const bitmask = bitmaskArray[day] || 0;
-      const active = (bitmask & (1 << (3 - shiftIndex))) !== 0;
-      html += `<td>${active ? "✅" : ""}</td>`;
-    }
-
-    html += `</tr>`;
-  }
-
-  html += `</tbody></table>`;
-  return html;
-}
