@@ -12,7 +12,7 @@ const roleCollectionMap = {
 
 async function updateApplicationStatus(req, res) {
   const uid = req.params.uid;
-  const { status, role } = req.body;
+  const { status, role, firstName, lastName, phone } = req.body;
 
   if (!uid || !status) {
     return res.status(400).send({ error: "Missing UID or status" });
@@ -45,8 +45,11 @@ async function updateApplicationStatus(req, res) {
         .collection(targetCol)
         .doc(uid)
         .set({
+          //add name and phone number
           ...appData,
-          status: "approved",
+          firstName,
+          lastName,
+          phone,
           approvedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -226,6 +229,54 @@ const getAllUsers = async (req, res) => {
     res.status(500).send({ error: error.message });
   }
 };
+
+// // Delete Firebase Auth users that have no corresponding Firestore user doc
+// const cleanOrphanedAuthUsers = async (req, res) => {
+//   const deleted = [];
+//   const skipped = [];
+//   let nextPageToken;
+//   let totalChecked = 0;
+
+//   try {
+//     do {
+//       const listUsersResult = await admin.auth().listUsers(1000, nextPageToken);
+//       const uids = listUsersResult.users.map((user) => user.uid);
+
+//       // Check which of these UIDs exist in Firestore
+//       const userChecks = await Promise.all(
+//         uids.map(async (uid) => {
+//           const doc = await db.collection("users").doc(uid).get();
+//           return doc.exists;
+//         })
+//       );
+
+//       // Delete users that do not exist in Firestore
+//       for (let i = 0; i < uids.length; i++) {
+//         totalChecked++;
+//         if (!userChecks[i]) {
+//           await admin.auth().deleteUser(uids[i]);
+//           deleted.push(uids[i]);
+//         } else {
+//           skipped.push(uids[i]);
+//         }
+//       }
+
+//       nextPageToken = listUsersResult.pageToken;
+//     } while (nextPageToken);
+
+//     return res.status(200).send({
+//       message: "Orphaned Auth users cleanup complete.",
+//       totalChecked,
+//       deletedCount: deleted.length,
+//       deleted,
+//       skippedCount: skipped.length,
+//       skipped,
+//     });
+//   } catch (error) {
+//     console.error("Error cleaning orphaned users:", error);
+//     return res.status(500).send({ error: error.message });
+//   }
+// };  cleanOrphanedAuthUsers,
 
 module.exports = {
   updateApplicationStatus,
