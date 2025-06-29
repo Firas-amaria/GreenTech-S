@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Farmer Manager Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { margin-top: 30px; color: #2c3e50; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f0f0f0; }
+    button { padding: 6px 12px; cursor: pointer; }
+    .section { margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <h1>Farmer Manager Dashboard</h1>
+
+  <!-- Shipment Requests Already Made -->
+  <div class="section">
+    <h2>Shipment Requests</h2>
+    <table>
+      <tr>
+        <th>Shift</th>
+        <th>Items</th>
+        <th>Status</th>
+      </tr>
+      <tbody id="shipment-requests"></tbody>
+    </table>
+  </div>
+
+  <!-- Shipments to be Created -->
+  <div class="section">
+    <h2>Upcoming Shifts - Create Shipments</h2>
+    <table>
+      <tr>
+        <th>Shift</th>
+        <th>Expected Demand</th>
+        <th>Action</th>
+      </tr>
+      <tbody id="upcoming-shifts"></tbody>
+    </table>
+  </div>
+
+  <!-- Orders Already Placed -->
+  <div class="section">
+    <h2>Orders Placed</h2>
+    <table>
+      <tr>
+        <th>Item</th>
+        <th>Total Quantity Ordered</th>
+        <th>Farmers Assigned</th>
+      </tr>
+      <tbody id="orders-placed"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Mock data
+    const shipmentRequests = [
+      { shift: 'Morning', items: 'Lettuce: 100kg', status: 'Accepted by 2 farmers' },
+      { shift: 'Afternoon', items: 'Tomatoes: 80kg', status: 'Pending farmer responses' },
+    ];
+
+    const upcomingShifts = [
+      { shift: 'Evening', expected: 'Cucumbers: 50kg' },
+      { shift: 'Tomorrow Morning', expected: 'Carrots: 120kg' },
+    ];
+
+    const ordersPlaced = [
+      { item: 'Lettuce', qty: '200kg', farmers: 'Farmer A, Farmer B' },
+      { item: 'Tomatoes', qty: '150kg', farmers: 'Not assigned yet' },
+    ];
+
+    // Render shipment requests
+    const shipmentEl = document.getElementById('shipment-requests');
+    shipmentRequests.forEach(req => {
+      shipmentEl.innerHTML += `<tr>
+        <td>${req.shift}</td>
+        <td>${req.items}</td>
+        <td>${req.status}</td>
+      </tr>`;
+    });
+
+    // Render upcoming shifts
+    const upcomingEl = document.getElementById('upcoming-shifts');
+    upcomingShifts.forEach(shift => {
+      upcomingEl.innerHTML += `<tr>
+        <td>${shift.shift}</td>
+        <td>${shift.expected}</td>
+        <td><button onclick="createRequest('${shift.shift}')">Create Request</button></td>
+      </tr>`;
+    });
+
+    // Render orders placed
+    const ordersEl = document.getElementById('orders-placed');
+    ordersPlaced.forEach(order => {
+      ordersEl.innerHTML += `<tr>
+        <td>${order.item}</td>
+        <td>${order.qty}</td>
+        <td>${order.farmers}</td>
+      </tr>`;
+    });
+
+    function createRequest(shift) {
+      alert(`Open creation form for ${shift}`);
+      // here you’d load a modal or redirect to the create shipment page
+    }
+  </script>
+</body>
+</html>
