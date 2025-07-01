@@ -1,17 +1,33 @@
 import { demandStatistics } from "./mockDataFM.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderNextShifts();
-  renderShipmentReqSummary();
-  renderOrdersSummary();
+  renderDashboard();
 });
 
-function renderNextShifts() {
-  const container = document.getElementById("next-shifts");
-  const allShifts = Object.keys(demandStatistics);
-  const upcoming = allShifts.slice(0, 4);
+function renderDashboard() {
+  const createContainer = document.getElementById("next-shifts");
+  const reqContainer = document.getElementById("shipment-req-list");
+  createContainer.innerHTML = "";
+  reqContainer.innerHTML = "";
 
-  upcoming.forEach(shift => {
+  const now = new Date();
+  const shifts = Object.keys(demandStatistics);
+
+  const createdShifts = [];
+  const notCreatedShifts = [];
+
+  shifts.forEach(shift => {
+    const key = `LC-1_AS_${shift}_${now.getFullYear()}_${now.getMonth()+1}_${now.getDate()}`;
+    const stock = JSON.parse(localStorage.getItem(key));
+    if (stock && stock.items.length > 0) {
+      createdShifts.push({ shift, count: stock.items.length });
+    } else {
+      notCreatedShifts.push(shift);
+    }
+  });
+
+  // Show next 4 uncreated shifts under Create Stock
+  notCreatedShifts.slice(0, 4).forEach(shift => {
     const div = document.createElement("div");
     div.className = "shift-line";
     div.innerHTML = `
@@ -20,22 +36,20 @@ function renderNextShifts() {
         Create Stock
       </button>
     `;
-    container.appendChild(div);
+    createContainer.appendChild(div);
   });
-}
 
-function renderShipmentReqSummary() {
-  const container = document.getElementById("shipment-req-summary");
-  container.innerHTML = `
-    <p>- 2 shipment requests pending approval</p>
-    <p>- 1 shipment request awaiting farmer confirmation</p>
-  `;
-}
-
-function renderOrdersSummary() {
-  const container = document.getElementById("orders-summary");
-  container.innerHTML = `
-    <p>- Today: 450 kg ordered across 6 items</p>
-    <p>- Top item: Lettuce Romaine</p>
-  `;
+  // Show all created shifts under Shipment Requests
+  createdShifts.forEach(({ shift, count }) => {
+    const div = document.createElement("div");
+    div.className = "shift-line";
+    div.innerHTML = `
+      <span>${shift}</span>
+      <span>${count} requests created</span>
+      <button onclick="window.location.href='fm-shipmentRequests.html?shift=${encodeURIComponent(shift)}'">
+        View Requests
+      </button>
+    `;
+    reqContainer.appendChild(div);
+  });
 }

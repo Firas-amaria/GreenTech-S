@@ -1,163 +1,128 @@
 
 
-export const farmerInventory={
+export const farmerInventory = {
   "farmer-1_FRT-001": {
     "farmerId": "farmer-1",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-001",
     "currentAvailableForProcurementKg": 100.00,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704519Z",
-    "sourceLandIds": [
-      "FARMER-1_FIELD_1"
-    ]
+    "maxOrder": 80.00,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-1_FIELD_1"]
   },
   "farmer-1_FRT-002": {
     "farmerId": "farmer-1",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-002",
     "currentAvailableForProcurementKg": 200.0,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704538Z",
-    "sourceLandIds": [
-      "FARMER-1_FIELD_2"
-    ]
+    "maxOrder": 160.0,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-1_FIELD_2"]
   },
   "farmer-1_VEG-001": {
     "farmerId": "farmer-1",
     "logisticCenterId": "LC-1",
     "itemId": "VEG-001",
     "currentAvailableForProcurementKg": 70.0,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704546Z",
-    "sourceLandIds": [
-      "FARMER-1_FIELD_3"
-    ]
+    "maxOrder": 56.0,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-1_FIELD_3"]
   },
   "farmer-2_FRT-001": {
     "farmerId": "farmer-2",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-001",
     "currentAvailableForProcurementKg": 69.9,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704555Z",
-    "sourceLandIds": [
-      "FARMER-2_FIELD_1"
-    ]
+    "maxOrder": 55.92,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-2_FIELD_1"]
   },
   "farmer-2_FRT-002": {
     "farmerId": "farmer-2",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-002",
     "currentAvailableForProcurementKg": 80.6,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704561Z",
-    "sourceLandIds": [
-      "FARMER-2_FIELD_2"
-    ]
+    "maxOrder": 64.48,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-2_FIELD_2"]
   },
   "farmer-2_VEG-001": {
     "farmerId": "farmer-2",
     "logisticCenterId": "LC-1",
     "itemId": "VEG-001",
     "currentAvailableForProcurementKg": 88.8,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704571Z",
-    "sourceLandIds": [
-      "FARMER-2_FIELD_3"
-    ]
+    "maxOrder": 71.04,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-2_FIELD_3"]
   },
   "farmer-3_FRT-001": {
     "farmerId": "farmer-3",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-001",
     "currentAvailableForProcurementKg": 45.4,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704582Z",
-    "sourceLandIds": [
-      "FARMER-3_FIELD_1"
-    ]
+    "maxOrder": 36.32,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-3_FIELD_1"]
   },
   "farmer-3_FRT-003": {
     "farmerId": "farmer-3",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-003",
     "currentAvailableForProcurementKg": 45.26,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704589Z",
-    "sourceLandIds": [
-      "FARMER-3_FIELD_2"
-    ]
+    "maxOrder": 36.21,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-3_FIELD_2"]
   },
   "farmer-3_VEG-002": {
     "farmerId": "farmer-3",
     "logisticCenterId": "LC-1",
     "itemId": "VEG-002",
     "currentAvailableForProcurementKg": 64.72,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704595Z",
-    "sourceLandIds": [
-      "FARMER-3_FIELD_3"
-    ]
+    "maxOrder": 51.78,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-3_FIELD_3"]
   },
   "farmer-4_FRT-001": {
     "farmerId": "farmer-4",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-001",
     "currentAvailableForProcurementKg": 35.02,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704604Z",
-    "sourceLandIds": [
-      "FARMER-4_FIELD_1"
-    ]
+    "maxOrder": 28.02,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-4_FIELD_1"]
   },
   "farmer-4_FRT-003": {
     "farmerId": "farmer-4",
     "logisticCenterId": "LC-1",
     "itemId": "FRT-003",
     "currentAvailableForProcurementKg": 99.36,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704611Z",
-    "sourceLandIds": [
-      "FARMER-4_FIELD_2"
-    ]
+    "maxOrder": 79.49,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-4_FIELD_2"]
   },
   "farmer-4_VEG-002": {
     "farmerId": "farmer-4",
     "logisticCenterId": "LC-1",
     "itemId": "VEG-002",
     "currentAvailableForProcurementKg": 85.0,
-    "earliestHarvestReadyDate": "2024-10-01T00:00:00Z",
-    "status": "ready_for_harvest",
     "statusPercentage": 80,
-    "lastUpdated": "2025-06-29T09:02:02.704618Z",
-    "sourceLandIds": [
-      "FARMER-4_FIELD_3"
-    ]
+    "maxOrder": 68.0,
+    "status": "ready_for_harvest",
+    "sourceLandIds": ["FARMER-4_FIELD_3"]
   }
-}
+};
+
 
 export const demandStatistics={
     "monday-afternoon": {
