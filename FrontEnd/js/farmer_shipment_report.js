@@ -365,28 +365,57 @@ function appendContainerBlock(index) {
   rowAcidity.classList.add("inline-row");
   rowAcidity.innerHTML = `
         <label for="acidity-${code}">Acidity (חומציות):</label>
-        <select id="acidity-${code}">
-          <option value="" disabled selected>Choose Acidity</option>
-          <option value="Balanced">Balanced (מאוזנת)</option>
-          <option value="Slight">Slight (חמוץ/תפל)</option>
-          <option value="Very Sour">Very Sour (חמוץ מאוד)</option>
-        </select>
-      `;
+        <input type="number" id="acidity-${code}" placeholder=" persantage" /> %` ;
+
   block.appendChild(rowAcidity);
 
-  // Size (dropdown)
-  const rowSize = document.createElement("div");
-  rowSize.classList.add("inline-row");
-  rowSize.innerHTML = `
-        <label for="size-${code}">Size (גודל):</label>
-        <select id="size-${code}">
-          <option value="" disabled selected>Choose Size</option>
-          <option value="Medium">Medium</option>
-          <option value="Small or Too Large">Small or Too Large</option>
-          <option value="Inconsistent/Abnormal">Inconsistent/Abnormal</option>
-        </select>
+  // color description
+  const rowColor = document.createElement("div");
+  rowColor.classList.add("inline-row");
+  rowColor.innerHTML = `
+        <label for="color-${code}">Color Description:</label>
+        <input type="text" id="color-${code}" placeholder="e.g. Red, Green" />
       `;
-  block.appendChild(rowSize);
+  block.appendChild(rowColor);
+
+  //color percentage
+  const rowColorPercentage = document.createElement("div");
+  rowColorPercentage.classList.add("inline-row");
+  rowColorPercentage.innerHTML = `
+        <label for="colorPercentage-${code}">Color Percentage:</label>
+        <input type="number" id="colorPercentage-${code}" placeholder="e.g. 80" />%
+      `;
+
+  block.appendChild(rowColorPercentage);
+
+  // pressure
+  const rowPressure = document.createElement("div");
+  rowPressure.classList.add("inline-row");
+  rowPressure.innerHTML = `
+        <label for="pressure-${code}">Pressure:</label>
+        <input type="number" id="pressure-${code}" placeholder="e.g. 1.2" />
+      `;
+  block.appendChild(rowPressure);
+
+  // weight per unit
+  const rowWeightPerUnit = document.createElement("div"); 
+  rowWeightPerUnit.classList.add("inline-row");
+  rowWeightPerUnit.innerHTML = `
+        <label for="weightPerUnit-${code}">Weight per Unit:</label>
+        <input type="number" id="weightPerUnit-${code}" placeholder="e.g. 0.5" />
+      `;
+  block.appendChild(rowWeightPerUnit);
+
+  // diameter
+  const rowDiameter = document.createElement("div");
+  rowDiameter.classList.add("inline-row");
+  rowDiameter.innerHTML = `
+        <label for="diameter-${code}">Size (Diameter m"m):</label>
+        <input type="number" id="diameter-${code}" placeholder="e.g.5.5" />
+      `;
+  block.appendChild(rowDiameter);
+
+
 
   // "Container Ready" Button
   const readyBtn = document.createElement("button");
