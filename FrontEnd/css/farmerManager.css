@@ -130,3 +130,10 @@ ul li {
   font-weight: bold;
   margin-top: 10px;
 }
+
+button.added {
+  background: #27ae60;
+}
+button.added:hover {
+  background: #219150;
+}
