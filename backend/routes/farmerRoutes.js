@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticate, requireRole } = require("../services/authMiddleware");
+const { db } = require("../firebaseConfig"); // Add db import for inventory route
 const {
   // Land functions
   getLands,
@@ -101,7 +102,40 @@ router.get("/frontend/items", requireRole("farmer"), getFrontendItems);
 router.get("/frontend/shipments", requireRole("farmer"), getFrontendShipments);
 
 // =================================================================
-// 📊 DASHBOARD ROUTES
+// � INVENTORY ROUTES
+// =================================================================
+
+// Get farmer's inventory
+router.get("/inventory", requireRole("farmer"), async (req, res) => {
+  try {
+    const farmerId = req.user.uid;
+    
+    const inventorySnapshot = await db
+      .collection("farmerInventory")
+      .where("farmerId", "==", farmerId)
+      .get();
+    
+    const inventory = [];
+    inventorySnapshot.forEach(doc => {
+      inventory.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    res.status(200).json({
+      message: "Inventory retrieved successfully",
+      inventory: inventory
+    });
+    
+  } catch (error) {
+    console.error("Error getting inventory:", error);
+    res.status(500).json({ error: "Failed to get inventory" });
+  }
+});
+
+// =================================================================
+// �📊 DASHBOARD ROUTES
 // =================================================================
 
 // Get dashboard data (basic format)
