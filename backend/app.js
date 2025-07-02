@@ -18,7 +18,6 @@ const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const farmerRoutes = require("./routes/farmerRoutes");
 
-console.log("🔧 DEBUG: Routes loaded successfully");
 
 //middlewares
 app.use(cors());
@@ -26,7 +25,6 @@ app.use(express.json());
 
 // Add middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`🔧 DEBUG: ${req.method} ${req.url}`);
   next();
 });
 
@@ -35,11 +33,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/farmer", (req, res, next) => {
-  console.log("🔧 DEBUG: Request hitting /api/farmer:", req.method, req.url);
   next();
 }, farmerRoutes);
 
-console.log("🔧 DEBUG: All routes mounted successfully");
 
 const PORT = process.env.PORT || 4000;
 

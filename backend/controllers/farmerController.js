@@ -16,8 +16,7 @@ async function getFarmerLands(farmerId) {
 
 // Update farmer's lands in extraFields
 async function updateFarmerLands(farmerId, lands) {
-  console.log(`🔧 DEBUG: updateFarmerLands called for farmerId: ${farmerId}`);
-  console.log(`🔧 DEBUG: Lands to save:`, JSON.stringify(lands, null, 2));
+
   
   const farmerRef = db.collection("farmers").doc(farmerId);
   
@@ -36,16 +35,13 @@ async function updateFarmerLands(farmerId, lands) {
     return land;
   });
   
-  console.log(`🔧 DEBUG: Cleaned lands for Firebase:`, JSON.stringify(cleanedLands, null, 2));
   
   try {
     await farmerRef.update({
       "extraFields.lands": cleanedLands,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    console.log(`🔧 DEBUG: Firebase update completed successfully`);
   } catch (error) {
-    console.error(`🔧 DEBUG: Firebase update failed:`, error);
     throw error;
   }
 }
@@ -245,9 +241,7 @@ async function getCrop(req, res) {
 
 async function createCrop(req, res) {
   try {
-    console.log('🔧 DEBUG: createCrop called');
-    console.log('🔧 DEBUG: req.user:', req.user);
-    console.log('🔧 DEBUG: req.body:', req.body);
+
     
     const farmerId = req.user.uid;
     const { 
@@ -259,7 +253,6 @@ async function createCrop(req, res) {
     
     // Get current lands
     const lands = await getFarmerLands(farmerId);
-    console.log('🔧 DEBUG: Retrieved lands count:', lands.length);
     
     // Since farmId doesn't match landId, let's find land by name or use as index
     let landIndex = -1;
@@ -270,7 +263,6 @@ async function createCrop(req, res) {
       const index = parseInt(farmId) - 1; // Convert "00001" to 0, "00002" to 1, etc.
       if (index >= 0 && index < lands.length) {
         landIndex = index;
-        console.log(`🔧 DEBUG: Converted farmId ${farmId} to landIndex: ${landIndex}`);
       }
     }
     
@@ -278,21 +270,17 @@ async function createCrop(req, res) {
     if (landIndex === -1) {
       // For now, let's find the first land without a crop
       landIndex = lands.findIndex(land => !land.crop);
-      console.log(`🔧 DEBUG: Found first empty land at index: ${landIndex}`);
     }
     
     // If still not found, default to first land
     if (landIndex === -1 && lands.length > 0) {
       landIndex = 0;
-      console.log(`🔧 DEBUG: Defaulting to first land (index 0)`);
     }
     
     if (landIndex === -1 || landIndex >= lands.length) {
-      console.log('🔧 DEBUG: No suitable land found!');
       return res.status(400).json({ error: "No suitable land found" });
     }
     
-    console.log(`🔧 DEBUG: Using landIndex: ${landIndex}, landName: ${lands[landIndex].landName}`);
     
     console.log(`[createCrop] Found land at index: ${landIndex}`);
     
@@ -331,15 +319,11 @@ async function createCrop(req, res) {
     console.log(`[createCrop] Crop data prepared:`, cropData);
     
     // Update the specific land with crop data
-    console.log(`🔧 DEBUG: Before updating land ${landIndex} with crop`);
     lands[landIndex].crop = cropData;
-    console.log(`🔧 DEBUG: Updated land object:`, JSON.stringify(lands[landIndex], null, 2));
     
     // Save updated lands
-    console.log(`🔧 DEBUG: Calling updateFarmerLands...`);
     try {
       await updateFarmerLands(farmerId, lands);
-      console.log(`🔧 DEBUG: updateFarmerLands completed successfully`);
     } catch (saveError) {
       console.error(`🔧 DEBUG: updateFarmerLands failed:`, saveError);
       throw saveError;
@@ -361,6 +345,50 @@ async function createCrop(req, res) {
   }
 }
 
+// Inventory management helper function
+async function manageInventory(farmerId, crop, landIndex, action) {
+  try {
+    const inventoryRef = db.collection('farmerInventory');
+    const cropId = `crop_${farmerId}_${landIndex}`;
+    
+    
+    if (action === 'add') {
+      // Add to inventory when harvesting
+      const inventoryData = {
+        farmerId: farmerId,
+        cropId: cropId,
+        landIndex: landIndex,
+        itemId: crop.itemId,
+        name: crop.name || 'Unknown Crop',
+        quantity: crop.quantity || 0,
+        status: crop.status,
+        statusPercentage: crop.statusPercentage || 0,
+        plantedDate: crop.plantedDate,
+        harvestedDate: admin.firestore.Timestamp.now(),
+        addedToInventory: admin.firestore.Timestamp.now()
+      };
+      
+      await inventoryRef.doc(cropId).set(inventoryData);
+      console.log(`✅ Added crop ${cropId} to farmer inventory`);
+      
+    } else if (action === 'remove') {
+      // Remove from inventory when field clearing or 100% harvested
+      const docRef = inventoryRef.doc(cropId);
+      const docSnapshot = await docRef.get();
+      
+      if (docSnapshot.exists) {
+        await docRef.delete();
+        console.log(`✅ Removed crop ${cropId} from farmer inventory`);
+      } else {
+        console.log(`⚠️ Crop ${cropId} not found in inventory, nothing to remove`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error managing inventory:', error);
+    throw error;
+  }
+}
+
 async function updateCrop(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -375,17 +403,18 @@ async function updateCrop(req, res) {
     if (cropId.includes('_')) {
       // Format: crop_farmerId_landIndex
       landIndex = parseInt(cropId.split('_').pop());
+      console.log(`[updateCrop] Found underscore format, landIndex: ${landIndex}`);
     } else {
-      // Format: simple number (from frontend transformation)
+      // Format: simple number (from frontend transformation) - convert to 0-based index
       landIndex = parseInt(cropId) - 1; // Convert 1-based to 0-based index
+      console.log(`[updateCrop] Found simple number format, converted ${cropId} to landIndex: ${landIndex}`);
     }
     
-    console.log(`[updateCrop] Calculated land index: ${landIndex}`);
-    
     const lands = await getFarmerLands(farmerId);
+    console.log(`[updateCrop] Found ${lands.length} lands for farmer`);
     
     if (isNaN(landIndex) || landIndex < 0 || landIndex >= lands.length || !lands[landIndex].crop) {
-      console.log(`[updateCrop] Crop not found. landIndex: ${landIndex}, landsCount: ${lands.length}`);
+      console.log(`[updateCrop] Crop not found. landIndex: ${landIndex}, landsCount: ${lands.length}, hasCrop: ${lands[landIndex]?.crop ? 'yes' : 'no'}`);
       return res.status(404).send({ error: "Crop not found" });
     }
     
@@ -401,6 +430,25 @@ async function updateCrop(req, res) {
     if (updateData.percentage !== undefined) updatedCropData.statusPercentage = updateData.percentage; // Handle both field names
     if (updateData.quantity !== undefined) updatedCropData.quantity = updateData.quantity;
     if (updateData.notes) updatedCropData.notes = updateData.notes;
+    
+    // Inventory management logic - Fixed order and conditions
+    const oldStatus = lands[landIndex].crop.status;
+    const oldPercentage = lands[landIndex].crop.statusPercentage || 0;
+    const newStatus = updatedCropData.status;
+    const newPercentage = updatedCropData.statusPercentage || 0;
+    
+    
+    // Check for inventory management actions
+    if (newStatus === "Harvesting" && oldStatus !== "Harvesting") {
+      // Add to inventory when status changes TO harvesting
+      await manageInventory(farmerId, updatedCropData, landIndex, 'add');
+    } else if (newStatus === "Field Clearing") {
+      // Remove from inventory when field clearing
+      await manageInventory(farmerId, updatedCropData, landIndex, 'remove');
+    } else if (newStatus === "Harvesting" && newPercentage === 100 && oldPercentage < 100) {
+      // Remove from inventory when harvesting reaches 100% complete
+      await manageInventory(farmerId, updatedCropData, landIndex, 'remove');
+    }
     
     lands[landIndex].crop = updatedCropData;
     
@@ -454,6 +502,15 @@ async function deleteCrop(req, res) {
     
     // Save updated lands
     await updateFarmerLands(farmerId, lands);
+    
+    // Remove from inventory if it exists
+    try {
+      await manageInventory(farmerId, cropId, 'remove');
+      console.log(`[deleteCrop] Removed crop ${cropId} from inventory`);
+    } catch (inventoryError) {
+      console.log(`[deleteCrop] Error removing from inventory (may not exist): ${inventoryError.message}`);
+      // Don't fail the delete operation if inventory removal fails
+    }
     
     console.log(`[deleteCrop] Successfully deleted crop from land ${landIndex}`);
     res.json({ message: "Crop deleted successfully" });
