@@ -348,6 +348,23 @@ function getCropDisplayName(itemId) {
 async function updateCropPercentage(value) {
   const parsed = parseFloat(value);
   if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+    // Check if this will trigger inventory removal (harvesting + 100%)
+    if (selectedLand?.Crops?.status === "Harvesting" && parsed === 100) {
+      const confirmComplete = confirm(
+        `Mark harvest as 100% complete?\n\nThis will remove the crop from your inventory.`
+      );
+      if (!confirmComplete) {
+        // Reset the input value
+        const percentageInput = document.querySelector(
+          'input[type="number"][onchange*="updateCropPercentage"]'
+        );
+        if (percentageInput) {
+          percentageInput.value = selectedLand.Crops.percentage;
+        }
+        return;
+      }
+    }
+
     try {
       // Try to update via API
       if (selectedLand.Crops.id) {
