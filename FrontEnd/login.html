@@ -1,48 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="stylesheet" href="./css/login.css" />
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
-  <link rel="stylesheet" href="./css/login.css" />
-  <style>
+    <style></style>
+  </head>
 
-  </style>
-</head>
+  <body>
+    <div id="header"></div>
+    <div class="wrapper">
+      <div class="form-container">
+        <div class="login-container">
+          <h2>Login</h2>
+          <form id="login-form" onsubmit="login(event)">
+            <label for="login-email">Email</label>
+            <input
+              type="email"
+              id="login-email"
+              placeholder="Enter your email"
+              required
+              pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+              class="input"
+            />
+            <span class="highlight"></span>
+            <span class="bar"></span>
 
-<body>
-  <div id="header"></div>
-  <div class="wrapper">
-    <div class="form-container">
-      <div class="login-container">
-        <h2>Login</h2>
-        <form id="login-form" onsubmit="login(event)">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="Enter your email" required
-            pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" class="input">
-          <span class="highlight"></span>
-          <span class="bar"></span>
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              required
+              minlength="6"
+            />
 
-          <label for="password">Password</label>
-          <input type="password" id="password" placeholder="Enter your password" required minlength="6">
-
-          <button type="submit">Login</button>
-          <p id="login-error-message" class="error-message"></p>
-
-        </form>
-        <div class="menu">
-          <a href="Registerstion.html">Don't have an account? Register</a>
+            <button type="submit">Login</button>
+            <p id="login-error-message" class="error-message"></p>
+          </form>
+          <div class="menu">
+            <a href="Registerstion.html">Don't have an account? Register</a>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <div id="footer"></div>
-  <!-- Firebase SDKs -->
-  <!-- Firebase SDKs (modular) -->
-  <script type="module" src="./js/auth.js"></script>
-
-</body>
-
-
+    <div id="footer"></div>
+    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (modular) -->
+    <script type="module" src="./js/auth.js"></script>
+  </body>
 </html>

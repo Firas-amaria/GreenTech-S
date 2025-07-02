@@ -44,10 +44,8 @@ async function apiCall(endpoint, options = {}) {
 
 async function loadShipmentData(shipmentId) {
   try {
-    console.log('DEBUG: loadShipmentData called with shipmentId:', shipmentId);
     // Try to load specific shipment from API
     const shipmentData = await apiCall(`/shipments/${shipmentId}`);
-    console.log('DEBUG: Received shipment data from API:', shipmentData);
     return shipmentData;
   } catch (error) {
     console.warn(
@@ -63,7 +61,6 @@ async function loadShipmentData(shipmentId) {
     ];
 
     const fallbackShipment = sampleShipments.find((s) => String(s.id) === shipmentId) || {};
-    console.log('DEBUG: Using fallback shipment data:', fallbackShipment);
     return fallbackShipment;
   }
 }
@@ -146,20 +143,16 @@ function getQueryParam(param) {
 }
 
 const shipmentId = getQueryParam("shipmentId");
-console.log('DEBUG: Extracted shipmentId from URL:', shipmentId);
-console.log('DEBUG: Current URL:', window.location.href);
-console.log('DEBUG: URL search params:', window.location.search);
+
 let shipment = {};
 let qualityStandards = [];
 
 // Load shipment data and quality standards
 async function initializeShipmentReport() {
   try {
-    console.log('DEBUG: Initializing shipment report with shipmentId:', shipmentId);
     
     // Load shipment data
     shipment = await loadShipmentData(shipmentId);
-    console.log('DEBUG: Loaded shipment data:', shipment);
 
     // Load quality standards for this item
     if (shipment.item) {
@@ -573,15 +566,10 @@ document
         readyTimestamp: new Date().toISOString(),
       };
 
-      // Try to submit via API
-      console.log('DEBUG: About to submit shipment report');
-      console.log('DEBUG: shipment object:', shipment);
-      console.log('DEBUG: shipment.id:', shipment.id);
-      console.log('DEBUG: global shipmentId:', shipmentId);
+
       
       // Use the global shipmentId if shipment.id is not available
       const finalShipmentId = shipment.id || shipmentId;
-      console.log('DEBUG: Using final shipmentId:', finalShipmentId);
       
       await submitShipmentReport(finalShipmentId, payload);
 
