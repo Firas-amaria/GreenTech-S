@@ -121,6 +121,8 @@
 .fields-table th {
   background-color: #ecf0f1;
   font-weight: bold;
+  color: #060b0c;
+
 }
 
 .add-field-btn {
@@ -214,11 +216,13 @@
 
 .application-card.denied-flag {
   opacity: 0.6;
-  background-color: #f8d7da; /* light red */
+  background-color: #f8d7da;
+  /* light red */
 }
 
 .application-card.accepted-flag {
-  background-color: #d4edda; /* light green */
+  background-color: #d4edda;
+  /* light green */
 }
 
 .application-header {
@@ -274,6 +278,8 @@
 .details-table th {
   background-color: #ecf0f1;
   font-weight: bold;
+  color: #060b0c;
+
 }
 
 .status-update-section {
