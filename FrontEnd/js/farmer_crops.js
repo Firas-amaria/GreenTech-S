@@ -250,19 +250,6 @@ function formatDateOnly(dateString) {
 }
 
 // Populate the item dropdown for adding new crops
-function populateItemDropdown() {
-  const dropdown = document.getElementById("itemDropdown");
-  dropdown.innerHTML = '<option value="">-- Select Crop --</option>';
-
-  itemList.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.itemId;
-    option.textContent = `${item.itemName} (${item.variety})`;
-    dropdown.appendChild(option);
-  });
-
-  //console.log(`Populated item dropdown with ${itemList.length} items`);
-}
 
 function getStatusOptions(currentStatus) {
   // Return all status options, with the current status marked as selected
@@ -482,16 +469,15 @@ async function handleAddCrop() {
     // Prepare crop data
     const cropData = {
       itemId: item.itemId,
-      quantity: plantedAmount,
+      plantedAmount: plantedAmount,
       avgRatePerUnit: avgRate,
-      fruitingPerPlant: fruiting,
-      plantedDate: plantedOn,
+      ExpectedFruitingPerPlant: fruiting,
+      plantedOn: plantedOn,
       expectedHarvestDate,
+      expectedHarvestingKg: plantedAmount * avgRate,
       status: "Planting",
-      statusPercentage: 10,
+      statusPercentage: 0,
       imageUrl: getRandomRealCropImage(),
-      farmerId: "current-user-id", // TODO: Get from auth
-      updatedOn: new Date().toISOString(),
     };
 
     // Try to add via API
@@ -580,6 +566,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   //console.log("Farmer crops page initialized with API integration");
 });
+
+function formatDate(date) {
+  const d = String(date.getDate()).padStart(2, "0");
+  const m = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const y = date.getFullYear();
+  return `${d}/${m}/${y}`;
+}
 
 // Make functions globally available for inline event handlers
 window.advanceCropStatus = advanceCropStatus;

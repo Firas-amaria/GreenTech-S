@@ -242,6 +242,7 @@ async function renderApplicationForm() {
         });
       });
       ReqBody.extraFields.lands = lands;
+      ReqBody.extraFields.agreementPercentage = 60;
     }
 
     for (let [key, val] of formData.entries()) {
