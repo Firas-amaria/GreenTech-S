@@ -60,12 +60,48 @@ function transformLandToFrontendFormat(land, index) {
   };
 }
 
+/* 
+cropsDB:
+{
+  "cropId": {
+    "itemId": "001",
+    "plantedAmount": 500,
+    "avgRatePerUnit": 50,
+    "fruitingPerPlant": 0.5,
+    "plantedDate": "01-10-2023",
+    "expectedHarvestDate": "01-12-2023",
+    "expectedHarvestingKg": 250, // Calculated: 500 plants * 0.5 kg/plant
+    "status": "Growing",
+    "statusPercentage": 20,
+    
+    "displayName": "Tomato Crop"   NOTE: its only to display name we dont have to save it but its to reserve the name instead of searcching the name to display by the id
+  }
+}
+
+in frontend we will display like this
+ItemName  
+Planted amount(quantity) 
+Average rate of unit = avgRatePerUnit
+Expected fruiting per plant => fruitingPerPlant
+Planted on(date):
+Status:
+Expected harvest date :  
+statusPrecentage
+
+Display 
+Expected harvesting(kg) : we calculate 
+Expected harvesting =Planted amount*expected fruiting* avgrateUnit
+
+
+
+*/
+
 // Transform Firebase crop data to frontend format
 function transformCropToFrontendFormat(crop, landIndex) {
   return {
     id: landIndex + 1, // Generate crop id from land index
     itemId: crop.itemId || "001",
-    plantedAmount: crop.quantity || crop.plantedAmount || 0,
+    plantedAmount:  crop.plantedAmount || 0,
     plantedOn: crop.plantedDate
       ? formatDateForFrontend(crop.plantedDate)
       : formatDateForFrontend(new Date()),
@@ -87,7 +123,7 @@ function transformItemToFrontendFormat(item) {
     itemName: item.name || "Unknown Item",
     name: item.name || "Unknown Item",
     category: item.category || "Standard",
-    variety: item.category || "Standard",
+    variety: item.category || "Standard",   //varaity is same as category dont know why they use a different name 
     imageUrl: item.imageUrl,
     season: item.season,
     caloriesPer100g: item.caloriesPer100g,
@@ -96,6 +132,9 @@ function transformItemToFrontendFormat(item) {
     qualityStandards: item.qualityStandards,
   };
 }
+
+
+/*  FUTURE FIRAS AFTER WE FINISH FARMER MANAGER COME BACK HERE  */ 
 
 // Transform Firebase shipment data to frontend format
 function transformShipmentToFrontendFormat(shipment, shipmentDoc) {
@@ -117,6 +156,7 @@ function transformShipmentToFrontendFormat(shipment, shipmentDoc) {
 }
 
 // Helper function to format Firebase Timestamp to frontend date string
+///THIS IS ONLY FOR ID PURPOSES NOT TO DISPLAY THE DATE LIKE THAT
 function formatDateForFrontend(timestamp) {
   if (!timestamp) return new Date().toISOString().split("T")[0];
 
@@ -185,6 +225,14 @@ async function getFrontendLands(req, res) {
 
 // --- Crop Handlers ---
 
+/*  
+IM GUESSING that the crop id they made is basically starts with crop_farmerId_landIndex
+and they use it in farmerInventorys id as well
+
+1. i changed some but incase i missed - quantity to plantedAmount
+2. in some cases quantity is expectedHarvestingKg in cropsDB but 
+
+*/
 async function listCrops(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -245,13 +293,24 @@ async function getCrop(req, res) {
   }
 }
 
+/*
+what i understood
+yield =expected harvestingKg 
+actualYield-delete
+img -  it can stay  not worth to be bothered with it anymroe but its the status pic not item pic
+quantity is plantedAmount or expectedHarvestingKg/availedForProcurementKg if its farmer inventory data
+
+*/
+
+
 async function createCrop(req, res) {
   try {
     const farmerId = req.user.uid;
     const {
       farmId,
       itemId,
-      quantity,
+      expectedHarvestAmountKg,//they didnt add this and we have quantity in some places is plantes amount and in other oalnted amount is q -_-,
+      plantedAmount, // Use plantedAmount instead of quantity
       avgRatePerUnit,
       fruitingPerPlant,
       plantedDate,
@@ -307,7 +366,7 @@ async function createCrop(req, res) {
     // Create crop data combining frontend fields + auto-generated fields
     const cropData = {
       // Frontend fields (use as-is)
-      quantity: quantity || 0,
+      plantedAmount: plantedAmount || 0,
       avgRatePerUnit: avgRatePerUnit || 0,
       fruitingPerPlant: fruitingPerPlant || 0,
       status: status || "Planting",
@@ -366,6 +425,39 @@ async function manageInventory(farmerId, crop, landIndex, action) {
   try {
     const inventoryRef = db.collection("farmerInventory");
     const cropId = `crop_${farmerId}_${landIndex}`;
+/*
+farmerInventory 
+when added
+ "farmer-4_VEG-002": {
+    farmerId: string;
+    logisticCenterId: LC-1;
+    itemId: string;
+    currentAvailableForProcurementKg: number///expectedHarvestingKg* agreementPercentage(60% in default for now);
+    statusPercentage: number;
+    maxOrder: number; when added to farmer inventory for the first time its =expectedHarvestingKg*agreementPercentage(60% in default for now)
+
+    status: string;
+    
+    sourceLandIds: string[];// change with pickUp location
+}
+
+
+agreementPercentage is 60% in default for now
+it was suppose to be updated when we add the farmer - the manager updates that precentage of how much are we going to buy from him
+max order its basically a counter that will be decreased each time we order and the next time we order we will see how much is left for us to order from him
+cause agreement precentage is our companies agreement with the farmer and our obligation to him 
+
+
+any update in crops that is in farmerInventory will be updated in farmerInventory as well- they already did it but some data in the structure is missing 
+
+
+
+
+*/
+
+
+
+
 
     if (action === "add") {
       // Add to inventory when harvesting
@@ -375,7 +467,7 @@ async function manageInventory(farmerId, crop, landIndex, action) {
         landIndex: landIndex,
         itemId: crop.itemId,
         name: crop.name || "Unknown Crop",
-        quantity: crop.quantity || 0,
+        plantedAmount: crop.plantedAmount || 0,
         status: crop.status,
         statusPercentage: crop.statusPercentage || 0,
         plantedDate: crop.plantedDate,
@@ -402,7 +494,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
     throw error;
   }
 }
-
+//quantity is plantedAmount
+//precentage is statusPercentage
 async function updateCrop(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -551,7 +644,7 @@ async function deleteCrop(req, res) {
 }
 
 // --- Item Handlers ---
-
+//only thing that works i guess
 async function getItems(req, res) {
   try {
     //console.log("[getItems] Fetching all generic items");
@@ -575,6 +668,7 @@ async function getItems(req, res) {
   }
 }
 
+/* future firas*/
 // Frontend Shipments Function
 async function getFrontendShipments(req, res) {
   try {
@@ -633,6 +727,10 @@ async function getFrontendItems(req, res) {
   }
 }
 
+
+
+
+/*future firas after FM*/
 // --- Shipment Handlers ---
 
 async function createShipment(req, res) {
@@ -752,7 +850,10 @@ async function getFrontendShipments(req, res) {
 }
 
 // --- Dashboard Handlers ---
+/* 
 
+make sure data names same 
+*/
 async function getDashboardData(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -792,7 +893,7 @@ async function getDashboardData(req, res) {
     res.status(500).send({ error: err.message });
   }
 }
-
+/*  future firas - once fm finished */
 // Frontend Dashboard Function
 async function getFrontendDashboard(req, res) {
   try {
