@@ -164,7 +164,7 @@ function storeToLocal(itemId, itemDisplayName, farmerId, landId, qty) {
     sourceFarmerName: farmerId,
     sourceFarmName: "UNKNOWN FARM",
     currentAvailableQuantityKg: qty,
-    pricePerUnit: 3.0,
+    pricePerUnitKg: 3.0*1.2, // assuming 20% margin
     status: "active",
     originalCommittedQuantityKg: qty,
     sourceLandId: landId
@@ -174,6 +174,7 @@ function storeToLocal(itemId, itemDisplayName, farmerId, landId, qty) {
   // create shipmentRequest
   const sreqId = `SReq_${now.getFullYear()}_${now.getMonth()+1}_${now.getDate()}_${shift}_${farmerId}_${itemId}`;
   const shipmentReq = {
+    
     logisticCenterId: "LC-1",
     farmerManagerId: "FM_UID_abc",
     farmerId,
@@ -185,7 +186,7 @@ function storeToLocal(itemId, itemDisplayName, farmerId, landId, qty) {
     itemDisplayName,
     forecastedQuantityKg: qty,
     finalConfirmedQuantityKg: null,
-    expectedContainerCount: Math.ceil(qty / 50),
+    expectedContainerCount: Math.ceil(qty / 50),/// 
     exactAmountConfirmedAt: null,
     farmerLastNotifiedAt: null,
     lastUpdatedAt: now.toISOString(),
