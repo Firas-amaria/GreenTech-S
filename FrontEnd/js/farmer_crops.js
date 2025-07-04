@@ -95,8 +95,8 @@ async function loadCropsPageData() {
       })) || [];
 
     //console.log("Successfully loaded data from API");
-    //console.log("Parsed lands:", parsedLands);
-    //console.log("Item list:", itemList);
+    console.log("Parsed lands:", parsedLands);
+    console.log("Item list:", itemList);
     hideLoadingIndicator();
     return true;
   } catch (error) {
@@ -177,7 +177,7 @@ async function updateCropStatusViaAPI(cropId, status, percentage) {
       body: JSON.stringify({
         status,
         statusPercentage: percentage,
-        updatedOn: new Date().toISOString(),
+        updatedOn: formatDate(new Date()),
       }),
     });
   } catch (error) {
@@ -298,7 +298,7 @@ function renderCropTable() {
   tbody.innerHTML = "";
 
   if (!selectedLand) {
-    //console.log("🔧 DEBUG: No selected land");
+    console.log("🔧 DEBUG: No selected land");
     return;
   }
 
