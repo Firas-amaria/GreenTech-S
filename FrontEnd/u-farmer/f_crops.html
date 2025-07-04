@@ -6,122 +6,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Crops | Farmer App</title>
   <link rel="stylesheet" href="../css/sidebar.css" />
- <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    margin: 0;
-    background-color: #f4f9f4;
-    color: #333;
-  }
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #f4f9f4;
+      color: #333;
+    }
 
-  .main {
-    padding: 10px;
-    margin-left: 10px; /* if sidebar width is 250px */
-  }
-
-
-
-  .section {
-    background-color: #ffffff;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  }
-
-  label {
-    color: #444;
-  }
-
-  select,
-  input[type="number"],
-  input[type="date"] {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 14px;
-    background-color: #fefefe;
-  }
-
-  .form-row {
-    margin-bottom: 16px;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
-
-  th, td {
-    text-align: center;
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
-  }
-
-  th {
-    background-color: #e8ebf5;
-    color: #24256b;
-    font-weight: 600;
-  }
-
-  td img {
-    width: 60px;
-    height: auto;
-    border-radius: 6px;
-  }
-
-  .btn-primary {
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 15px;
-    transition: background-color 0.3s ease;
-  }
-
-
-  select:focus,
-  input:focus,
-  button:focus {
-    outline: none;
-   
-  }
-
-  @media (max-width: 768px) {
     .main {
-      margin-left: 0;
+      padding: 10px;
+      margin-left: 10px;
+      /* if sidebar width is 250px */
+    }
+
+
+
+    .section {
+      background-color: #ffffff;
       padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
 
-    table, thead, tbody, th, td, tr {
-      display: block;
-    
+    label {
+      color: #444;
     }
 
-    th, td {
-      text-align: left;
+    select,
+    input[type="number"],
+    input[type="date"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      background-color: #fefefe;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      text-align: center;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
     }
 
     th {
-      background-color: #c8d8e6;
+      background-color: #e8ebf5;
+      color: #24256b;
+      font-weight: 600;
     }
 
     td img {
-      margin: 10px 0;
+      width: 60px;
+      height: auto;
+      border-radius: 6px;
     }
-  }
-</style>
+
+    .btn-primary {
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background-color 0.3s ease;
+    }
+
+
+    select:focus,
+    input:focus,
+    button:focus {
+      outline: none;
+
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        margin-left: 0;
+        padding: 20px;
+      }
+
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+
+      }
+
+      th,
+      td {
+        text-align: left;
+      }
+
+      th {
+        background-color: #c8d8e6;
+      }
+
+      td img {
+        margin: 10px 0;
+      }
+    }
+  </style>
 
 </head>
 
 <body>
   <nav class="sidebar"></nav>
 
- <div class="main">
+  <div class="main">
     <h1>Manage Crops</h1>
-
+    <div class="section">
+      <label for="landSelector"><strong>Select Land:</strong></label>
+      <select id="landSelector"></select>
+    </div>
     <!-- Crops Table -->
     <div class="section">
       <h2>Crop in Selected Land</h2>
