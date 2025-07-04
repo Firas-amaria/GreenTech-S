@@ -101,7 +101,7 @@ function transformCropToFrontendFormat(crop, landIndex) {
   return {
     id: landIndex + 1, // Generate crop id from land index
     itemId: crop.itemId || "001",
-    plantedAmount:  crop.plantedAmount || 0,
+    plantedAmount: crop.plantedAmount || 0,
     plantedOn: crop.plantedDate
       ? formatDateForFrontend(crop.plantedDate)
       : formatDateForFrontend(new Date()),
@@ -123,7 +123,7 @@ function transformItemToFrontendFormat(item) {
     itemName: item.name || "Unknown Item",
     name: item.name || "Unknown Item",
     category: item.category || "Standard",
-    variety: item.category || "Standard",   //varaity is same as category dont know why they use a different name 
+    variety: item.category || "Standard", //varaity is same as category dont know why they use a different name
     imageUrl: item.imageUrl,
     season: item.season,
     caloriesPer100g: item.caloriesPer100g,
@@ -133,8 +133,7 @@ function transformItemToFrontendFormat(item) {
   };
 }
 
-
-/*  FUTURE FIRAS AFTER WE FINISH FARMER MANAGER COME BACK HERE  */ 
+/*  FUTURE FIRAS AFTER WE FINISH FARMER MANAGER COME BACK HERE  */
 
 // Transform Firebase shipment data to frontend format
 function transformShipmentToFrontendFormat(shipment, shipmentDoc) {
@@ -302,19 +301,19 @@ quantity is plantedAmount or expectedHarvestingKg/availedForProcurementKg if its
 
 */
 
-
 async function createCrop(req, res) {
   try {
     const farmerId = req.user.uid;
+
     const {
       farmId,
       itemId,
-      expectedHarvestAmountKg,//they didnt add this and we have quantity in some places is plantes amount and in other oalnted amount is q -_-,
-      plantedAmount, // Use plantedAmount instead of quantity
+      plantedAmount,
       avgRatePerUnit,
-      fruitingPerPlant,
-      plantedDate,
+      ExpectedFruitingPerPlant,
+      plantedOn,
       expectedHarvestDate,
+      expectedHarvestingKg,
       status,
       statusPercentage,
       imageUrl,
@@ -368,25 +367,14 @@ async function createCrop(req, res) {
       // Frontend fields (use as-is)
       plantedAmount: plantedAmount || 0,
       avgRatePerUnit: avgRatePerUnit || 0,
-      fruitingPerPlant: fruitingPerPlant || 0,
       status: status || "Planting",
-      statusPercentage: statusPercentage || 10,
-      imageUrl: imageUrl || "https://via.placeholder.com/50", //remove
-      plantedDate: plantedDate
-        ? admin.firestore.Timestamp.fromDate(new Date(plantedDate))
-        : admin.firestore.Timestamp.now(),
-      expectedHarvestDate: expectedHarvestDate
-        ? admin.firestore.Timestamp.fromDate(new Date(expectedHarvestDate))
-        : null,
-
-      //TODO
-      // Auto-generated fields (for backend compatibility)
-      name: `${itemData.name} Crop`, //remove
-      variety: itemData.category || "Standard", //remove
-      notes: `${itemData.name} planted on ${plantedDate}. Expected harvest: ${expectedHarvestDate}`, //remove
-      expectedYield: Math.round((quantity || 0) * (fruitingPerPlant || 1.5)), //"expectedHarvestingKg": 250, // Calculated: 500 plants * 0.5 kg/plant
-      actualYield: 0, //remove
+      statusPercentage: statusPercentage || 0,
+      ExpectedFruitingPerPlant: ExpectedFruitingPerPlant || 1.5, // Default to 1.5 if not provided
+      expectedHarvestingKg: expectedHarvestingKg,
+      plantedDate: plantedOn,
+      expectedHarvestDate: expectedHarvestDate,
       itemId: itemId,
+      imageUrl: imageUrl,
       createdAt: admin.firestore.Timestamp.now(),
       updatedAt: admin.firestore.Timestamp.now(),
     };
@@ -424,8 +412,8 @@ async function createCrop(req, res) {
 async function manageInventory(farmerId, crop, landIndex, action) {
   try {
     const inventoryRef = db.collection("farmerInventory");
-    const cropId = `crop_${farmerId}_${landIndex}`;
-/*
+    const cropId = `${farmerId}_${crop.itemId}`; // Use farmerId, itemId, and landIndex to create unique cropId
+    /*
 farmerInventory 
 when added
  "farmer-4_VEG-002": {
@@ -441,38 +429,30 @@ when added
     sourceLandIds: string[];// change with pickUp location
 }
 
-
-agreementPercentage is 60% in default for now
-it was suppose to be updated when we add the farmer - the manager updates that precentage of how much are we going to buy from him
-max order its basically a counter that will be decreased each time we order and the next time we order we will see how much is left for us to order from him
-cause agreement precentage is our companies agreement with the farmer and our obligation to him 
-
-
-any update in crops that is in farmerInventory will be updated in farmerInventory as well- they already did it but some data in the structure is missing 
-
-
-
-
 */
 
-
-
-
-
+    const farmer = await db.collection("farmers").doc(farmerId).get();
+    if (!farmer.exists) {
+      return res.status(404).send({ error: "Farmer not found" });
+    }
+    const farmerData = farmer.data();
+    const lands = farmerData.extraFields?.lands || [];
+    const pickupAddress = lands[landIndex].pickupAddress;
+    const agreementPercentage = (farmerData.agreementPercentage || 60) / 100; // Default to 60% if not set
     if (action === "add") {
       // Add to inventory when harvesting
       const inventoryData = {
         farmerId: farmerId,
-        cropId: cropId,
-        landIndex: landIndex,
+        logisticCenterId: "LC-1",
         itemId: crop.itemId,
-        name: crop.name || "Unknown Crop",
-        plantedAmount: crop.plantedAmount || 0,
+        currentAvailableForProcurementKg:
+          crop.expectedHarvestingKg * agreementPercentage || 60,
+        maxOrder: crop.expectedHarvestingKg * agreementPercentage || 60, // Default to 60% of expected harvesting
         status: crop.status,
         statusPercentage: crop.statusPercentage || 0,
-        plantedDate: crop.plantedDate,
         harvestedDate: admin.firestore.Timestamp.now(),
         addedToInventory: admin.firestore.Timestamp.now(),
+        pickupAddress,
       };
 
       await inventoryRef.doc(cropId).set(inventoryData);
@@ -726,9 +706,6 @@ async function getFrontendItems(req, res) {
     res.status(500).send({ error: err.message });
   }
 }
-
-
-
 
 /*future firas after FM*/
 // --- Shipment Handlers ---
