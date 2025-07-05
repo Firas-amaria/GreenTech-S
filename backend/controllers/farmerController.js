@@ -540,7 +540,7 @@ async function updateCrop(req, res) {
       // Remove from inventory when field clearing
       await manageInventory(farmerId, updatedCropData, landIndex, "remove");
     } else if (
-      newStatus === "Harvesting" &&
+      newStatus === "Harvested" &&
       newPercentage === 100 &&
       oldPercentage < 100
     ) {

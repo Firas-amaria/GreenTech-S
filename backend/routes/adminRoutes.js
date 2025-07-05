@@ -12,6 +12,8 @@ const {
   deleteUser,
 } = require("../controllers/adminController");
 
+// router.post("/import-json", importJsonToFirestore);
+
 router.put(
   "/updateApplication/:uid",
   authenticate,

@@ -17,7 +17,7 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const farmerRoutes = require("./routes/farmerRoutes");
-
+const farmerManagerRoutes = require("./routes/farmerManagerRoutes");
 
 //middlewares
 app.use(cors());
@@ -32,13 +32,16 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/farmer", (req, res, next) => {
-  next();
-}, farmerRoutes);
-
+app.use(
+  "/api/farmer",
+  (req, res, next) => {
+    next();
+  },
+  farmerRoutes
+);
+app.use("/api/farmerManager", farmerManagerRoutes);
 
 const PORT = process.env.PORT || 4000;
-
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

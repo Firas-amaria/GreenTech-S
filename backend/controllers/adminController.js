@@ -278,6 +278,65 @@ const getAllUsers = async (req, res) => {
 //   }
 // };  cleanOrphanedAuthUsers,
 
+// Import JSON data into a specified Firestore collection
+// const importJsonToFirestore = async (req, res) => {
+//   const { collection, documents } = req.body;
+
+//   console.log("📥 Received request to import documents:");
+//   console.log("➡️ Collection:", collection);
+//   console.log("➡️ Documents:", JSON.stringify(documents, null, 2));
+
+//   // Validate input
+//   if (
+//     !collection ||
+//     !documents ||
+//     (Array.isArray(documents) && documents.length === 0)
+//   ) {
+//     console.error("❌ Validation failed");
+//     return res.status(400).send({
+//       error:
+//         "Request must include 'collection' and a non-empty 'documents' object or array.",
+//     });
+//   }
+
+//   let entries = [];
+
+//   // Determine format
+//   if (Array.isArray(documents)) {
+//     console.log("🔍 Detected format: Array of documents");
+//     entries = documents.map((doc) => {
+//       const { id, ...data } = doc;
+//       return { id, data };
+//     });
+//   } else if (typeof documents === "object") {
+//     console.log("🔍 Detected format: Object with keys as IDs");
+//     entries = Object.entries(documents).map(([id, data]) => ({ id, data }));
+//   } else {
+//     console.error("❌ Invalid documents format:", typeof documents);
+//     return res.status(400).send({ error: "Invalid 'documents' format." });
+//   }
+
+//   try {
+//     const collectionRef = db.collection(collection);
+//     console.log("📁 Writing to collection:", collection);
+
+//     for (const { id, data } of entries) {
+//       console.log("📄 Writing doc:", id);
+//       console.log("📝 Data:", data);
+
+//       const docRef = id ? collectionRef.doc(id) : collectionRef.doc();
+//       await docRef.set(data);
+//     }
+
+//     res.status(200).send({
+//       message: `✅ Successfully imported ${entries.length} documents into '${collection}' collection.`,
+//     });
+//   } catch (error) {
+//     console.error("🔥 Error during import:", error);
+//     res.status(500).send({ error: error.message });
+//   }
+// };
+
 module.exports = {
   updateApplicationStatus,
   setRole,
