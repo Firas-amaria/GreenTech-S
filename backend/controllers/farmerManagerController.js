@@ -118,12 +118,16 @@ const getFarmerInventory = async (req, res) => {
 
 
 /*
-TO CHECK:
+TODO:
 - get auth if role is FM or admin 
 - get user id and user name 
--createdbyID  + createdByName 
+1.createdbyID  + createdByName 
 when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
+2.you get farmer id from req.body -> search in farmer collection and get name and farm name 
 
+add 1 and 2 to shipment req
+add 1 to stock 
+add 2 to stockItem
 
 
 */
@@ -173,6 +177,15 @@ const createStockItem = async (req, res) => {
     const basePrice = (itemData.price?.a) || 0;
     const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
 
+//Lookup for farm name 
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    if(!farmerDoc.exists) {
+      return res.status(404).json({ error: "Farmer not found" });
+    }
+    const farmerData= farmerDoc.data();
+    const sourceFarmName = farmerData.farmName || "UNKNOWN FARM";
+    //const sourceFarmerName = farmerData.name || "UNKNOWN FARMER";
+
     // 🔥 Create / update availableStock
     const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shift}`;
     const stockDocRef = db.collection("availableMarketStock").doc(stockDocId);
@@ -194,7 +207,7 @@ const createStockItem = async (req, res) => {
       itemPictureUrl,
       sourceFarmerId,
       sourceFarmerName,
-      sourceFarmName: "UNKNOWN FARM",
+      sourceFarmName: sourceFarmName,
       currentAvailableQuantityKg,
       originalCommittedQuantityKg,
       pricePerUnit: finalPrice,
