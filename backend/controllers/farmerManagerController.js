@@ -1,50 +1,53 @@
-const { db } = require("../firebaseConfig");
+const { admin, db } = require("../firebaseConfig");
 
 const getDashboardStatus = async (req, res) => {
   try {
     const logisticCenterId = "LC-1";
 
-    // Get shift names from DB
     const shiftsSnap = await db.collection("shifts").get();
-    const allShifts = shiftsSnap.docs.map((doc) => doc.id); // ["morning", "afternoon", "night"]
+    const allShifts = shiftsSnap.docs.map((doc) => doc.id); // e.g., ["morning", "afternoon", "night"]
 
     const createdShifts = [];
     const notCreatedShifts = [];
 
-    // Helper to process a date
-    const processDay = async (date, includeMissing) => {
-      const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date();
+
+    // Loop from past 1 days to 3 days ahead
+    for (let offset = -1; offset <= 3; offset++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + offset);
+
+      const dateStr = date.toISOString().split("T")[0];
+      const dateForId = dateStr.replace(/-/g, "_");
+
       const dayName = date
         .toLocaleDateString("en-US", { weekday: "long" })
-        .toLowerCase(); // e.g., "saturday"
+        .toLowerCase();
 
       for (const shift of allShifts) {
         const shiftId = `${dayName}-${shift}`;
-        const docId = `${logisticCenterId}_${dateStr}_${shiftId}`;
+        const docId = `${logisticCenterId}_AS_${dateForId}_${shift}`;
+        // console.log("Checking stock for:", docId);
 
         const stockSnap = await db
           .collection("availableMarketStock")
           .doc(docId)
           .get();
 
-        if (stockSnap.exists && stockSnap.data().items?.length > 0) {
+        const hasItems = stockSnap.exists && stockSnap.data().items?.length > 0;
+
+        if (hasItems) {
           createdShifts.push({
             shift: shiftId,
             count: stockSnap.data().items.length,
             date: dateStr,
           });
-        } else if (includeMissing) {
+        } else if (offset === 1) {
+          // Only mark as missing if it's TOMORROW and not created
           notCreatedShifts.push(shiftId);
         }
       }
-    };
-
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    await processDay(today, false); // created only
-    await processDay(tomorrow, true); // created + not created
+    }
 
     return res.json({ createdShifts, notCreatedShifts });
   } catch (err) {
@@ -113,7 +116,6 @@ const getFarmerInventory = async (req, res) => {
   }
 };
 
-
 /*
 TO CHECK:
 - get auth if role is FM or admin 
@@ -121,125 +123,172 @@ TO CHECK:
 -createdbyID  + createdByName 
 when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
 
-
-
 */
 
-
 const createStockItem = async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  const today = new Date();
+
   try {
     const {
-      logisticCenterId = "LC-1",
+      logisticCenterId,
       shift, // e.g., "monday-morning"
-      itemId,
-      itemDisplayName,
-      itemPictureUrl = "https://example.com/images/default.jpg",
-      sourceFarmerId,
-      sourceFarmerName,
-      sourceLandId,
-      currentAvailableQuantityKg,
-      originalCommittedQuantityKg
+      items = [], // Array of stock items
     } = req.body;
 
-    // 🔥 Manager details from headers
-    const updatedBy = req.headers["x-user-id"] || "UNKNOWN-UID";
-    const updatedByName = req.headers["x-user-name"] || "Unknown Manager";
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const createdbyID = decodedToken.uid;
 
-    const now = new Date();
+    const userDoc = await db.collection("users").doc(createdbyID).get();
+    if (!userDoc.exists) {
+      console.warn(`User profile not found for UID: ${createdbyID}`);
+      return null; // <- return null so we can filter it out
+    }
+    const userData = userDoc.data();
+    const createdByName = userData.firstName + " " + userData.lastName;
+
     const [dayName, shiftType] = shift.toLowerCase().split("-");
-    const targetDate = getNextWeekdayDate(dayName);
+    const targetDate = getNextOrTodayWeekdayDate(dayName);
+    console.log(
+      `� Next or today date for ${dayName}: ${targetDate.toISOString()}`
+    );
+
     const dateStr = targetDate.toISOString().split("T")[0];
     const dateForId = dateStr.replace(/-/g, "_");
+    console.log(`📅 Formatted date for ID: ${dateForId}`);
 
-    // 🔎 Lookup item price from items collection
-    const itemDoc = await db.collection("items").doc(itemId).get();
-    if (!itemDoc.exists) {
-      return res.status(404).json({ error: "Item not found in catalog" });
-    }
-    const itemData = itemDoc.data();
-    const basePrice = (itemData.price?.a) || 0;
-    const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
-
-    // 🔥 Create / update availableStock
-    const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shift}`;
+    const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shiftType}`;
     const stockDocRef = db.collection("availableMarketStock").doc(stockDocId);
     const stockDoc = await stockDocRef.get();
+
     const stockData = stockDoc.exists
       ? stockDoc.data()
       : {
           logisticCenterId,
           availableDate: `${dateStr}T00:00:00Z`,
           availableShift: shift,
-          generatedAt: now.toISOString(),
-          createdByManagerId: updatedBy,
-          items: []
+          generatedAt: today.toISOString(),
+          createdByManagerId: createdbyID,
+          items: [],
         };
 
-    stockData.items.push({
-      itemId,
-      itemDisplayName,
-      itemPictureUrl,
-      sourceFarmerId,
-      sourceFarmerName,
-      sourceFarmName: "UNKNOWN FARM",
-      currentAvailableQuantityKg,
-      originalCommittedQuantityKg,
-      pricePerUnit: finalPrice,
-      status: "active",
-      sourceLandId
-    });
+    const createdShipmentIds = [];
 
-    stockData.lastUpdatedAt = now.toISOString();
-    stockData.updatedBy = updatedBy;
-    stockData.updatedByName = updatedByName;
+    for (const item of items) {
+      const {
+        itemId,
+        itemDisplayName,
+        sourceFarmerId,
+        pickupAddress,
+        currentAvailableQuantityKg,
+        originalCommittedQuantityKg,
+      } = item;
+
+      // 🔎 Lookup item price from items collection
+      const itemDoc = await db.collection("items").doc(itemId).get();
+      if (!itemDoc.exists) {
+        console.warn(`⚠️ Item not found in catalog: ${itemId}`);
+        continue; // Skip this item
+      }
+
+      const itemData = itemDoc.data();
+      const basePrice = itemData.price?.a || 0;
+      const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
+
+      const sourceFarmerDoc = await db
+        .collection("users")
+        .doc(sourceFarmerId)
+        .get();
+      if (!sourceFarmerDoc.exists) {
+        console.warn(`User profile not found for UID: ${sourceFarmerId}`);
+        return null; // <- return null so we can filter it out
+      }
+      const sourceFarmerData = sourceFarmerDoc.data();
+      const sourceFarmerName =
+        sourceFarmerData.firstName + " " + sourceFarmerData.lastName;
+      const farmerDoc = await db
+        .collection("farmers")
+        .doc(sourceFarmerId)
+        .get();
+      if (!farmerDoc.exists) {
+        console.warn(`User profile not found for UID: ${sourceFarmerId}`);
+        return null; // <- return null so we can filter it out
+      }
+      const farmerData = farmerDoc.data();
+
+      // Add stock item
+      stockData.items.push({
+        itemId,
+        itemDisplayName,
+        sourceFarmerId,
+        sourceFarmerName: sourceFarmerName,
+        sourceFarmName: farmerData.farmName || "UNKNOWN FARM",
+        pickupAddress,
+        currentAvailableQuantityKg,
+        originalCommittedQuantityKg,
+        pricePerUnit: finalPrice,
+        status: "active",
+      });
+
+      // 🔥 Create shipmentRequest
+      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+      const shipmentRequest = {
+        logisticCenterId,
+        farmerManagerId: createdbyID,
+        farmerManagerName: createdByName,
+        farmerId: sourceFarmerId,
+        farmerName: sourceFarmerName,
+        pickupAddress,
+        createdAt: today.toISOString(),
+        scheduledPickupDate: `${dateStr}T00:00:00Z`,
+        scheduledPickupTimeSlot: shift,
+        status: "forecasted",
+        itemId,
+        itemDisplayName,
+        forecastedQuantityKg: originalCommittedQuantityKg,
+        finalConfirmedQuantityKg: null,
+        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
+        exactAmountConfirmedAt: null,
+        farmerLastNotifiedAt: null,
+        lastUpdatedAt: today.toISOString(),
+        createdbyID,
+        createdByName,
+        correspondingShipmentId: null,
+      };
+
+      await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
+      createdShipmentIds.push(sreqId);
+    }
+
+    // Save stock data
+    stockData.lastUpdatedAt = today.toISOString();
+    stockData.createdbyID = createdbyID;
+    stockData.createdByName = createdByName;
 
     await stockDocRef.set(stockData, { merge: true });
 
-    // 🔥 Create shipmentRequest
-    const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
-    const shipmentRequest = {
-      logisticCenterId,
-      farmerManagerId: updatedBy,
-      farmerManagerName: updatedByName,
-      farmerId: sourceFarmerId,
-      farmerName: sourceFarmerName,
-      createdAt: now.toISOString(),
-      scheduledPickupDate: `${dateStr}T00:00:00Z`,
-      scheduledPickupTimeSlot: shift,
-      status: "forecasted",
-      itemId,
-      itemDisplayName,
-      forecastedQuantityKg: originalCommittedQuantityKg,
-      finalConfirmedQuantityKg: null,
-      expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
-      exactAmountConfirmedAt: null,
-      farmerLastNotifiedAt: null,
-      lastUpdatedAt: now.toISOString(),
-      updatedBy,
-      updatedByName,
-      correspondingShipmentId: null
-    };
-    await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
-
     res.status(200).json({
-      message: "Stock item and shipment request saved successfully.",
+      message: "✅ Stock items and shipment requests saved.",
       stockId: stockDocId,
-      shipmentRequestId: sreqId
+      shipmentRequestIds: createdShipmentIds,
     });
   } catch (err) {
-    console.error("Error creating stock:", err);
+    console.error("❌ Error creating stock items:", err);
     res.status(500).json({
-      error: err.message || "failed to create stock item"
+      error: err.message || "failed to create stock items",
     });
   }
 };
 
-
-
-
-
 // 🔁 Helper function to get the next date for a given weekday
-function getNextWeekdayDate(dayName) {
+function getNextOrTodayWeekdayDate(dayName) {
   const daysOfWeek = [
     "sunday",
     "monday",
@@ -251,17 +300,128 @@ function getNextWeekdayDate(dayName) {
   ];
   const targetDay = daysOfWeek.indexOf(dayName.toLowerCase());
   if (targetDay === -1) throw new Error("Invalid day name in shift");
-
   const today = new Date();
-  const todayDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const diff = (targetDay + 7 - todayDay) % 7 || 7; // Get the next occurrence of the day (never today)
-  const result = new Date(today);
+  const todayDay = today.getDay();
+  const diff = targetDay - todayDay + 7; // 0 = today
+  const result = today;
   result.setDate(today.getDate() + diff);
-  result.setHours(0, 0, 0, 0);
+
   return result;
 }
 
+// GET /api/farmerManager/shipmentRequests/:shift
+const getShipmentRequestsForShift = async (req, res) => {
+  try {
+    const { shift } = req.params; // e.g. "sunday-afternoon"
+    const [dayName, shiftType] = shift.split("-"); // e.g. "sunday", "afternoon"
+
+    if (!dayName || !shiftType) {
+      return res
+        .status(400)
+        .json({ error: "Invalid shift format. Use 'sunday-morning'" });
+    }
+
+    // 🔁 Use your helper to get the next or today date
+    const targetDate = getNextOrTodayWeekdayDate(dayName.toLowerCase());
+
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(targetDate.getDate()).padStart(2, "0");
+    const formattedDate = `${yyyy}_${mm}_${dd}`; // e.g. 2025_07_06
+
+    // 🔍 Fetch all shipmentRequests and filter by document ID pattern
+    const snapshot = await db
+      .collection("shipmentRequests")
+      .where("status", "!=", "finalized")
+      .get();
+
+    const filtered = snapshot.docs
+      .filter((doc) => {
+        const parts = doc.id.split("_");
+        return (
+          parts[0] === "LC-1" &&
+          parts[1] === "SReq" &&
+          parts[2] === yyyy.toString() &&
+          parts[3] === mm &&
+          parts[4] === dd &&
+          parts[5] === shiftType
+        );
+      })
+      .map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    res.status(200).json(filtered);
+  } catch (error) {
+    console.error("Error in getShipmentRequestsForShift:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// POST /api/farmerManager/finalizeShipmentRequest
+const shipmentRequestQuantitiesConfirmed = async (req, res) => {
+  try {
+    const { shipmentRequestId, finalConfirmedQuantityKg } = req.body;
+
+    if (!shipmentRequestId || finalConfirmedQuantityKg == null) {
+      return res.status(400).json({ error: "Missing data in request body" });
+    }
+
+    const sreqRef = db.collection("shipmentRequests").doc(shipmentRequestId);
+    const sreqSnap = await sreqRef.get();
+
+    if (!sreqSnap.exists) {
+      return res.status(404).json({ error: "Shipment request not found" });
+    }
+
+    const now = new Date();
+    const shipmentRequest = sreqSnap.data();
+
+    // Update shipment request
+    await sreqRef.update({
+      finalConfirmedQuantityKg,
+      status: "finalQuantitiesConfirmed",
+      exactAmountConfirmedAt: now.toISOString(),
+    });
+
+    // // Create shipment
+    // const shipmentId = `SHIP_${shipmentRequest.farmerId}_${
+    //   shipmentRequest.itemId
+    // }_${now.getTime()}`;
+    // const shipmentData = {
+    //   id: shipmentId,
+    //   logisticCenterId: shipmentRequest.logisticCenterId || "LC-1",
+    //   farmerId: shipmentRequest.farmerId,
+    //   driverId: null,
+    //   origin: null,
+    //   destination: null,
+    //   createdAt: now.toISOString(),
+    //   pickupTime: null,
+    //   overallStatus: null,
+    //   problemFlag: false,
+    //   shipmentRequestId,
+    //   shipmentBarcode: null,
+    //   containerBarcodes: [],
+    //   stages: [],
+    //   fullReport: null,
+    // };
+
+    // await db.collection("shipments").doc(shipmentId).set(shipmentData);
+
+    // // Optionally update the shipmentRequest with shipment ID
+    // await sreqRef.update({
+    //   correspondingShipmentId: shipmentId,
+    // });
+
+    // res.status(200).json({ message: "Shipment request finalized", shipmentId });
+    res.status(200).json({ message: "Shipment request updated" });
+  } catch (error) {
+    console.error("Error finalizing shipment request:", error);
+    res.status(500).json({ error: "Failed to finalize shipment request" });
+  }
+};
+
 module.exports = {
+  getShipmentRequestsForShift,
+  shipmentRequestQuantitiesConfirmed,
   getDemandStatistics,
   getFarmerInventory,
   createStockItem,
