@@ -118,16 +118,12 @@ const getFarmerInventory = async (req, res) => {
 
 
 /*
-TODO:
+TO CHECK:
 - get auth if role is FM or admin 
 - get user id and user name 
-1.createdbyID  + createdByName 
+-createdbyID  + createdByName 
 when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
-2.you get farmer id from req.body -> search in farmer collection and get name and farm name 
 
-add 1 and 2 to shipment req
-add 1 to stock 
-add 2 to stockItem
 
 
 */
