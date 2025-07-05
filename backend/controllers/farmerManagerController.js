@@ -113,6 +113,19 @@ const getFarmerInventory = async (req, res) => {
   }
 };
 
+
+/*
+TO CHECK:
+- get auth if role is FM or admin 
+- get user id and user name 
+-createdbyID  + createdByName 
+when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
+
+
+
+*/
+
+
 const createStockItem = async (req, res) => {
   try {
     const {
