@@ -118,15 +118,16 @@ const getFarmerInventory = async (req, res) => {
 
 /*
 TODO:
-get farmer inventory id 
-update max order-=committed quantity
+- get auth if role is FM or admin 
+- get user id and user name 
+1.createdbyID  + createdByName 
+when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
+2.you get farmer id from req.body -> search in farmer collection and get name and farm name 
 
-then in shipment finalize
-commitedOrders= originalCommittedQuantityKg- currentAvailableQuantityKg
-// Update farmer inventory with finalized quantity 
-maxOrder =maxOrder- finalizedQuantityKg+ orginalCommittedQuantityKg
+add 1 and 2 to shipment req
+add 1 to stock 
+add 2 to stockItem
 
-farmerId_itemId
 
 */
 
