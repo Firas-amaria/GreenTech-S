@@ -437,7 +437,7 @@ when added
     }
     const farmerData = farmer.data();
     const lands = farmerData.extraFields?.lands || [];
-    const pickupAddress = lands[landIndex].pickupAddress;
+    const pickupAddress = lands[landIndex].pickupAddress || "Unknown Address";
     const agreementPercentage = (farmerData.agreementPercentage || 60) / 100; // Default to 60% if not set
     if (action === "add") {
       // Add to inventory when harvesting
@@ -600,6 +600,17 @@ async function deleteCrop(req, res) {
       return res.status(404).send({ error: "Crop not found" });
     }
 
+    try {
+      const cropToDelete = lands[landIndex].crop; // Use existing crop id if available
+
+      await manageInventory(farmerId, cropToDelete, landIndex, "remove");
+      //console.log(`[deleteCrop] Removed crop ${cropId} from inventory`);
+    } catch (inventoryError) {
+      console.log(
+        `[deleteCrop] Error removing from inventory (may not exist): ${inventoryError.message}`
+      );
+      // Don't fail the delete operation if inventory removal fails
+    }
     // Remove crop from land
     delete lands[landIndex].crop;
 
@@ -607,13 +618,6 @@ async function deleteCrop(req, res) {
     await updateFarmerLands(farmerId, lands);
 
     // Remove from inventory if it exists
-    try {
-      await manageInventory(farmerId, cropId, "remove");
-      //console.log(`[deleteCrop] Removed crop ${cropId} from inventory`);
-    } catch (inventoryError) {
-      //console.log(`[deleteCrop] Error removing from inventory (may not exist): ${inventoryError.message}`);
-      // Don't fail the delete operation if inventory removal fails
-    }
 
     //console.log(`[deleteCrop] Successfully deleted crop from land ${landIndex}`);
     res.json({ message: "Crop deleted successfully" });
