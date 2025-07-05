@@ -116,32 +116,41 @@ const getFarmerInventory = async (req, res) => {
 const createStockItem = async (req, res) => {
   try {
     const {
-      logisticCenterId,
+      logisticCenterId = "LC-1",
       shift, // e.g., "monday-morning"
       itemId,
       itemDisplayName,
       itemPictureUrl = "https://example.com/images/default.jpg",
       sourceFarmerId,
+      sourceFarmerName,
       sourceLandId,
-      quantityKg,
-      createdByManagerId,
+      currentAvailableQuantityKg,
+      originalCommittedQuantityKg
     } = req.body;
 
+    // 🔥 Manager details from headers
+    const updatedBy = req.headers["x-user-id"] || "UNKNOWN-UID";
+    const updatedByName = req.headers["x-user-name"] || "Unknown Manager";
+
     const now = new Date();
+    const [dayName, shiftType] = shift.toLowerCase().split("-");
+    const targetDate = getNextWeekdayDate(dayName);
+    const dateStr = targetDate.toISOString().split("T")[0];
+    const dateForId = dateStr.replace(/-/g, "_");
 
-    // Extract day and time slot
-    const [dayName, shiftType] = shift.toLowerCase().split("-"); // e.g., ["monday", "morning"]
+    // 🔎 Lookup item price from items collection
+    const itemDoc = await db.collection("items").doc(itemId).get();
+    if (!itemDoc.exists) {
+      return res.status(404).json({ error: "Item not found in catalog" });
+    }
+    const itemData = itemDoc.data();
+    const basePrice = (itemData.price?.a) || 0;
+    const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
 
-    // Convert dayName ("monday") into the next matching date
-    const targetDate = getNextWeekdayDate(dayName); // helper function below
-    const dateStr = targetDate.toISOString().split("T")[0]; // YYYY-MM-DD
-    const dateForId = dateStr.replace(/-/g, "_"); // YYYY_MM_DD
-
-    const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shiftType}`;
-
+    // 🔥 Create / update availableStock
+    const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shift}`;
     const stockDocRef = db.collection("availableMarketStock").doc(stockDocId);
     const stockDoc = await stockDocRef.get();
-
     const stockData = stockDoc.exists
       ? stockDoc.data()
       : {
@@ -149,8 +158,8 @@ const createStockItem = async (req, res) => {
           availableDate: `${dateStr}T00:00:00Z`,
           availableShift: shift,
           generatedAt: now.toISOString(),
-          createdByManagerId,
-          items: [],
+          createdByManagerId: updatedBy,
+          items: []
         };
 
     stockData.items.push({
@@ -158,48 +167,63 @@ const createStockItem = async (req, res) => {
       itemDisplayName,
       itemPictureUrl,
       sourceFarmerId,
-      sourceFarmerName: sourceFarmerId,
+      sourceFarmerName,
       sourceFarmName: "UNKNOWN FARM",
-      currentAvailableQuantityKg: quantityKg,
-      pricePerUnit: 3.0,
+      currentAvailableQuantityKg,
+      originalCommittedQuantityKg,
+      pricePerUnit: finalPrice,
       status: "active",
-      originalCommittedQuantityKg: quantityKg,
-      sourceLandId,
+      sourceLandId
     });
 
     stockData.lastUpdatedAt = now.toISOString();
-    await stockDocRef.set(stockData);
+    stockData.updatedBy = updatedBy;
+    stockData.updatedByName = updatedByName;
 
-    // Create shipment request
+    await stockDocRef.set(stockData, { merge: true });
+
+    // 🔥 Create shipmentRequest
     const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
     const shipmentRequest = {
       logisticCenterId,
-      farmerManagerId: createdByManagerId,
+      farmerManagerId: updatedBy,
+      farmerManagerName: updatedByName,
       farmerId: sourceFarmerId,
+      farmerName: sourceFarmerName,
       createdAt: now.toISOString(),
       scheduledPickupDate: `${dateStr}T00:00:00Z`,
       scheduledPickupTimeSlot: shift,
       status: "forecasted",
       itemId,
       itemDisplayName,
-      forecastedQuantityKg: quantityKg,
+      forecastedQuantityKg: originalCommittedQuantityKg,
       finalConfirmedQuantityKg: null,
-      expectedContainerCount: Math.ceil(quantityKg / 50),
+      expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
       exactAmountConfirmedAt: null,
       farmerLastNotifiedAt: null,
       lastUpdatedAt: now.toISOString(),
-      updatedBy: createdByManagerId,
-      correspondingShipmentId: null,
+      updatedBy,
+      updatedByName,
+      correspondingShipmentId: null
     };
-
     await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
 
-    res.status(200).json({ message: "Stock item and shipment request saved." });
-  } catch (error) {
-    console.error("❌ Error creating stock item:", error);
-    res.status(500).json({ error: "Failed to create stock item." });
+    res.status(200).json({
+      message: "Stock item and shipment request saved successfully.",
+      stockId: stockDocId,
+      shipmentRequestId: sreqId
+    });
+  } catch (err) {
+    console.error("Error creating stock:", err);
+    res.status(500).json({
+      error: err.message || "failed to create stock item"
+    });
   }
 };
+
+
+
+
 
 // 🔁 Helper function to get the next date for a given weekday
 function getNextWeekdayDate(dayName) {
