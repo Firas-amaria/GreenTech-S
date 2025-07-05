@@ -1,4 +1,6 @@
+import { auth, getCurrentUserToken } from "./firebase-init.js";
 
+let collectedStockItems = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
@@ -10,19 +12,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   let farmerInventory = [];
 
   try {
-    // console.log(`🔄 Fetching demand statistics for shift: ${shift}`);
     const statRes = await fetch(
       `http://localhost:4000/api/farmerManager/demandStatistics/${shift}`
     );
-    if (!statRes.ok) {
+    if (!statRes.ok)
       throw new Error(`Demand stat fetch failed: ${statRes.status}`);
-    }
     const statData = await statRes.json();
-    // console.log("📊 Demand statistics response:", statData);
     stats = statData?.items || [];
 
     if (stats.length === 0) {
-      console.warn("⚠ No demand statistics found for this shift.");
       container.innerHTML = "<p>No demand data for this shift.</p>";
       return;
     }
@@ -33,23 +31,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    //console.log("🔄 Fetching farmer inventory");
     const invRes = await fetch(
       `http://localhost:4000/api/farmerManager/farmerInventory`
     );
-    if (!invRes.ok) {
+    if (!invRes.ok)
       throw new Error(`Farmer inventory fetch failed: ${invRes.status}`);
-    }
     const invData = await invRes.json();
-    //console.log("🌾 Raw farmer inventory response:", invData);
-
     farmerInventory = invData.inventory || [];
 
-    if (!Array.isArray(farmerInventory)) {
+    if (!Array.isArray(farmerInventory))
       throw new Error("Expected an array in 'inventory' field.");
-    }
-
-    console.log("🌾 Parsed farmer inventory (array):", farmerInventory);
   } catch (error) {
     console.error("❌ Error fetching farmer inventory:", error);
     container.innerHTML = "<p>Failed to load farmer inventory.</p>";
@@ -61,10 +52,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const itemFarmers = farmerInventory.filter(
       (inv) => inv.itemId === item.itemId
     );
-
-    // console.log(
-    //   `📦 Item ${item.itemDisplayName} (${item.itemId}) has ${itemFarmers.length} matching farmers.`
-    // );
 
     itemFarmers.forEach((farmer) => {
       farmer.maxOrder = parseFloat(farmer.maxOrder).toFixed(1);
@@ -100,6 +87,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     container.appendChild(section);
   });
+
+  // Add "Create Stock" button at end
+  const createBtn = document.createElement("button");
+  createBtn.id = "submit-stock-btn";
+  createBtn.textContent = "✅ Create Stock & Proceed to Dashboard";
+  createBtn.style.marginTop = "30px";
+  createBtn.style.padding = "10px 20px";
+  createBtn.style.fontSize = "18px";
+  createBtn.addEventListener("click", submitAllStock);
+  container.appendChild(createBtn);
 });
 
 function renderFarmersForItem(farmers, item, tbodyId, typicalDemand) {
@@ -127,19 +124,36 @@ function renderFarmersForItem(farmers, item, tbodyId, typicalDemand) {
     const btn = document.createElement("button");
     btn.textContent = "Add";
     btn.addEventListener("click", () => {
-      console.log(
-        `🟢 Add clicked for ${item.itemId}, Farmer ${farmer.farmerId}`
-      );
-      createFarmerStock(
-        item.itemId,
-        item.itemDisplayName,
-        farmer.farmerId,
-        farmer.pickupAddress,
+      const inputId = `input-${item.itemId}-${farmer.farmerId}`;
+      const inputEl = document.getElementById(inputId);
+      let orderQty = parseFloat(inputEl.value) || 0;
+      const max = parseFloat(
         btn
+          .closest("tr")
+          .querySelector(`#max-${item.itemId}-${farmer.farmerId}`).textContent
       );
-    });
-    tr.lastElementChild.appendChild(btn);
 
+      if (orderQty <= 0 || orderQty > max) {
+        alert("Invalid order quantity.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "✔ Added";
+
+      collectedStockItems.push({
+        itemId: item.itemId,
+        itemDisplayName: item.itemDisplayName,
+        sourceFarmerId: farmer.farmerId,
+        pickupAddress: farmer.pickupAddress,
+        currentAvailableQuantityKg: orderQty,
+        originalCommittedQuantityKg: orderQty,
+      });
+
+      updateTotals(item.itemId, typicalDemand);
+    });
+
+    tr.lastElementChild.appendChild(btn);
     const input = tr.querySelector("input");
     input.addEventListener("input", () =>
       updateTotals(item.itemId, typicalDemand)
@@ -167,104 +181,48 @@ function updateTotals(itemId, typicalDemand) {
   )} kg | Remaining to fill demand: ${remaining} kg`;
 }
 
-async function createFarmerStock(
-  itemId,
-  itemDisplayName,
-  farmerId,
-  landId,
-  btnEl
-) {
-  const inputId = `input-${itemId}-${farmerId}`;
-  const inputEl = document.getElementById(inputId);
-  let orderQty = parseFloat(inputEl.value) || 0;
-
-  const maxEl = document.getElementById(`max-${itemId}-${farmerId}`);
-  let maxAvailable = parseFloat(maxEl.textContent) || 0;
-
-  if (orderQty > maxAvailable) {
-    orderQty = maxAvailable;
-    inputEl.value = maxAvailable;
-  }
-
-  if (orderQty <= 0) {
-    alert("Please enter a valid kg amount.");
+async function submitAllStock() {
+  if (collectedStockItems.length === 0) {
+    alert("You haven't added any stock items yet.");
     return;
   }
 
-  maxAvailable -= orderQty;
-  maxEl.textContent = `${maxAvailable.toFixed(1)} kg`;
-  inputEl.dataset.max = maxAvailable.toFixed(1);
-
   const shift = new URLSearchParams(window.location.search).get("shift");
-
-
   const user = JSON.parse(localStorage.getItem("user"));
-// 2. Extract only the name
-const managerName = user?.name;
-/*  
 
-okay what we need now is to make sure that the manager is a farmer manager or admin 
-send token and in backend check if the user is a farmer manager or admin
-If not, alert the user and return early.
-and saving in local storage i dont know if it is a good idea or not
-cause it refreshes somewhere between 30mins to an hour 
-*/
-
-  console.log("📤 Sending stock POST request with:", {
+  const payload = {
     logisticCenterId: "LC-1",
     shift,
-    itemId,
-    itemDisplayName,
-    itemPictureUrl: "https://example.com/images/default.jpg",
-    sourceFarmerId: farmerId,
-    sourceFarmerName: farmerId,
-    sourceFarmName: "UNKNOWN FARM",
-    sourceLandId: landId,
-    currentAvailableQuantityKg: orderQty,
-    originalCommittedQuantityKg: orderQty,
-    createdByManagerId: "FM_UID_abc" ,
-    managerName: managerName,
-  });
+    createdByManagerId: "user_UID_abc", // replace with actual logic
+    createdByName: user?.name || "unknown",
+    items: collectedStockItems,
+  };
 
   try {
-    const res = await fetch(
+    const token = await getCurrentUserToken();
+
+    const response = await fetch(
       "http://localhost:4000/api/farmerManager/createStockItem",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          logisticCenterId: "LC-1",
-          shift,
-          itemId,
-          itemDisplayName,
-         // itemPictureUrl: "https://example.com/images/default.jpg",
-          sourceFarmerId: farmerId,
-          sourceFarmerName: farmerId,
-          sourceFarmName: "UNKNOWN FARM",
-          sourceLandId: landId,
-          currentAvailableQuantityKg: orderQty,
-          originalCommittedQuantityKg: orderQty,
-          createdByManagerId: "user_UID_abc", // Replace with actual user ID
-          createdByName: managerName,
-          
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
-    const result = await res.json();
-    console.log("✅ POST response:", result);
-
-    if (res.ok) {
-      btnEl.classList.add("added");
-      btnEl.textContent = "Added";
+    // ✅ Check response status before parsing JSON
+    if (!response.ok) {
+      const text = await response.text(); // try reading raw response for debugging
+      throw new Error(`Server error: ${response.status} - ${text}`);
+      alert("Failed to create stock.");
     } else {
-      alert("Failed to save stock item!");
+      window.location.href = "fm-dashboard.html";
     }
   } catch (err) {
-    console.error("❌ Error submitting stock:", err);
-    alert("Network error! Failed to submit.");
+    console.error("❌ Submit error:", err);
+    alert("Network error while submitting stock.");
   }
 }
-
