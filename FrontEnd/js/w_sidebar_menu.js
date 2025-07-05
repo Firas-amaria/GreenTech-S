@@ -1,6 +1,7 @@
 // ==========================================
 // w_sidebar_menu.js — Dynamic Role-Based Sidebar
 // ==========================================
+import { auth, signOut } from "./firebase-init.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -74,11 +75,10 @@ document.addEventListener("DOMContentLoaded", () => {
   sidebar.appendChild(ul);
 
   // ✅ Logout logic
-  const logoutBtn = document.getElementById("logoutLink");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("user");
-      window.location.href = "../login.html";
-    });
-  }
+  document.getElementById("logout-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    signOut(auth)
+      .then(() => (window.location.href = "index.html"))
+      .catch((err) => console.error("Logout failed:", err));
+  });
 });

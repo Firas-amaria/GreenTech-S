@@ -42,13 +42,13 @@ const allRoles = [
   "deliverer",
   "picker",
   "farmer",
-  "farmer manager",
-  "transportation manager",
-  "customer service manager",
+  "farmerManager",
+  "transportationManager",
+  "customerServiceManager",
   "customer",
-  "warehouse-worker",
+  "warehouseWorker",
   "industrial-driver",
-  "Operation-Maneger",
+  "operationManager",
 ];
 
 // Create dropdown for user role

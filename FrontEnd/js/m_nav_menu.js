@@ -1,6 +1,7 @@
 // ==========================================
 // m_nav_menu.js — Dynamic Role-Based Nav
 // ==========================================
+import { auth, signOut } from "./firebase-init.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -11,7 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  const role = user.role.toLowerCase();
+  const role = user.role;
+  const name = user.name || "User";
   let menuItems = [];
   if (role === "admin") {
     menuItems = [
@@ -27,17 +29,16 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "a_all_shipments.html", text: "Shipments" },
       { href: "schedule.html", text: "Schedule" },
     ];
-  } else if (role === "farmer-manager") {
-    menuItems = [
-      { href: "a_manage_users.html", text: "Manage Farmers" },
-      { href: "schedule.html", text: "Schedule" },
-    ];
-  }else if (role === "costumer"){//costumer service 
+  } else if (role === "farmerManager") {
+    menuItems = [{ href: "fm-dashboard.html", text: "Dashboard" }];
+  } else if (role === "costumer") {
+    //costumer service
     menuItems = [
       { href: "a_manage_users.html", text: "Manage Customers" },
       { href: "a_reports.html", text: "Reports" },
     ];
-  }else if (role === "cs"){//costumer service 
+  } else if (role === "cs") {
+    //costumer service
     menuItems = [
       { href: "a_manage_users.html", text: "Manage Customers" },
       { href: "a_reports.html", text: "Reports" },
@@ -77,11 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
   nav.innerHTML = ""; // clear existing nav
   nav.appendChild(ul);
 
-  const logoutLink = document.getElementById("logout-link");
-  if (logoutLink) {
-    logoutLink.addEventListener("click", () => {
-      localStorage.removeItem("user");
-      window.location.href = "../login.html";
-    });
-  }
+  document.getElementById("logout-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    signOut(auth)
+      .then(() => (window.location.href = "../index.html"))
+      .catch((err) => console.error("Logout failed:", err));
+  });
 });

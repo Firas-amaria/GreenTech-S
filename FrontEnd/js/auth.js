@@ -331,6 +331,9 @@ window.login = async (event) => {
       case "deliverer":
         window.location.href = "deliverer-dashboard.html";
         break;
+      case "farmerManager":
+        window.location.href = "u-farmerManager/fm-dashboard.html";
+        break;
       default:
         alert("Unknown role. Contact support.");
 
