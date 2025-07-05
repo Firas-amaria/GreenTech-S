@@ -1,3 +1,5 @@
+
+
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const shift = params.get("shift");
@@ -195,14 +197,33 @@ async function createFarmerStock(
 
   const shift = new URLSearchParams(window.location.search).get("shift");
 
+
+  const user = JSON.parse(localStorage.getItem("user"));
+// 2. Extract only the name
+const managerName = user?.name;
+/*  
+
+okay what we need now is to make sure that the manager is a farmer manager or admin 
+send token and in backend check if the user is a farmer manager or admin
+If not, alert the user and return early.
+and saving in local storage i dont know if it is a good idea or not
+cause it refreshes somewhere between 30mins to an hour 
+*/
+
   console.log("📤 Sending stock POST request with:", {
     logisticCenterId: "LC-1",
     shift,
-    farmerId,
-    landId,
     itemId,
     itemDisplayName,
-    quantityKg: orderQty,
+    itemPictureUrl: "https://example.com/images/default.jpg",
+    sourceFarmerId: farmerId,
+    sourceFarmerName: farmerId,
+    sourceFarmName: "UNKNOWN FARM",
+    sourceLandId: landId,
+    currentAvailableQuantityKg: orderQty,
+    originalCommittedQuantityKg: orderQty,
+    createdByManagerId: "FM_UID_abc" ,
+    managerName: managerName,
   });
 
   try {
@@ -216,11 +237,18 @@ async function createFarmerStock(
         body: JSON.stringify({
           logisticCenterId: "LC-1",
           shift,
-          farmerId,
-          landId,
           itemId,
           itemDisplayName,
-          quantityKg: orderQty,
+         // itemPictureUrl: "https://example.com/images/default.jpg",
+          sourceFarmerId: farmerId,
+          sourceFarmerName: farmerId,
+          sourceFarmName: "UNKNOWN FARM",
+          sourceLandId: landId,
+          currentAvailableQuantityKg: orderQty,
+          originalCommittedQuantityKg: orderQty,
+          createdByManagerId: "user_UID_abc", // Replace with actual user ID
+          createdByName: managerName,
+          
         }),
       }
     );
@@ -239,3 +267,4 @@ async function createFarmerStock(
     alert("Network error! Failed to submit.");
   }
 }
+
