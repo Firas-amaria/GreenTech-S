@@ -117,11 +117,16 @@ const getFarmerInventory = async (req, res) => {
 };
 
 /*
-TO CHECK:
-- get auth if role is FM or admin 
-- get user id and user name 
--createdbyID  + createdByName 
-when creating shipment make sure in farmer inventory  to decrease from max order the forecastedQuantityKg
+TODO:
+get farmer inventory id 
+update max order-=committed quantity
+
+then in shipment finalize
+commitedOrders= originalCommittedQuantityKg- currentAvailableQuantityKg
+// Update farmer inventory with finalized quantity 
+maxOrder =maxOrder- finalizedQuantityKg+ orginalCommittedQuantityKg
+
+farmerId_itemId
 
 */
 
@@ -223,6 +228,8 @@ const createStockItem = async (req, res) => {
       }
       const farmerData = farmerDoc.data();
 
+      //shimReq unique ID
+      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
       // Add stock item
       stockData.items.push({
         itemId,
@@ -235,10 +242,13 @@ const createStockItem = async (req, res) => {
         originalCommittedQuantityKg,
         pricePerUnit: finalPrice,
         status: "active",
+        shipReqId: sreqId,
       });
 
+      const shiftTimeData = db.collection("shifts").doc(shiftType);
+
       // 🔥 Create shipmentRequest
-      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+
       const shipmentRequest = {
         logisticCenterId,
         farmerManagerId: createdbyID,
@@ -254,7 +264,8 @@ const createStockItem = async (req, res) => {
         itemDisplayName,
         forecastedQuantityKg: originalCommittedQuantityKg,
         finalConfirmedQuantityKg: null,
-        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
+        //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
+        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
         exactAmountConfirmedAt: null,
         farmerLastNotifiedAt: null,
         lastUpdatedAt: today.toISOString(),
@@ -285,6 +296,16 @@ const createStockItem = async (req, res) => {
       error: err.message || "failed to create stock items",
     });
   }
+
+  //Update maxOrder in farmer inventory
+
+  const farmerInventoryId = `${farmerId}_${itemId}`;
+  const inventoryRef = db.collection("farmerInventory").doc(farmerInventoryId);
+  await inventoryRef.update({
+    maxOrder: admin.firestore.FieldValue.increment(
+      -originalCommittedQuantityKg
+    ),
+  });
 };
 
 // 🔁 Helper function to get the next date for a given weekday
@@ -319,7 +340,7 @@ function getNextOrTodayWeekdayDate(dayName) {
 const getShipmentRequestsForShift = async (req, res) => {
   try {
     const { shift } = req.params; // e.g. "sunday-afternoon"
-    const [dayName, shiftType] = shift.split("-"); // e.g. "sunday", "afternoon"
+    const [dayName, shiftType] = shift.split("-");
 
     if (!dayName || !shiftType) {
       return res
@@ -327,20 +348,28 @@ const getShipmentRequestsForShift = async (req, res) => {
         .json({ error: "Invalid shift format. Use 'sunday-morning'" });
     }
 
-    // 🔁 Use your helper to get the next or today date
+    // 🔁 Calculate target date
     const targetDate = getNextOrTodayWeekdayDate(dayName.toLowerCase());
-
     const yyyy = targetDate.getFullYear();
     const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
     const dd = String(targetDate.getDate()).padStart(2, "0");
-    const formattedDate = `${yyyy}_${mm}_${dd}`; // e.g. 2025_07_06
+    const formattedDate = `${yyyy}_${mm}_${dd}`;
 
-    // 🔍 Fetch all shipmentRequests and filter by document ID pattern
+    // 🔥 Load matching availableMarketStock
+    const stockDocId = `LC-1_AS_${shift}_${formattedDate}`;
+    const stockDoc = await db
+      .collection("availableMarketStock")
+      .doc(stockDocId)
+      .get();
+    const stockItems = stockDoc.exists ? stockDoc.data().items : [];
+
+    // 🔍 Query all shipmentRequests with status != finalized
     const snapshot = await db
       .collection("shipmentRequests")
       .where("status", "!=", "finalized")
       .get();
 
+    // 🔍 Filter by ID structure
     const filtered = snapshot.docs
       .filter((doc) => {
         const parts = doc.id.split("_");
@@ -353,7 +382,27 @@ const getShipmentRequestsForShift = async (req, res) => {
           parts[5] === shiftType
         );
       })
-      .map((doc) => ({ id: doc.id, ...doc.data() }));
+      .map((doc) => {
+        const data = doc.data();
+        // 🔍 Try to find matching stock item
+        const matchingItem = stockItems.find(
+          (item) =>
+            item.itemId === data.itemId && item.sourceFarmerId === data.farmerId
+        );
+
+        let committedOrders = null;
+        if (matchingItem) {
+          committedOrders =
+            matchingItem.originalCommittedQuantityKg -
+            matchingItem.currentAvailableQuantityKg;
+        }
+
+        return {
+          id: doc.id,
+          ...data,
+          committedOrders,
+        };
+      });
 
     res.status(200).json(filtered);
   } catch (error) {
@@ -376,6 +425,26 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
 
     if (!sreqSnap.exists) {
       return res.status(404).json({ error: "Shipment request not found" });
+    }
+
+    // 🔥 Now update farmer inventory maxOrder
+    const farmerInventoryId = `${shipmentRequest.farmerId}_${shipmentRequest.itemId}`;
+    const farmerInventoryRef = db
+      .collection("farmerInventory")
+      .doc(farmerInventoryId);
+    const farmerInventorySnap = await farmerInventoryRef.get();
+
+    if (farmerInventorySnap.exists) {
+      const farmerData = farmerInventorySnap.data();
+      const updatedMaxOrder = (
+        parseFloat(farmerData.maxOrder || 0) +
+        shipmentRequest.forecastedQuantityKg -
+        finalConfirmedQuantityKg
+      ).toFixed(2);
+
+      await farmerInventoryRef.update({
+        maxOrder: parseFloat(updatedMaxOrder),
+      });
     }
 
     const now = new Date();
