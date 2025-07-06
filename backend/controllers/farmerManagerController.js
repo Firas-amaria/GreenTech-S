@@ -116,19 +116,7 @@ const getFarmerInventory = async (req, res) => {
   }
 };
 
-/*
-TODO:
-get farmer inventory id 
-update max order-=committed quantity
 
-then in shipment finalize
-commitedOrders= originalCommittedQuantityKg- currentAvailableQuantityKg
-// Update farmer inventory with finalized quantity 
-maxOrder =maxOrder- finalizedQuantityKg+ orginalCommittedQuantityKg
-
-farmerId_itemId
-
-*/
 
 const createStockItem = async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -282,6 +270,9 @@ const createStockItem = async (req, res) => {
         maxOrder: admin.firestore.FieldValue.increment(
           -originalCommittedQuantityKg
         ),
+        currentAvailableForProcurementKg: admin.firestore.FieldValue.increment(
+          -originalCommittedQuantityKg
+        ),
       });
 
       await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
@@ -430,7 +421,7 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
     }
 
     // 🔥 Now update farmer inventory maxOrder
-    const farmerInventoryId = `${shipmentRequest.farmerId}_${shipmentRequest.itemId}`;
+    const farmerInventoryId = `${sreqRef.farmerId}_${sreqRef.itemId}`;
     const farmerInventoryRef = db
       .collection("farmerInventory")
       .doc(farmerInventoryId);
@@ -443,9 +434,15 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
         shipmentRequest.forecastedQuantityKg -
         finalConfirmedQuantityKg
       ).toFixed(2);
+      const updateAVailableForProcurementKg = (
+        parseFloat(farmerData.currentAvailableForProcurementKg || 0) +
+        shipmentRequest.forecastedQuantityKg -
+        finalConfirmedQuantityKg
+      ).toFixed(2);
 
       await farmerInventoryRef.update({
         maxOrder: parseFloat(updatedMaxOrder),
+        currentAvailableForProcurementKg: parseFloat(updateAVailableForProcurementKg),
       });
     }
 
@@ -645,6 +642,49 @@ async function updateApplicationStatus(req, res) {
   }
 }
 
+
+// GET all items for farmer manager with all details
+const getAllItems = async (req, res) => {
+  try {
+    const snapshot = await db.collection("items").get();
+    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return res.json(items);
+  } catch (err) {
+    console.error("Error getting items:", err);
+    return res.status(500).json({ error: "Failed to load items" });
+  }
+};
+
+// ADD new item
+const addNewItem = async (req, res) => {
+  try {
+    const data = req.body;
+    const ref = await db.collection("items").add({
+      ...data,
+      lastUpdated: new Date().toISOString(),
+    });
+    return res.json({ id: ref.id });
+  } catch (err) {
+    console.error("Error adding item:", err);
+    return res.status(500).json({ error: "Failed to add item" });
+  }
+};
+
+// EDIT existing item
+const updateItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection("items").doc(id).update({
+      ...req.body,
+      lastUpdated: new Date().toISOString(),
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Error updating item:", err);
+    return res.status(500).json({ error: "Failed to update item" });
+  }
+};
+
 module.exports = {
   updateApplicationStatus,
   getAllUsers,
@@ -656,4 +696,7 @@ module.exports = {
   getFarmerInventory,
   createStockItem,
   getDashboardStatus,
+   getAllItems,
+  addNewItem,
+  updateItem,
 };

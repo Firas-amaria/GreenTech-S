@@ -12,6 +12,9 @@ const {
   getAllUsers,
   updateAggrementPrecentage,
   updateApplicationStatus,
+  getAllItems,
+  addNewItem,
+  updateItem,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
@@ -50,5 +53,12 @@ router.put(
   requireRole("farmerManager"),
   updateAggrementPrecentage
 );
+
+
+
+router.get("/items", getAllItems ,requireRole("farmerManager"));
+router.post("/items", addNewItem ,requireRole("farmerManager"));
+router.put("/items/:id", updateItem ,requireRole("farmerManager"));
+
 
 module.exports = router;
