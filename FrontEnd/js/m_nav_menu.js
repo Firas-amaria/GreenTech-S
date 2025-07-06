@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ];
   } else if (role === "farmerManager") {
     menuItems = [{ href: "fm-dashboard.html", text: "Dashboard" }];
+    menuItems = [{ href: "fm-jobApplications.html", text: "Job Applications" }];
   } else if (role === "costumer") {
     //costumer service
     menuItems = [

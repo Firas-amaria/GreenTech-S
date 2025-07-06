@@ -474,7 +474,7 @@ async function handleAddCrop() {
       ExpectedFruitingPerPlant: fruiting,
       plantedOn: plantedOn,
       expectedHarvestDate,
-      expectedHarvestingKg: plantedAmount * avgRate,
+      expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
       status: "Planting",
       statusPercentage: 0,
       imageUrl: getRandomRealCropImage(),

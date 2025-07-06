@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("logout-link").addEventListener("click", (e) => {
     e.preventDefault();
     signOut(auth)
-      .then(() => (window.location.href = "index.html"))
+      .then(() => (window.location.href = "../index.html"))
       .catch((err) => console.error("Logout failed:", err));
   });
 });
