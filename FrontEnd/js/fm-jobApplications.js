@@ -11,6 +11,7 @@ const RolesTable = [
     fields: [
       { label: "Agricultural Insurance", type: "checkbox" },
       { label: "Farm Name", type: "text" },
+      { label: "Agreement Percentage", type: "text" },
     ],
   },
 ];

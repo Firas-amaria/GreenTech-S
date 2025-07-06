@@ -51,8 +51,13 @@ document.addEventListener("DOMContentLoaded", () => {
     text: `Welcome, ${name}`,
     className: "user-greeting",
   });
-  links.push({ href: "#", text: "Logout", id: "logoutLink" });
 
+  links.push({
+    href: "#",
+    text: "Logout",
+    id: "logout-link",
+    className: "logout",
+  });
   // ✅ Clear and rebuild sidebar
   sidebar.innerHTML = "";
 

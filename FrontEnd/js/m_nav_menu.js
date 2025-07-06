@@ -30,8 +30,11 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "schedule.html", text: "Schedule" },
     ];
   } else if (role === "farmerManager") {
-    menuItems = [{ href: "fm-dashboard.html", text: "Dashboard" }];
-    menuItems = [{ href: "fm-jobApplications.html", text: "Job Applications" }];
+    menuItems = [
+      { href: "fm-dashboard.html", text: "Dashboard" },
+      { href: "fm-jobApplications.html", text: "Job Applications" },
+      { href: "fm-manageUsers.html", text: "Manage Users" },
+    ];
   } else if (role === "costumer") {
     //costumer service
     menuItems = [

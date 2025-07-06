@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manage Users | Admin Dashboard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+
+<body>
+  <!-- ===== Main Navigation Bar ===== -->
+  <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
+  <header>
+    <nav id="main-nav"></nav>
+
+  </header>
+  <!-- ===== Main Content ===== -->
+  <main id="manage-users-content">
+    <!-- ===== Employees Section ===== -->
+    <section id="employees-section">
+      <h1>Employees</h1>
+      <table id="employees-table" class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS will inject mock employees here -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== Customers Section ===== -->
+
+  </main>
+
+  <script type="module" src="../js/fm-manageUsers.js"></script>
+  <script type="module" src="../js/m_nav_menu.js"></script>
+
+</body>
+
+</html>
