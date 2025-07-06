@@ -384,38 +384,9 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
     // Update shipment request
     await sreqRef.update({
       finalConfirmedQuantityKg,
-      status: "finalQuantitiesConfirmed",
+      status: "finalized",
       exactAmountConfirmedAt: now.toISOString(),
     });
-
-    // // Create shipment
-    // const shipmentId = `SHIP_${shipmentRequest.farmerId}_${
-    //   shipmentRequest.itemId
-    // }_${now.getTime()}`;
-    // const shipmentData = {
-    //   id: shipmentId,
-    //   logisticCenterId: shipmentRequest.logisticCenterId || "LC-1",
-    //   farmerId: shipmentRequest.farmerId,
-    //   driverId: null,
-    //   origin: null,
-    //   destination: null,
-    //   createdAt: now.toISOString(),
-    //   pickupTime: null,
-    //   overallStatus: null,
-    //   problemFlag: false,
-    //   shipmentRequestId,
-    //   shipmentBarcode: null,
-    //   containerBarcodes: [],
-    //   stages: [],
-    //   fullReport: null,
-    // };
-
-    // await db.collection("shipments").doc(shipmentId).set(shipmentData);
-
-    // // Optionally update the shipmentRequest with shipment ID
-    // await sreqRef.update({
-    //   correspondingShipmentId: shipmentId,
-    // });
 
     // res.status(200).json({ message: "Shipment request finalized", shipmentId });
     res.status(200).json({ message: "Shipment request updated" });
