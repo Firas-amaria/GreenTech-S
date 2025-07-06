@@ -258,7 +258,7 @@ async function renderDynamicApplicationCard(app) {
       const token = await getCurrentUserToken();
 
       const res = await fetch(
-        `http://localhost:4000/api/admin/updateApplication/${app.uid}`,
+        `http://localhost:4000/api/farmerManager/updateApplication/${app.uid}`,
         {
           method: "PUT",
           headers: {

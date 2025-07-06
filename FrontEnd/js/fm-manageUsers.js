@@ -7,59 +7,20 @@ window.addEventListener("DOMContentLoaded", async () => {
   } catch (error) {
     console.error("Failed to load users:", error);
   }
-
-  // Tab switching
-  document.getElementById("tab-employees").addEventListener("click", () => {
-    showTab("employees");
-  });
 });
 
 async function fetchUsers() {
   const token = await getCurrentUserToken();
-  const response = await fetch("http://localhost:4000/api/admin/users", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetch(
+    "http://localhost:4000/api/farmerManager/getAllUsers",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
   if (!response.ok) throw new Error("Failed to fetch users");
   return await response.json();
-}
-
-function splitUsersByRole(users) {
-  const employees = users.filter((u) => u.role && u.role !== "customer");
-  const customers = users.filter((u) => u.role === "customer");
-  return { employees, customers };
-}
-
-// This needs to be updated and make sure we are using the correct roles pls
-const allRoles = [
-  "admin",
-  "deliverer",
-  "picker",
-  "farmer",
-  "farmerManager",
-  "transportationManager",
-  "customerServiceManager",
-  "customer",
-  "warehouseWorker",
-  "industrial-driver",
-  "operationManager",
-];
-
-// Create dropdown for user role
-function buildRoleDropdown(currentRole) {
-  const select = document.createElement("select");
-  select.classList.add("role-select");
-
-  allRoles.forEach((role) => {
-    const opt = document.createElement("option");
-    opt.value = role;
-    opt.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    if (role === currentRole) opt.selected = true;
-    select.appendChild(opt);
-  });
-
-  return select;
 }
 
 // Show user info popup
@@ -68,13 +29,12 @@ function viewUserInfo(user, isEmployee) {
   alert(
     `${type} Info:\n\nID: ${user.uid}\nName: ${
       user.firstName + " " + user.lastName || "-"
-    }\nEmail: ${user.email || "-"}\nRole: ${user.role || "-"}\nStatus: ${
-      user.status || "-"
+    }\nEmail: ${user.email || "-"}\nRole: ${user.role || "-"}\nPhone: ${
+      user.phone || "-"
     }`
   );
 }
 
-// Render table with user rows
 function renderUsersToTable(users, tableId, isEmployee) {
   const tbody = document.querySelector(`#${tableId} tbody`);
   tbody.innerHTML = "";
@@ -88,109 +48,66 @@ function renderUsersToTable(users, tableId, isEmployee) {
       (user.firstName || "") + " " + (user.lastName || "") || "—";
     tr.appendChild(nameTd);
 
-    // Role with dropdown
-    const roleTd = document.createElement("td");
-    const roleSelect = buildRoleDropdown(user.role);
-    roleSelect.addEventListener("change", () => {
-      const newRole = roleSelect.value;
-      updateUserRole(user.uid, newRole);
-    });
-    roleTd.appendChild(roleSelect);
-    tr.appendChild(roleTd);
+    // Aggrement Precentage input + Save button
+    const aggrementTd = document.createElement("td");
 
-    // Actions (View Info + Delete)
+    const aggrementInput = document.createElement("input");
+    aggrementInput.type = "number";
+    aggrementInput.min = 0;
+    aggrementInput.max = 100;
+    aggrementInput.value = user.extraFields.agreementPercentage || 0;
+    aggrementInput.classList.add("agreement-input");
+    aggrementInput.style.marginRight = "5px";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save";
+    saveBtn.classList.add("save-agreement-btn");
+    saveBtn.addEventListener("click", () => {
+      const newValue = parseFloat(aggrementInput.value);
+      updateAggrementPrecentage(user.uid, newValue);
+    });
+
+    aggrementTd.appendChild(aggrementInput);
+    aggrementTd.appendChild(saveBtn);
+    tr.appendChild(aggrementTd);
+
+    // Actions (View Info only)
     const actionsTd = document.createElement("td");
 
-    // View Info Button
     const viewBtn = document.createElement("button");
     viewBtn.textContent = "View Information";
     viewBtn.classList.add("view-info-btn");
     viewBtn.addEventListener("click", () => viewUserInfo(user, isEmployee));
     actionsTd.appendChild(viewBtn);
 
-    // Delete Button
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Delete";
-    deleteBtn.classList.add("delete-user-btn");
-    deleteBtn.style.marginLeft = "10px";
-    deleteBtn.addEventListener("click", () =>
-      confirmDeleteUser(user.uid, user.fullName || user.firstName)
-    );
-    actionsTd.appendChild(deleteBtn);
-
     tr.appendChild(actionsTd);
 
-    // ✅ FIX: Append the row to the table
+    // Append to table
     tbody.appendChild(tr);
   });
 }
 
-async function confirmDeleteUser(uid, name) {
-  if (
-    !confirm(
-      `Are you sure you want to delete user "${name}"? This cannot be undone.`
-    )
-  ) {
-    return;
-  }
-
-  try {
-    const token = await getCurrentUserToken();
-    const response = await fetch(
-      `http://localhost:4000/api/admin/users/${uid}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) throw new Error("Failed to delete user");
-    alert(`User "${name}" deleted successfully.`);
-    location.reload(); // reload to refresh table
-  } catch (error) {
-    console.error(error);
-    alert("Failed to delete user.");
-  }
-}
-
-// Update user role in Firestore
-async function updateUserRole(uid, newRole) {
+// Update agreement precentage in farmer collection
+async function updateAggrementPrecentage(uid, value) {
   const token = await getCurrentUserToken();
 
   try {
     const response = await fetch(
-      `http://localhost:4000/api/admin/users/${uid}`,
+      `http://localhost:4000/api/farmerManager/updateAggrement/${uid}`,
       {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify({ agreementPercentage: value }),
       }
     );
 
-    if (!response.ok) throw new Error("Failed to update user role");
-    alert("Role updated successfully!");
+    if (!response.ok) throw new Error("Failed to update agreement");
+    alert("Agreement percentage updated!");
   } catch (error) {
-    console.error("Error updating role:", error);
-    alert("Failed to update role.");
+    console.error("Error updating agreement:", error);
+    alert("Failed to update agreement.");
   }
-}
-
-// Tab switcher
-function showTab(tab) {
-  document.getElementById("employees-section").style.display =
-    tab === "employees" ? "block" : "none";
-  document.getElementById("customers-section").style.display =
-    tab === "customers" ? "block" : "none";
-
-  document
-    .getElementById("tab-employees")
-    .classList.toggle("sub-active", tab === "employees");
-  document
-    .getElementById("tab-customers")
-    .classList.toggle("sub-active", tab === "customers");
 }
