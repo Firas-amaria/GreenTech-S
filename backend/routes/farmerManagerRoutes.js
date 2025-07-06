@@ -8,6 +8,7 @@ const {
   createStockItem,
   getShipmentRequestsForShift,
   shipmentRequestQuantitiesConfirmed,
+  getApplication,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
@@ -18,6 +19,13 @@ router.get("/shipmentRequests/:shift", getShipmentRequestsForShift);
 router.post(
   "/shipmentRequestQuantitiesConfirmed",
   shipmentRequestQuantitiesConfirmed
+);
+
+router.get(
+  "/getApplications",
+  authenticate,
+  requireRole("farmerManager"),
+  getApplication
 );
 
 module.exports = router;

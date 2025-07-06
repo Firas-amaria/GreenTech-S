@@ -301,11 +301,17 @@ function getNextOrTodayWeekdayDate(dayName) {
   const targetDay = daysOfWeek.indexOf(dayName.toLowerCase());
   if (targetDay === -1) throw new Error("Invalid day name in shift");
   const today = new Date();
+  console.log(`🔍 Today is: ${today.toISOString()}`);
   const todayDay = today.getDay();
-  const diff = targetDay - todayDay + 7; // 0 = today
+  console.log(`🔍 Target day is: ${targetDay} (${dayName})`);
+  const diff = targetDay - todayDay; // 0 = today
+  if (diff < 0) {
+    diff += 7; // If the target day is in the past, move to next week
+  }
+  console.log(`🔍 Day difference: ${diff}`);
   const result = today;
   result.setDate(today.getDate() + diff);
-
+  console.log(`🔍 Resulting date: ${result.toISOString()}`);
   return result;
 }
 
@@ -419,7 +425,61 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
   }
 };
 
+const getApplication = async (req, res) => {
+  try {
+    const snapshot = await db.collection("employmentApplications").get();
+    const results = [];
+
+    for (const doc of snapshot.docs) {
+      const uid = doc.id;
+      const applicationData = doc.data();
+
+      // Only allow 'pending' or 'contacted' statuses
+      if (
+        applicationData.status !== "pending" &&
+        applicationData.status !== "contacted"
+      ) {
+        continue;
+      }
+
+      if (applicationData.role !== "farmer") {
+        continue;
+      }
+
+      // Get the user profile using the same UID
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (!userDoc.exists) {
+        console.warn(`User profile not found for UID: ${uid}`);
+        continue;
+      }
+
+      const userData = userDoc.data();
+      results.push({
+        uid: uid,
+        role: applicationData.role,
+        status: applicationData.status,
+        submittedAt: applicationData.submittedAt,
+        extraFields: applicationData.extraFields,
+
+        // Append user profile fields
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
+        birthDate: userData.birthDate,
+      });
+    }
+
+    res.send(results);
+  } catch (error) {
+    console.error("Error fetching applications:", error);
+    res.status(500).send({ error: error.message });
+  }
+};
+
 module.exports = {
+  getApplication,
   getShipmentRequestsForShift,
   shipmentRequestQuantitiesConfirmed,
   getDemandStatistics,
