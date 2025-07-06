@@ -274,6 +274,16 @@ const createStockItem = async (req, res) => {
         correspondingShipmentId: null,
       };
 
+      const farmerInventoryId = `${sourceFarmerId}_${itemId}`;
+      const inventoryRef = db
+        .collection("farmerInventory")
+        .doc(farmerInventoryId);
+      await inventoryRef.update({
+        maxOrder: admin.firestore.FieldValue.increment(
+          -originalCommittedQuantityKg
+        ),
+      });
+
       await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
       createdShipmentIds.push(sreqId);
     }
@@ -298,14 +308,6 @@ const createStockItem = async (req, res) => {
   }
 
   //Update maxOrder in farmer inventory
-
-  const farmerInventoryId = `${farmerId}_${itemId}`;
-  const inventoryRef = db.collection("farmerInventory").doc(farmerInventoryId);
-  await inventoryRef.update({
-    maxOrder: admin.firestore.FieldValue.increment(
-      -originalCommittedQuantityKg
-    ),
-  });
 };
 
 // 🔁 Helper function to get the next date for a given weekday
