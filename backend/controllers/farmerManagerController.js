@@ -147,6 +147,7 @@ const createStockItem = async (req, res) => {
   try {
     const {
       logisticCenterId = "LC-1",
+      logisticCenterId = "LC-1",
       shift, // e.g., "monday-morning"
       itemId,
       itemDisplayName,
@@ -199,6 +200,7 @@ const createStockItem = async (req, res) => {
           generatedAt: today.toISOString(),
           createdByManagerId: createdbyID,
           createdByManagerName: createdByName,
+          createdByManagerName: createdByName,
           items: [],
         };
 
@@ -247,6 +249,8 @@ const createStockItem = async (req, res) => {
       const farmerData = farmerDoc.data();
       //shimReq unique ID
       const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+      //shimReq unique ID
+      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
       // Add stock item
       stockData.items.push({
         itemId,
@@ -260,13 +264,20 @@ const createStockItem = async (req, res) => {
         pricePerUnit: finalPrice,
         status: "active",
         shipReqId: sreqId,
+        shipReqId: sreqId,
       });
 
 
 
       const shiftTimeData = db.collection("shifts").doc(shiftType);
       
+
+
+
+      const shiftTimeData = db.collection("shifts").doc(shiftType);
+      
       // 🔥 Create shipmentRequest
+
 
       const shipmentRequest = {
         logisticCenterId,
@@ -286,6 +297,9 @@ const createStockItem = async (req, res) => {
         //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
 
         expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
+        //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
+
+        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
         exactAmountConfirmedAt: null,
         farmerLastNotifiedAt: null,
         lastUpdatedAt: today.toISOString(),
@@ -293,6 +307,7 @@ const createStockItem = async (req, res) => {
         createdByName,
         correspondingShipmentId: null,
       };
+
 
 
       await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
@@ -318,6 +333,10 @@ const createStockItem = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 
 
