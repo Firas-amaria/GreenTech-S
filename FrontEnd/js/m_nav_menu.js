@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } else if (role === "farmerManager") {
     menuItems = [
       { href: "fm-dashboard.html", text: "Dashboard" },
+      { href: "fm-manageItems.html", text: "Manage Items" },
       { href: "fm-jobApplications.html", text: "Job Applications" },
       { href: "fm-manageUsers.html", text: "Manage Users" },
     ];
