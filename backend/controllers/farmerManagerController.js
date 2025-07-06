@@ -144,10 +144,14 @@ const createStockItem = async (req, res) => {
 
   try {
     const {
-      logisticCenterId,
+      logisticCenterId = "LC-1",
       shift, // e.g., "monday-morning"
       items = [], // Array of stock items
     } = req.body;
+
+    // 🔥 Manager details from headers
+    const updatedBy = req.headers["x-user-id"] || "UNKNOWN-UID";
+    const updatedByName = req.headers["x-user-name"] || "Unknown Manager";
 
     const decodedToken = await admin.auth().verifyIdToken(token);
     const createdbyID = decodedToken.uid;
@@ -173,7 +177,6 @@ const createStockItem = async (req, res) => {
     const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shiftType}`;
     const stockDocRef = db.collection("availableMarketStock").doc(stockDocId);
     const stockDoc = await stockDocRef.get();
-
     const stockData = stockDoc.exists
       ? stockDoc.data()
       : {
@@ -292,6 +295,10 @@ const createStockItem = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 // 🔁 Helper function to get the next date for a given weekday
 function getNextOrTodayWeekdayDate(dayName) {
