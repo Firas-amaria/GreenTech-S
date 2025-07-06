@@ -352,7 +352,7 @@ async function handleAddCrop() {
   }
 
   // Show loading state
-  const addButton = document.getElementById("btnAddCrop");
+  const addButton = document.getElementById("AddCropbtn");
   const originalText = addButton.textContent;
   addButton.textContent = "Adding...";
   addButton.disabled = true;
@@ -518,7 +518,7 @@ function showAddCropForm(land) {
 
 function setupAddCropButton() {
   document
-    .getElementById("btnAddCrop")
+    .getElementById("AddCropbtn")
     .addEventListener("click", handleAddCrop);
 }
 
@@ -539,3 +539,10 @@ function formatDate(date) {
 // Make functions globally available for inline event handlers
 window.advanceCropStatus = advanceCropStatus;
 window.updateCropPercentage = updateCropPercentage;
+//when click on ShowFrom the form will be shown
+
+function startForm() {
+  document.querySelector(".section#addCropSection").style.display = "block";
+  fillLandDropdown();
+
+}
