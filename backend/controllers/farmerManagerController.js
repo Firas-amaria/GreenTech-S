@@ -430,7 +430,7 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
     }
 
     // 🔥 Now update farmer inventory maxOrder
-    const farmerInventoryId = `${shipmentRequest.farmerId}_${shipmentRequest.itemId}`;
+    const farmerInventoryId = `${sreqRef.farmerId}_${sreqRef.itemId}`;
     const farmerInventoryRef = db
       .collection("farmerInventory")
       .doc(farmerInventoryId);
