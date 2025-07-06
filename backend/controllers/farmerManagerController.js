@@ -204,56 +204,115 @@ const createStockItem = async (req, res) => {
           logisticCenterId,
           availableDate: `${dateStr}T00:00:00Z`,
           availableShift: shift,
-          generatedAt: now.toISOString(),
-          createdByManagerId: updatedBy,
-          items: []
+          generatedAt: today.toISOString(),
+          createdByManagerId: createdbyID,
+          createdByManagerName: createdByName,
+          items: [],
         };
 
-    stockData.items.push({
-      itemId,
-      itemDisplayName,
-      itemPictureUrl,
-      sourceFarmerId,
-      sourceFarmerName,
-      sourceFarmName: sourceFarmName,
-      currentAvailableQuantityKg,
-      originalCommittedQuantityKg,
-      pricePerUnit: finalPrice,
-      status: "active",
-      sourceLandId
-    });
+    const createdShipmentIds = [];
 
-    stockData.lastUpdatedAt = now.toISOString();
-    stockData.updatedBy = updatedBy;
-    stockData.updatedByName = updatedByName;
+    for (const item of items) {
+      const {
+        itemId,
+        itemDisplayName,
+        sourceFarmerId,
+        pickupAddress,
+        currentAvailableQuantityKg,
+        originalCommittedQuantityKg,
+      } = item;
+
+      // 🔎 Lookup item price from items collection
+      const itemDoc = await db.collection("items").doc(itemId).get();
+      if (!itemDoc.exists) {
+        console.warn(`⚠️ Item not found in catalog: ${itemId}`);
+        continue; // Skip this item
+      }
+
+      const itemData = itemDoc.data();
+      const basePrice = itemData.price?.a || 0;
+      const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
+
+      const sourceFarmerDoc = await db
+        .collection("users")
+        .doc(sourceFarmerId)
+        .get();
+      if (!sourceFarmerDoc.exists) {
+        console.warn(`User profile not found for UID: ${sourceFarmerId}`);
+        return null; // <- return null so we can filter it out
+      }
+      const sourceFarmerData = sourceFarmerDoc.data();
+      const sourceFarmerName =
+        sourceFarmerData.firstName + " " + sourceFarmerData.lastName;
+      const farmerDoc = await db
+        .collection("farmers")
+        .doc(sourceFarmerId)
+        .get();
+      if (!farmerDoc.exists) {
+        console.warn(`User profile not found for UID: ${sourceFarmerId}`);
+        return null; // <- return null so we can filter it out
+      }
+      const farmerData = farmerDoc.data();
+      //shimReq unique ID
+      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+      // Add stock item
+      stockData.items.push({
+        itemId,
+        itemDisplayName,
+        sourceFarmerId,
+        sourceFarmerName: sourceFarmerName,
+        sourceFarmName: farmerData.farmName || "UNKNOWN FARM",
+        pickupAddress,
+        currentAvailableQuantityKg,
+        originalCommittedQuantityKg,
+        pricePerUnit: finalPrice,
+        status: "active",
+        shipReqId: sreqId,
+      });
+
+
+
+      const shiftTimeData = db.collection("shifts").doc(shiftType);
+      
+      // 🔥 Create shipmentRequest
+
+      const shipmentRequest = {
+        logisticCenterId,
+        farmerManagerId: createdbyID,
+        farmerManagerName: createdByName,
+        farmerId: sourceFarmerId,
+        farmerName: sourceFarmerName,
+        pickupAddress,
+        createdAt: today.toISOString(),
+        scheduledPickupDate: `${dateStr}T00:00:00Z`,
+        scheduledPickupTimeSlot: shift,
+        status: "forecasted",
+        itemId,
+        itemDisplayName,
+        forecastedQuantityKg: originalCommittedQuantityKg,
+        finalConfirmedQuantityKg: null,
+        //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
+
+        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
+        exactAmountConfirmedAt: null,
+        farmerLastNotifiedAt: null,
+        lastUpdatedAt: today.toISOString(),
+        createdbyID,
+        createdByName,
+        correspondingShipmentId: null,
+      };
+
+
+      await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
+      createdShipmentIds.push(sreqId);
+    }
+
+    // Save stock data
+    stockData.lastUpdatedAt = today.toISOString();
+    stockData.createdbyID = createdbyID;
+    stockData.createdByName = createdByName;
 
     await stockDocRef.set(stockData, { merge: true });
-
-    // 🔥 Create shipmentRequest
-    const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
-    const shipmentRequest = {
-      logisticCenterId,
-      farmerManagerId: updatedBy,
-      farmerManagerName: updatedByName,
-      farmerId: sourceFarmerId,
-      farmerName: sourceFarmerName,
-      createdAt: now.toISOString(),
-      scheduledPickupDate: `${dateStr}T00:00:00Z`,
-      scheduledPickupTimeSlot: shift,
-      status: "forecasted",
-      itemId,
-      itemDisplayName,
-      forecastedQuantityKg: originalCommittedQuantityKg,
-      finalConfirmedQuantityKg: null,
-      expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
-      exactAmountConfirmedAt: null,
-      farmerLastNotifiedAt: null,
-      lastUpdatedAt: now.toISOString(),
-      updatedBy,
-      updatedByName,
-      correspondingShipmentId: null
-    };
-    await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
 
     res.status(200).json({
       message: "Stock item and shipment request saved successfully.",
