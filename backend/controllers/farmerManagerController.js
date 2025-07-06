@@ -449,9 +449,75 @@ const getApplication = async (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const snapshot = await db.collection("farmers").get();
+    const results = [];
+
+    for (const doc of snapshot.docs) {
+      const uid = doc.id;
+      const farmerData = doc.data();
+
+      // Get the user profile using the same UID
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (!userDoc.exists) {
+        console.warn(`User profile not found for UID: ${uid}`);
+        continue;
+      }
+
+      const userData = userDoc.data();
+      results.push({
+        uid: uid,
+        extraFields: farmerData.extraFields || {}, // Include any extra fields from farmer data
+        // Append user profile fields
+        firstName: userData.firstName,
+        role: userData.role,
+        lastName: userData.lastName,
+        email: userData.email,
+        phone: userData.phone,
+        address: userData.address,
+        birthDate: userData.birthDate,
+      });
+    }
+
+    res.send(results);
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+};
+
+// PUT /api/farmerManager/updateAggrement/:uid
+const updateAggrementPrecentage = async (req, res) => {
+  const { uid } = req.params;
+  const { agreementPercentage } = req.body;
+
+  if (!uid || agreementPercentage == null) {
+    return res
+      .status(400)
+      .json({ error: "Missing uid or agreementPercentage in request" });
+  }
+
+  try {
+    const farmerRef = db.collection("farmers").doc(uid);
+    const doc = await farmerRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Farmer not found" });
+    }
+
+    await farmerRef.update({ extraFields: { agreementPercentage } });
+    return res.status(200).json({ message: "Agreement percentage updated" });
+  } catch (error) {
+    console.error("Error updating agreementPercentage:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
 module.exports = {
+  getAllUsers,
   getApplication,
   getShipmentRequestsForShift,
+  updateAggrementPrecentage,
   shipmentRequestQuantitiesConfirmed,
   getDemandStatistics,
   getFarmerInventory,

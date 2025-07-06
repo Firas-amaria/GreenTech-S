@@ -9,6 +9,8 @@ const {
   getShipmentRequestsForShift,
   shipmentRequestQuantitiesConfirmed,
   getApplication,
+  getAllUsers,
+  updateAggrementPrecentage,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
@@ -22,10 +24,23 @@ router.post(
 );
 
 router.get(
+  "/getAllUsers",
+  authenticate,
+  requireRole("farmerManager"),
+  getAllUsers
+);
+router.get(
   "/getApplications",
   authenticate,
   requireRole("farmerManager"),
   getApplication
+);
+
+router.put(
+  "/updateAggrement/:uid",
+  authenticate,
+  requireRole("farmerManager"),
+  updateAggrementPrecentage
 );
 
 module.exports = router;
