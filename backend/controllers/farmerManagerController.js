@@ -584,7 +584,69 @@ const updateAggrementPrecentage = async (req, res) => {
   }
 };
 
+async function updateApplicationStatus(req, res) {
+  const uid = req.params.uid;
+  const { status, role, firstName, lastName, phone } = req.body;
+
+  if (!uid || !status) {
+    return res.status(400).send({ error: "Missing UID or status" });
+  }
+
+  const validStatuses = ["pending", "contacted", "denied", "approved"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).send({ error: `Invalid status: ${status}` });
+  }
+
+  const appRef = db.collection("employmentApplications").doc(uid);
+
+  try {
+    const appSnap = await appRef.get();
+    if (!appSnap.exists) {
+      return res.status(404).send({ error: "Application not found" });
+    }
+
+    const appData = appSnap.data();
+
+    // If status is approved, do the full approval process
+    if (status === "approved") {
+      // 1. Copy to the role-specific collection
+      await db
+        .collection("farmers")
+        .doc(uid)
+        .set({
+          //add name and phone number
+          ...appData,
+          firstName,
+          lastName,
+          phone,
+          approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+      // 2. Update user's main role
+      await db.collection("users").doc(uid).set(
+        {
+          role,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    // For all statuses (including "approved"), update the application status
+    await appRef.update({
+      status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.send({ message: `Application marked as ${status}` });
+  } catch (error) {
+    console.error("Error updating status:", error);
+    res.status(500).send({ error: error.message });
+  }
+}
+
 module.exports = {
+  updateApplicationStatus,
   getAllUsers,
   getApplication,
   getShipmentRequestsForShift,

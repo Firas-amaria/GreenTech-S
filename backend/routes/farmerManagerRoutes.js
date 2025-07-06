@@ -11,6 +11,7 @@ const {
   getApplication,
   getAllUsers,
   updateAggrementPrecentage,
+  updateApplicationStatus,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
@@ -21,6 +22,13 @@ router.get("/shipmentRequests/:shift", getShipmentRequestsForShift);
 router.post(
   "/shipmentRequestQuantitiesConfirmed",
   shipmentRequestQuantitiesConfirmed
+);
+
+router.put(
+  "/updateApplication/:uid",
+  authenticate,
+  requireRole("farmerManager"),
+  updateApplicationStatus
 );
 
 router.get(
