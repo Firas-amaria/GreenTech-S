@@ -185,6 +185,7 @@ const createStockItem = async (req, res) => {
           availableShift: shift,
           generatedAt: today.toISOString(),
           createdByManagerId: createdbyID,
+          createdByManagerName: createdByName,
           items: [],
         };
 
@@ -231,7 +232,8 @@ const createStockItem = async (req, res) => {
         return null; // <- return null so we can filter it out
       }
       const farmerData = farmerDoc.data();
-
+      //shimReq unique ID
+      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
       // Add stock item
       stockData.items.push({
         itemId,
@@ -244,10 +246,15 @@ const createStockItem = async (req, res) => {
         originalCommittedQuantityKg,
         pricePerUnit: finalPrice,
         status: "active",
+        shipReqId: sreqId,
       });
 
+
+
+      const shiftTimeData = db.collection("shifts").doc(shiftType);
+      
       // 🔥 Create shipmentRequest
-      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+
       const shipmentRequest = {
         logisticCenterId,
         farmerManagerId: createdbyID,
@@ -263,7 +270,9 @@ const createStockItem = async (req, res) => {
         itemDisplayName,
         forecastedQuantityKg: originalCommittedQuantityKg,
         finalConfirmedQuantityKg: null,
-        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 50),
+        //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
+
+        expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
         exactAmountConfirmedAt: null,
         farmerLastNotifiedAt: null,
         lastUpdatedAt: today.toISOString(),
@@ -271,6 +280,7 @@ const createStockItem = async (req, res) => {
         createdByName,
         correspondingShipmentId: null,
       };
+
 
       await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
       createdShipmentIds.push(sreqId);
