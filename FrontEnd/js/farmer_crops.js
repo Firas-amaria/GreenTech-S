@@ -263,11 +263,15 @@ function getStatusOptions(currentStatus) {
 
 function fillLandDropdown() {
   const select = document.getElementById("landSelector");
+  select.innerHTML = ""; // Clear existing options
   parsedLands.forEach((land) => {
+    //only empty lands will be shown
+    if (!land.Crops || land.Crops.status === "Field Clearing") {
     const opt = document.createElement("option");
     opt.value = land.LandId;
     opt.textContent = land.name;
     select.appendChild(opt);
+    }
   });
   select.addEventListener("change", (e) => {
     const landId = e.target.value;
@@ -276,27 +280,27 @@ function fillLandDropdown() {
   });
 }
 
+
+// Render the crop table 
 function renderCropTable() {
   //console.log("🔧 DEBUG: renderCropTable called");
-  //console.log("🔧 DEBUG: selectedLand:", selectedLand);
-  //console.log("🔧 DEBUG: selectedLand?.Crops:", selectedLand?.Crops);
 
   const tbody = document.querySelector("#tblCrops tbody");
   tbody.innerHTML = "";
 
-  if (!selectedLand) {
-    console.log("🔧 DEBUG: No selected land");
-    return;
-  }
-
-  const crop = selectedLand.Crops;
+  parsedLands.forEach((land) => {
+  const crop = land.Crops;
 
   if (!crop) {
+    
     //console.log("🔧 DEBUG: No crop found on selected land");
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="6">No crop reported on this land.</td>`;
+    row.innerHTML = `<td colspan="7">No crop reported on this land ${land.name}$
+    // click add crop to start planting!
+    <button class="btn btn-primary" id="ShowFrom">Add Crop</button>
+    </td>`;
     tbody.appendChild(row);
-    document.querySelector(".section#addCropSection").style.display = "block";
+       document.getElementById("ShowFrom").addEventListener("click", startForm);
     return;
   }
 
@@ -326,6 +330,10 @@ function renderCropTable() {
   `;
   tbody.appendChild(tr);
 }
+  );}
+
+
+
 
 function getCropDisplayName(itemId) {
   const item = itemList.find((i) => i.itemId === itemId);
@@ -460,7 +468,7 @@ async function handleAddCrop() {
   }
 
   // Show loading state
-  const addButton = document.getElementById("btnAddCrop");
+  const addButton = document.getElementById("AddCropbtn");
   const originalText = addButton.textContent;
   addButton.textContent = "Adding...";
   addButton.disabled = true;
@@ -474,7 +482,7 @@ async function handleAddCrop() {
       ExpectedFruitingPerPlant: fruiting,
       plantedOn: plantedOn,
       expectedHarvestDate,
-      expectedHarvestingKg: plantedAmount * avgRate,
+      expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
       status: "Planting",
       statusPercentage: 0,
       imageUrl: getRandomRealCropImage(),
@@ -555,13 +563,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (parsedLands.length > 0) {
     selectedLand = parsedLands[0];
-    document.getElementById("landSelector").value = selectedLand.LandId;
     renderCropTable();
   }
 
   // Add event listener for add crop button
   document
-    .getElementById("btnAddCrop")
+    .getElementById("AddCropbtn")
     .addEventListener("click", handleAddCrop);
 
   //console.log("Farmer crops page initialized with API integration");
@@ -577,3 +584,10 @@ function formatDate(date) {
 // Make functions globally available for inline event handlers
 window.advanceCropStatus = advanceCropStatus;
 window.updateCropPercentage = updateCropPercentage;
+//when click on ShowFrom the form will be shown
+
+function startForm() {
+  document.querySelector(".section#addCropSection").style.display = "block";
+  fillLandDropdown();
+
+}
