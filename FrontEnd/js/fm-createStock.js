@@ -2,6 +2,8 @@ import { auth, getCurrentUserToken } from "./firebase-init.js";
 
 let collectedStockItems = [];
 
+
+
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const shift = params.get("shift");
@@ -188,15 +190,36 @@ async function submitAllStock() {
   }
 
   const shift = new URLSearchParams(window.location.search).get("shift");
+
+
+  const user = JSON.parse(localStorage.getItem("user"));
+// 2. Extract only the name
+const managerName = user?.name;
+/*  
+
+okay what we need now is to make sure that the manager is a farmer manager or admin 
+send token and in backend check if the user is a farmer manager or admin
+If not, alert the user and return early.
+and saving in local storage i dont know if it is a good idea or not
+cause it refreshes somewhere between 30mins to an hour 
+*/
   const user = JSON.parse(localStorage.getItem("user"));
 
   const payload = {
     logisticCenterId: "LC-1",
     shift,
-    createdByManagerId: "user_UID_abc", // replace with actual logic
-    createdByName: user?.name || "unknown",
-    items: collectedStockItems,
-  };
+    itemId,
+    itemDisplayName,
+    itemPictureUrl: "https://example.com/images/default.jpg",
+    sourceFarmerId: farmerId,
+    sourceFarmerName: farmerId,
+    sourceFarmName: "UNKNOWN FARM",
+    sourceLandId: landId,
+    currentAvailableQuantityKg: orderQty,
+    originalCommittedQuantityKg: orderQty,
+    createdByManagerId: "FM_UID_abc" ,
+    managerName: managerName,
+  });
 
   try {
     const token = await getCurrentUserToken();
@@ -209,15 +232,31 @@ async function submitAllStock() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          logisticCenterId: "LC-1",
+          shift,
+          itemId,
+          itemDisplayName,
+         // itemPictureUrl: "https://example.com/images/default.jpg",
+          sourceFarmerId: farmerId,
+          sourceFarmerName: farmerId,
+          sourceFarmName: "UNKNOWN FARM",
+          sourceLandId: landId,
+          currentAvailableQuantityKg: orderQty,
+          originalCommittedQuantityKg: orderQty,
+          createdByManagerId: "user_UID_abc", // Replace with actual user ID
+          createdByName: managerName,
+          
+        }),
       }
     );
 
-    // ✅ Check response status before parsing JSON
-    if (!response.ok) {
-      const text = await response.text(); // try reading raw response for debugging
-      throw new Error(`Server error: ${response.status} - ${text}`);
-      alert("Failed to create stock.");
+    const result = await res.json();
+    console.log("✅ POST response:", result);
+
+    if (res.ok) {
+      btnEl.classList.add("added");
+      btnEl.textContent = "Added";
     } else {
       window.location.href = "fm-dashboard.html";
     }
@@ -226,3 +265,4 @@ async function submitAllStock() {
     alert("Network error while submitting stock.");
   }
 }
+
