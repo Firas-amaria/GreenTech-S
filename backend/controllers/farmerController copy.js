@@ -173,7 +173,134 @@ function formatDateForFrontend(timestamp) {
   return date.toISOString().split("T")[0]; // Return YYYY-MM-DD format
 }
 
-//KEEP
+// --- Land Handlers ---
+
+async function getLands(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getLands] Fetching lands for farmerId: ${farmerId}`);
+
+    const lands = await getFarmerLands(farmerId);
+    //console.log(`[getLands] Found ${lands.length} lands`);
+
+    res.json({ lands });
+  } catch (err) {
+    console.error("Error fetching lands:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function getFrontendLands(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getFrontendLands] Fetching lands for farmerId: ${farmerId}`);
+
+    const lands = await getFarmerLands(farmerId);
+    //console.log(`[getFrontendLands] Found ${lands.length} lands`);
+
+    // Transform lands to include farm info for frontend compatibility
+    const transformedLands = lands.map((land, index) => ({
+      id: `land_${farmerId}_${index}`,
+      landName: land.landName,
+      acres: land.acres,
+      location: land.location,
+      ownership: land.ownership,
+      pickupAddress: land.pickupAddress,
+      locLat: land.locLat,
+      locLng: land.locLng,
+      pickupLat: land.pickupLat,
+      pickupLng: land.pickupLng,
+      farmName: land.farmName || "Farm", // For backward compatibility
+      crop: land.crop,
+    }));
+
+    //console.log(`[getFrontendLands] Returning ${transformedLands.length} transformed lands`);
+    res.json({ lands: transformedLands });
+  } catch (err) {
+    console.error("[getFrontendLands] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Crop Handlers ---
+
+/*  
+IM GUESSING that the crop id they made is basically starts with crop_farmerId_landIndex
+and they use it in farmerInventorys id as well
+
+1. i changed some but incase i missed - quantity to plantedAmount
+2. in some cases quantity is expectedHarvestingKg in cropsDB but 
+
+*/
+async function listCrops(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[listCrops] Fetching crops for farmerId: ${farmerId}`);
+
+    const lands = await getFarmerLands(farmerId);
+    const crops = [];
+
+    // Extract crops from all lands
+    lands.forEach((land, landIndex) => {
+      if (land.crop) {
+        crops.push({
+          id: `crop_${farmerId}_${landIndex}`,
+          landIndex: landIndex,
+          landName: land.landName,
+          landAcres: land.acres,
+          ...land.crop,
+        });
+      }
+    });
+
+    //console.log(`[listCrops] Found ${crops.length} crops`);
+    res.json({ crops });
+  } catch (err) {
+    console.error("Error fetching crops:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function getCrop(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    const { cropId } = req.params;
+
+    //console.log(`[getCrop] Fetching crop ${cropId} for farmerId: ${farmerId}`);
+
+    // Extract land index from cropId (format: crop_farmerId_landIndex)
+    const landIndex = parseInt(cropId.split("_").pop());
+
+    const lands = await getFarmerLands(farmerId);
+
+    if (landIndex >= 0 && landIndex < lands.length && lands[landIndex].crop) {
+      const crop = {
+        id: cropId,
+        landIndex: landIndex,
+        landName: lands[landIndex].landName,
+        landAcres: lands[landIndex].acres,
+        ...lands[landIndex].crop,
+      };
+
+      res.json({ crop });
+    } else {
+      res.status(404).send({ error: "Crop not found" });
+    }
+  } catch (err) {
+    console.error("Error fetching crop:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+/*
+what i understood
+yield =expected harvestingKg 
+actualYield-delete
+img -  it can stay  not worth to be bothered with it anymroe but its the status pic not item pic
+quantity is plantedAmount or expectedHarvestingKg/availedForProcurementKg if its farmer inventory data
+
+*/
+
 async function createCrop(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -286,6 +413,23 @@ async function manageInventory(farmerId, crop, landIndex, action) {
   try {
     const inventoryRef = db.collection("farmerInventory");
     const cropId = `${farmerId}_${crop.itemId}`; // Use farmerId, itemId, and landIndex to create unique cropId
+    /*
+farmerInventory 
+when added
+ "farmer-4_VEG-002": {
+    farmerId: string;
+    logisticCenterId: LC-1;
+    itemId: string;
+    currentAvailableForProcurementKg: number///expectedHarvestingKg* agreementPercentage(60% in default for now);
+    statusPercentage: number;
+    maxOrder: number; when added to farmer inventory for the first time its =expectedHarvestingKg*agreementPercentage(60% in default for now)
+
+    status: string;
+    
+    sourceLandIds: string[];// change with pickUp location
+}
+
+*/
 
     const farmer = await db.collection("farmers").doc(farmerId).get();
     if (!farmer.exists) {
@@ -330,10 +474,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
     throw error;
   }
 }
-
 //quantity is plantedAmount
 //precentage is statusPercentage
-//KEEP
 async function updateCrop(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -427,7 +569,6 @@ async function updateCrop(req, res) {
   }
 }
 
-//KEEP
 async function deleteCrop(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -486,9 +627,33 @@ async function deleteCrop(req, res) {
   }
 }
 
+// --- Item Handlers ---
+//only thing that works i guess
+async function getItems(req, res) {
+  try {
+    //console.log("[getItems] Fetching all generic items");
+
+    const snapshot = await db.collection("items").get();
+
+    if (snapshot.empty) {
+      return res.json({ items: [], message: "No items found" });
+    }
+
+    const items = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    //console.log(`[getItems] Found ${items.length} generic items`);
+    res.json({ items });
+  } catch (err) {
+    console.error("Error fetching items:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
 /* future firas*/
 // Frontend Shipments Function
-//KEEP
 async function getFrontendShipments(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -522,8 +687,33 @@ async function getFrontendShipments(req, res) {
   }
 }
 
+// Frontend Items Function
+async function getFrontendItems(req, res) {
+  try {
+    //console.log("[getFrontendItems] Fetching all generic items");
+
+    const snapshot = await db.collection("items").get();
+
+    if (snapshot.empty) {
+      return res.json([]);
+    }
+
+    // Transform items to frontend format
+    const items = snapshot.docs.map((doc) =>
+      transformItemToFrontendFormat({ id: doc.id, ...doc.data() })
+    );
+
+    //console.log(`[getFrontendItems] Returning ${items.length} transformed items`);
+    res.json(items);
+  } catch (err) {
+    console.error("Error fetching frontend items:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
 /*future firas after FM*/
 // --- Shipment Handlers ---
+
 async function createShipment(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -573,9 +763,199 @@ async function createShipment(req, res) {
   }
 }
 
+async function getShipments(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getShipments] Fetching shipments for farmerId: ${farmerId}`);
+
+    const snapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    if (snapshot.empty) {
+      return res.json({ shipments: [], message: "No shipments found" });
+    }
+
+    const shipments = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Firestore timestamps to ISO strings for frontend
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+      };
+    });
+
+    //console.log(`[getShipments] Found ${shipments.length} shipments`);
+    res.json({ shipments });
+  } catch (err) {
+    console.error("Error fetching shipments:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function getFrontendShipments(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getFrontendShipments] Fetching shipments for farmerId: ${farmerId}`);
+
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Transform shipments using our transformation function
+    const approvedShipments = shipmentsSnapshot.docs
+      .filter((doc) => ["approved", "delivered"].includes(doc.data().status))
+      .map((doc) => transformShipmentToFrontendFormat(null, doc));
+
+    const shipmentRequests = shipmentsSnapshot.docs
+      .filter((doc) => doc.data().status === "pending")
+      .map((doc) => transformShipmentToFrontendFormat(null, doc));
+
+    const responseData = {
+      approvedShipments,
+      shipmentRequests,
+    };
+
+    //console.log(`[getFrontendShipments] Returning ${approvedShipments.length} approved, ${shipmentRequests.length} requests`);
+    res.json(responseData);
+  } catch (err) {
+    console.error("[getFrontendShipments] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+// --- Dashboard Handlers ---
+/* 
+
+make sure data names same 
+*/
+async function getDashboardData(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getDashboardData] Fetching dashboard data for farmerId: ${farmerId}`);
+
+    // Get farmer's lands and count crops
+    const lands = await getFarmerLands(farmerId);
+    const cropsCount = lands.filter((land) => land.crop).length;
+
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Get farmer info
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    const farmerData = farmerDoc.exists ? farmerDoc.data() : {};
+
+    const dashboardData = {
+      totalLands: lands.length,
+      totalCrops: cropsCount,
+      totalShipments: shipmentsSnapshot.size,
+      pendingShipments: shipmentsSnapshot.docs.filter(
+        (doc) => doc.data().status === "pending"
+      ).length,
+      farmName: farmerData.extraFields?.farmName || "Farm",
+      farmerName: `${farmerData.firstName || "Farmer"} ${
+        farmerData.lastName || ""
+      }`.trim(),
+    };
+
+    //console.log(`[getDashboardData] Dashboard data:`, dashboardData);
+    res.json(dashboardData);
+  } catch (err) {
+    console.error("Error fetching dashboard data:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+/*  TODO this is being used fix it ? */
+// Frontend Dashboard Function
+async function getFrontendDashboard(req, res) {
+  try {
+    const farmerId = req.user.uid;
+    //console.log(`[getFrontendDashboard] Fetching frontend dashboard data for farmerId: ${farmerId}`);
+
+    // Get farmer's lands and count crops
+    const lands = await getFarmerLands(farmerId);
+    const cropsCount = lands.filter((land) => land.crop).length;
+
+    // Get shipments
+    const shipmentsSnapshot = await db
+      .collection("shipments")
+      .where("farmerId", "==", farmerId)
+      .get();
+
+    // Get farmer info
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    const farmerData = farmerDoc.exists ? farmerDoc.data() : {};
+
+    // Transform shipments to frontend format
+    const allShipments = shipmentsSnapshot.docs.map((doc) =>
+      transformShipmentToFrontendFormat(null, doc)
+    );
+
+    // Filter and format approved shipments
+    const approvedShipments = shipmentsSnapshot.docs
+      .filter((doc) => ["approved", "delivered"].includes(doc.data().status))
+      .map((doc) => transformShipmentToFrontendFormat(null, doc));
+
+    // Filter and format shipment requests
+    const shipmentRequests = shipmentsSnapshot.docs
+      .filter((doc) => doc.data().status === "pending")
+      .map((doc) => transformShipmentToFrontendFormat(null, doc));
+
+    // Transform lands to frontend format
+    const parsedLands = lands.map((land, index) =>
+      transformLandToFrontendFormat(land, index)
+    );
+
+    // Summary data for dashboard metrics
+    const summary = {
+      totalLands: lands.length,
+      totalCrops: cropsCount,
+      totalShipments: allShipments.length,
+      totalRevenue: approvedShipments.reduce(
+        (sum, shipment) => sum + shipment.amount * 25,
+        0
+      ), // Estimate ₹25 per kg
+      totalFarms: 1, // Each farmer has one main farm in our structure
+      pendingShipments: shipmentRequests.length,
+      farmName: farmerData.extraFields?.farmName || "Farm",
+      farmerName: `${farmerData.firstName || "Farmer"} ${
+        farmerData.lastName || ""
+      }`.trim(),
+    };
+
+    const responseData = {
+      approvedShipments,
+      shipmentRequests,
+      parsedLands,
+      summary,
+    };
+
+    //console.log(`[getFrontendDashboard] Returning data:`, {
+    //   approvedShipmentsCount: approvedShipments.length,
+    //   shipmentRequestsCount: shipmentRequests.length,
+    //   parsedLandsCount: parsedLands.length,
+    //   summary
+    // });
+
+    res.json(responseData);
+  } catch (err) {
+    console.error("[getFrontendDashboard] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
 //TODO is this being used correctly ?
 // Approve shipment request function
-//KEEP
 async function approveShipmentRequest(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -625,7 +1005,6 @@ async function approveShipmentRequest(req, res) {
 }
 
 // Submit Shipment Report
-//KEEP
 async function submitShipmentReport(req, res) {
   try {
     const farmerId = req.user.uid;
@@ -686,133 +1065,35 @@ async function submitShipmentReport(req, res) {
   }
 }
 
-//AFTER FIXES functions to keep :-
-
-async function getApprovedShipments(req, res) {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const farmerUid = decodedToken.uid;
-
-    // Get shipments
-    const shipmentsSnapshot = await db
-      .collection("shipmentRequests")
-      .where("farmerId", "==", farmerUid)
-      .get();
-
-    // Filter and format approved shipments
-    const approvedShipments = shipmentsSnapshot.docs
-      .filter((doc) => doc.data().status === "finalized")
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-    res.json(approvedShipments);
-  } catch (err) {
-    console.error("[getApprovedShipments] Error:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getShipmentRequests(req, res) {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const farmerUid = decodedToken.uid;
-
-    // Get shipments
-    const shipmentsSnapshot = await db
-      .collection("shipmentRequests")
-      .where("farmerId", "==", farmerUid)
-      .get();
-
-    // Filter and format approved shipments
-    const approvedShipments = shipmentsSnapshot.docs
-      .filter((doc) => doc.data().status === "forecasted")
-      .map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-    res.json(approvedShipments);
-  } catch (err) {
-    console.error("[getShipmentRequests] Error:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-async function getFarmerLands(req, res) {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const farmerUid = decodedToken.uid;
-
-    const farmerDoc = await db.collection("farmers").doc(farmerUid).get();
-    if (!farmerDoc.exists) {
-      throw new Error("Farmer not found");
-    }
-
-    const farmerData = farmerDoc.data();
-    lands = farmerData.extraFields?.lands || [];
-    lands = lands.map((land, index) => ({
-      ...land,
-      id: `land-${index}`,
-    }));
-    res.json(lands);
-  } catch (err) {
-    console.error("[getShipmentRequests] Error:", err);
-    res.status(500).send({ error: err.message });
-  }
-}
-
-const getItemList = async (req, res) => {
-  try {
-    const itemsSnapshot = await db.collection("items").get();
-
-    const itemsData = itemsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json(itemsData);
-  } catch (err) {
-    console.error("Error fetching all inventory:", err);
-    return res.status(500).json({ error: "Server error" });
-  }
-};
-
 // --- Export all functions ---
 module.exports = {
-  getShipmentRequests,
-  getApprovedShipments,
-  getFarmerLands,
-  getItemList,
+  // Land functions
+  getLands,
+  getFrontendLands,
 
-  //old
+  // Crop functions
+  listCrops,
+  getCrop,
   createCrop,
   updateCrop,
   deleteCrop,
+
+  // Item functions
+  getItems,
+  getFrontendItems,
+
+  // Shipment functions
   createShipment,
+  getShipments,
   getFrontendShipments,
+
+  // Dashboard functions
+  getDashboardData,
+  getFrontendDashboard,
+
+  // Approve shipment request function
   approveShipmentRequest,
+
+  // Submit Shipment Report
   submitShipmentReport,
 };
