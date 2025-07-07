@@ -218,54 +218,15 @@ window.login = async (event) => {
 
   try {
     console.log("Attempting Firebase authentication...");
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    console.error(error);
+    document.getElementById("login-error-message").innerText = error.message;
+  }
+  try {
+    // Try direct method first
+    const token = await getCurrentUserToken();
 
-    const user = userCredential.user;
-    console.log("Firebase auth successful, user:", user.uid, user.email);
-
-    // Get token using shared utility
-    console.log("Getting token from Firebase...");
-    let token;
-    try {
-      // Try direct method first
-      token = await user.getIdToken();
-      console.log(
-        "Got token directly from user:",
-        token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-      );
-    } catch (directError) {
-      console.error("Direct token fetch failed:", directError);
-      // Fallback to shared utility
-      try {
-        token = await getCurrentUserToken();
-        console.log(
-          "Got token from utility:",
-          token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-        );
-      } catch (utilityError) {
-        console.error("Utility token fetch failed:", utilityError);
-      }
-    }
-
-    // Store the authentication token immediately after getting it
-    if (token) {
-      localStorage.setItem("authToken", token);
-      console.log("Token stored in localStorage");
-      // Verify storage
-      const storedToken = localStorage.getItem("authToken");
-      console.log(
-        "Verified stored token:",
-        storedToken ? `${storedToken.substring(0, 20)}...` : "NOT STORED"
-      );
-    } else {
-      console.error("No token received from Firebase");
-    }
-
-    // Post password user to DB
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
@@ -275,6 +236,8 @@ window.login = async (event) => {
       body: JSON.stringify({ password }),
     });
 
+    // Post password user to DB
+
     console.log("Backend login response status:", res.status);
 
     if (!res.ok) {
@@ -283,22 +246,10 @@ window.login = async (event) => {
       throw new Error(`Backend login failed: ${res.status}`);
     }
 
-    // // Fetch user info from backend
-    // await fetch("http://localhost:4000/api/user/profile", {
-    //   method: "GET",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     Authorization: `Bearer ${token}`,
-    //   },
-    // });
-
     const data = await res.json();
-    // console.log("User data from backend:", data);
 
     const role = data.role;
     const name = data.name;
-
-    // console.log("User role:", role);
 
     //save name and role in localStorage to use later
     localStorage.setItem(
@@ -309,15 +260,13 @@ window.login = async (event) => {
       })
     );
 
-    // alert(`Welcome ${name}! You are logged in as ${role}.`);
-
     // Redirect based on role
     switch (role) {
       case "admin":
-        window.location.href = "u-admin/a_dashboard.html";
+        window.location.href = "u-admin/a-dashboard.html";
         break;
       case "farmer":
-        window.location.href = "u-farmer/f_dashboard.html";
+        window.location.href = "u-farmer/f-dashboard.html";
         break;
       case "Operation-Manager":
         window.location.href = "opManager-dashboard.html";
@@ -339,10 +288,9 @@ window.login = async (event) => {
 
         break;
     }
-
-    //window.location.href = "index.html";
-  } catch (error) {
-    console.error(error);
-    document.getElementById("login-error-message").innerText = error.message;
+  } catch (Error) {
+    console.error(Error);
+    console.error("Error accured :" + Error.message);
+    // Fallback to shared utility
   }
 };

@@ -22,9 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (role === "farmer") {
     appTitle = "Farmer Panel";
     links = [
-      { href: "f_dashboard.html", text: "Dashboard" },
-      { href: "f_crops.html", text: "Crops" },
-      { href: "f_shipments.html", text: "Shipments" },
+      { href: "f-dashboard.html", text: "Dashboard" },
+      { href: "f-crops.html", text: "Crops" },
+      { href: "f-shipments.html", text: "Shipments" },
     ];
   } else if (role === "driver") {
     appTitle = "Driver Panel";

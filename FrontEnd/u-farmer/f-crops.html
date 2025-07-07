@@ -129,17 +129,15 @@
 
   <div class="main">
     <h1>Manage Crops</h1>
-    <div class="section">
-      <label for="landSelector"><strong>Select Land:</strong></label>
-      <select id="landSelector"></select>
-    </div>
+
     <!-- Crops Table -->
     <div class="section">
       <h2>Crop in Selected Land</h2>
-      <table id="tblCrops">
+      <table id="cropTable">
         <thead>
           <tr>
-            <th>Item</th>
+            <th>Land Name</th>
+            <th>Crop Name</th>
             <th>Planted Amount</th>
             <th>Planted On</th>
             <th>Status</th>
@@ -162,8 +160,8 @@
         <select id="itemDropdown"></select>
       </div>
       <div class="form-row">
-        <label for="inputPlantedAmt">Planted Amount (kg):</label>
-        <input type="number" id="inputPlantedAmt" />
+        <label for="inputPlantedAmount">Planted Amount (kg):</label>
+        <input type="number" id="inputPlantedAmount" />
       </div>
       <div class="form-row">
         <label for="avgRatePerUnit">Average Rate Per Unit (kg):</label>
