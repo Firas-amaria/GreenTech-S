@@ -603,9 +603,6 @@ module.exports = {
   updateCropByLandId,
   deleteCropByLandId,
 
-  //WIP
-  createShipment,
-  getFrontendShipments,
   approveShipmentRequest,
   submitShipmentReport,
 };
