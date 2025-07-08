@@ -1,5 +1,6 @@
 import { auth, onAuthStateChanged } from "./firebase-init.js";
-import { mockItemList, mockStock, mockAddresses } from "./mockData.js";
+
+const API_BASE = "http://localhost:4000";
 
 let user = null;
 let selectedAddress = "";
@@ -9,27 +10,55 @@ let selectedCategory = "";
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let shiftLocked = false;
 
-// ==== 1. AUTH CHECK ====
-onAuthStateChanged(auth, (currentUser) => {
-  if (!currentUser) {
+// ==== 1. AUTH CHECK + INITIAL DATA ====
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
     alert("Please log in to access the market.");
     window.location.href = "login.html";
   } else {
-    user = currentUser;
-    loadSavedAddresses(); // Only load after user verified
+    const token = await user.getIdToken(); // directly from the user
+    await loadCustomerAddress(token);
+    await loadAvailableShifts(token);
   }
 });
 
-// ==== 2. ADDRESS HANDLING ====
-function loadSavedAddresses() {
-  const select = document.getElementById("address-select");
-  mockAddresses.forEach((addr) => {
-    const option = document.createElement("option");
-    option.value = addr;
-    option.textContent = addr;
-    select.appendChild(option);
-  });
+async function loadCustomerAddress(token) {
+  try {
+    const res = await fetch(`${API_BASE}/api/customer/saved-address`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load address");
+    const data = await res.json();
+    selectedAddress = data.address;
+    document.getElementById("address-select").innerHTML = `<option>${data.address}</option>`;
+  } catch (err) {
+    console.error(err);
+    alert("Could not load your delivery address.");
+  }
 }
+
+async function loadAvailableShifts(token) {
+  try {
+    const res = await fetch(`${API_BASE}/api/market/available-shifts`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load shifts");
+    const shifts = await res.json();
+    const select = document.getElementById("shift-select");
+    select.innerHTML = `<option value="">-- Choose shift --</option>`;
+    shifts.forEach((shift) => {
+      const option = document.createElement("option");
+      option.value = shift.id;
+      option.textContent = shift.label;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error(err);
+    alert("Could not load available shifts.");
+  }
+}
+
+
 
 window.handleAddressChange = function () {
   const select = document.getElementById("address-select");
