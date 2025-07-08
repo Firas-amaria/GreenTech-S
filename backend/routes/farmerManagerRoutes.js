@@ -15,6 +15,7 @@ const {
   getAllItems,
   addNewItem,
   updateItem,
+  deleteItem,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
@@ -60,5 +61,11 @@ router.get("/items", getAllItems ,requireRole("farmerManager"));
 router.post("/items", addNewItem ,requireRole("farmerManager"));
 router.put("/items/:id", updateItem ,requireRole("farmerManager"));
 
+router.delete(
+  "/items/:itemId",
+  authenticate,
+  requireRole("farmerManager"),
+  deleteItem
+);
 
 module.exports = router;

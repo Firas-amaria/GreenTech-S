@@ -685,6 +685,24 @@ const updateItem = async (req, res) => {
   }
 };
 
+
+const deleteItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    if (!itemId) {
+      return res.status(400).json({ error: "Missing item ID" });
+    }
+
+    await db.collection("items").doc(itemId).delete();
+
+    return res.json({ success: true, message: "Item deleted successfully." });
+  } catch (err) {
+    console.error("Failed to delete item:", err);
+    return res.status(500).json({ error: "Could not delete item" });
+  }
+};
+
+
 module.exports = {
   updateApplicationStatus,
   getAllUsers,
@@ -699,4 +717,5 @@ module.exports = {
    getAllItems,
   addNewItem,
   updateItem,
+  deleteItem
 };

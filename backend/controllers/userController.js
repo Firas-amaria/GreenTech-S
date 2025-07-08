@@ -1,6 +1,12 @@
 const { admin, db } = require("../firebaseConfig");
 const { emailDocuments } = require("../info/contactInfo");
 
+
+
+
+
+
+
 // At top of your authController.js (or wherever getProfile lives):
 const roleCollectionMap = {
   customer: "users",
