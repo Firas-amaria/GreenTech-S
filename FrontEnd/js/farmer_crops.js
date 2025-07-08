@@ -352,6 +352,7 @@ async function handleAddCrop() {
   }
 
   // Show loading state
+  
   const addButton = document.getElementById("AddCropbtn");
   const originalText = addButton.textContent;
   addButton.textContent = "Adding...";
@@ -366,6 +367,7 @@ async function handleAddCrop() {
       ExpectedFruitingPerPlant: fruiting,
       plantedOn: plantedOn,
       expectedHarvestDate,
+      expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
       expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
       status: "Planting",
       statusPercentage: 0,
@@ -539,6 +541,13 @@ function formatDate(date) {
 // Make functions globally available for inline event handlers
 window.advanceCropStatus = advanceCropStatus;
 window.updateCropPercentage = updateCropPercentage;
+//when click on ShowFrom the form will be shown
+
+function startForm() {
+  document.querySelector(".section#addCropSection").style.display = "block";
+  fillLandDropdown();
+
+}
 //when click on ShowFrom the form will be shown
 
 function startForm() {
