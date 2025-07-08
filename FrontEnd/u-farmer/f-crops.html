@@ -129,17 +129,15 @@
 
   <div class="main">
     <h1>Manage Crops</h1>
-    <div class="section">
-      <label for="landSelector"><strong>Select Land:</strong></label>
-      <select id="landSelector"></select>
-    </div>
+
     <!-- Crops Table -->
     <div class="section">
       <h2>Crop in Selected Land</h2>
-      <table id="tblCrops">
+      <table id="cropTable">
         <thead>
           <tr>
-            <th>Item</th>
+            <th>Land Name</th>
+            <th>Crop Name</th>
             <th>Planted Amount</th>
             <th>Planted On</th>
             <th>Status</th>
@@ -156,14 +154,22 @@
     <!-- Add Crop Form (appears after clicking "Add Crops") -->
     <div class="section" id="addCropSection" style="display: none;">
       <h2>Add New Crop</h2>
+   
+      <label for="landSelector"><strong>Select Land:</strong></label>
+      <select id="landSelector"></select>
+    
+   
+      <label for="landSelector"><strong>Select Land:</strong></label>
+      <select id="landSelector"></select>
+    
 
       <div class="form-row">
         <label for="itemDropdown">Select Crop:</label>
         <select id="itemDropdown"></select>
       </div>
       <div class="form-row">
-        <label for="inputPlantedAmt">Planted Amount (kg):</label>
-        <input type="number" id="inputPlantedAmt" />
+        <label for="inputPlantedAmount">Planted Amount (kg):</label>
+        <input type="number" id="inputPlantedAmount" />
       </div>
       <div class="form-row">
         <label for="avgRatePerUnit">Average Rate Per Unit (kg):</label>
@@ -182,7 +188,8 @@
         <input type="date" id="expectedHarvestDate" />
       </div>
 
-      <button class="btn-primary" id="btnAddCrop">Add Crop</button>
+      <button class="btn-primary" id="AddCropbtn">Add Crop</button>
+      <button class="btn-primary" id="AddCropbtn">Add Crop</button>
     </div>
   </div>
   <script type="module" src="../js/w_sidebar_menu.js"></script>

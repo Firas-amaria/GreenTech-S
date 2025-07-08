@@ -258,7 +258,6 @@ async function renderDynamicApplicationCard(app) {
       const token = await getCurrentUserToken();
 
       const res = await fetch(
-        //TODO fix this and make it work
         `http://localhost:4000/api/farmerManager/updateApplication/${app.uid}`,
         {
           method: "PUT",

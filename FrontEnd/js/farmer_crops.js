@@ -1,42 +1,4 @@
-// =================================================================
-// 🔌 API INTEGRATION FOR FARMER CROPS
-// =================================================================
-
-// API Configuration
-const API_BASE_URL = "http://localhost:4000/api/farmer";
-
-// Helper function to get auth token
-function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
-}
-
-// Helper function for API calls
-async function apiCall(endpoint, options = {}) {
-  const token = getAuthToken();
-
-  const config = {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API call failed:", error);
-    throw error;
-  }
-}
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
 // Static data (fallback)
 const cropStatusOptions = [
@@ -64,6 +26,32 @@ function getRandomRealCropImage() {
   return realCropImages[index];
 }
 
+//API call function
+async function fetchFarmerLands() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getFarmerLands",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
+async function fetchItemList() {
+  const token = await getCurrentUserToken();
+  const response = await fetch("http://localhost:4000/api/farmer/getItemList", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
 // Global variables (will be loaded from API)
 let parsedLands = [];
 let itemList = [];
@@ -79,61 +67,14 @@ async function loadCropsPageData() {
   try {
     showLoadingIndicator("Loading crops data...");
 
-    // Try to load from API - use the dashboard endpoint which has the right structure
-    const data = await apiCall("/frontend/dashboard");
+    parsedLands = await fetchFarmerLands();
+    itemList = await fetchItemList();
 
-    // Extract lands data from dashboard response
-    parsedLands = data.parsedLands || [];
-
-    // Also load items for the dropdown
-    const itemsData = await apiCall("/frontend/items");
-    itemList =
-      itemsData.map((item) => ({
-        itemId: item.id,
-        itemName: item.name,
-        variety: item.category || "Standard",
-      })) || [];
-
-    //console.log("Successfully loaded data from API");
-    console.log("Parsed lands:", parsedLands);
-    console.log("Item list:", itemList);
     hideLoadingIndicator();
     return true;
   } catch (error) {
     console.warn("Failed to load from API, using fallback data:", error);
     hideLoadingIndicator();
-    showToast("Using offline mode - some features may be limited", "warning");
-
-    // Fallback to mock data
-    parsedLands = [
-      {
-        LandId: "00001",
-        name: "North Field",
-        acres: "22",
-        Crops: null,
-      },
-      {
-        LandId: "00002",
-        name: "South Plot",
-        acres: "10",
-        Crops: {
-          itemId: "001",
-          plantedAmount: 10,
-          plantedOn: "2025-05-01",
-          status: "Growing",
-          updatedOn: "2025-05-15",
-          percentage: 17,
-          imageUrl: realCropImages[0],
-        },
-      },
-    ];
-
-    itemList = [
-      { itemName: "Tomato", variety: "Cherry", itemId: "001" },
-      { itemName: "Lettuce", variety: "Iceberg", itemId: "002" },
-      { itemName: "Potato", variety: "White", itemId: "003" },
-    ];
-
     return false;
   }
 }
@@ -141,45 +82,50 @@ async function loadCropsPageData() {
 // Add crop via API
 async function addCropViaAPI(landId, cropData) {
   try {
-    //console.log("🔧 DEBUG: Adding crop via API");
-    //console.log("🔧 DEBUG: landId:", landId);
-    //console.log("🔧 DEBUG: cropData:", cropData);
-    // console.log(
-    //   "🔧 DEBUG: Auth token:",
-    //   getAuthToken() ? "Present" : "Missing"
-    // );
-
-    const payload = {
-      farmId: landId,
-      ...cropData,
-    };
-    //console.log("🔧 DEBUG: API payload:", payload);
-
-    const result = await apiCall("/crops", {
+    const token = await getCurrentUserToken();
+    const response = await fetch("http://localhost:4000/api/farmer/addCrop", {
       method: "POST",
-      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        landId: landId,
+        crop: cropData,
+      }),
     });
 
-    //console.log("🔧 DEBUG: API success:", result);
-    return result;
+    if (!response.ok) throw new Error("Failed to add crop");
+
+    return await response.json();
   } catch (error) {
-    console.error("🔧 DEBUG: API call failed:", error);
-    console.error("🔧 DEBUG: Error details:", error.message);
+    console.error("API call failed:", error);
     throw error;
   }
 }
 
-// Update crop status via API
 async function updateCropStatusViaAPI(cropId, status, percentage) {
   try {
-    return await apiCall(`/crops/${cropId}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        status,
-        statusPercentage: percentage,
-        updatedOn: formatDate(new Date()),
-      }),
-    });
+    const token = await getCurrentUserToken();
+    const response = await fetch(
+      `http://localhost:4000/api/farmer/crops/${cropId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status,
+          statusPercentage: percentage,
+          updatedOn: formatDate(new Date()),
+        }),
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to update crop status");
+
+    return await response.json();
   } catch (error) {
     console.error("Failed to update crop status via API:", error);
     throw error;
@@ -261,75 +207,13 @@ function getStatusOptions(currentStatus) {
     .join("");
 }
 
-function fillLandDropdown() {
-  const select = document.getElementById("landSelector");
-  parsedLands.forEach((land) => {
-    const opt = document.createElement("option");
-    opt.value = land.LandId;
-    opt.textContent = land.name;
-    select.appendChild(opt);
-  });
-  select.addEventListener("change", (e) => {
-    const landId = e.target.value;
-    selectedLand = parsedLands.find((l) => l.LandId === landId);
-    renderCropTable();
-  });
-}
-
-function renderCropTable() {
-  //console.log("🔧 DEBUG: renderCropTable called");
-  //console.log("🔧 DEBUG: selectedLand:", selectedLand);
-  //console.log("🔧 DEBUG: selectedLand?.Crops:", selectedLand?.Crops);
-
-  const tbody = document.querySelector("#tblCrops tbody");
-  tbody.innerHTML = "";
-
-  if (!selectedLand) {
-    console.log("🔧 DEBUG: No selected land");
-    return;
+function getItemDisplayName(itemId) {
+  const item = itemList.find((it) => it.id === itemId);
+  if (!item) {
+    console.warn("No item found for ID:", itemId);
+    return "Unknown Crop";
   }
-
-  const crop = selectedLand.Crops;
-
-  if (!crop) {
-    //console.log("🔧 DEBUG: No crop found on selected land");
-    const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="6">No crop reported on this land.</td>`;
-    tbody.appendChild(row);
-    document.querySelector(".section#addCropSection").style.display = "block";
-    return;
-  }
-
-  //console.log("🔧 DEBUG: Crop found, rendering table with crop:", crop);
-  document.querySelector(".section#addCropSection").style.display = "none";
-
-  const tr = document.createElement("tr");
-  const options = getStatusOptions(crop.status);
-
-  tr.innerHTML = `
-  <td>${getCropDisplayName(crop.itemId)}</td>    
-<td>${crop.plantedAmount}</td>
-    <td>${formatDateOnly(crop.plantedOn)}</td>
-    <td>
-      <select onchange="advanceCropStatus(this.value)">
-        ${options}
-      </select>
-    </td>
-    <td>${formatDateOnly(crop.updatedOn)}</td>
-
-    <td>
-      <input type="number" value="${
-        crop.percentage
-      }" min="0" max="100" onchange="updateCropPercentage(this.value)" />
-    </td>
-    <td><img src="${crop.imageUrl}" alt="${crop.item}"></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-function getCropDisplayName(itemId) {
-  const item = itemList.find((i) => i.itemId === itemId);
-  return item ? `${item.itemName} - ${item.variety}` : "Unknown Item";
+  return item.name;
 }
 
 async function updateCropPercentage(value) {
@@ -374,8 +258,7 @@ async function updateCropPercentage(value) {
 }
 
 async function advanceCropStatus(newStatus) {
-  if (!selectedLand?.Crops) return;
-
+  console.log("called");
   try {
     if (newStatus === "Field Clearing") {
       // Try to clear via API
@@ -425,16 +308,17 @@ function populateItemDropdown() {
   dropdown.innerHTML = '<option value="">-- Select Crop --</option>';
   itemList.forEach((item) => {
     const option = document.createElement("option");
-    option.value = item.itemId;
-    option.textContent = `${item.itemName} (${item.variety})`;
+    option.value = item.id;
+    option.textContent = `${item.name} `;
     dropdown.appendChild(option);
   });
 }
 
 async function handleAddCrop() {
+  console.log("called handleAddCrop");
   const selectedItemId = document.getElementById("itemDropdown").value;
   const plantedAmount = parseFloat(
-    document.getElementById("inputPlantedAmt").value
+    document.getElementById("inputPlantedAmount").value
   );
   const avgRate = parseFloat(document.getElementById("avgRatePerUnit").value);
   const fruiting = parseFloat(
@@ -445,22 +329,31 @@ async function handleAddCrop() {
     "expectedHarvestDate"
   ).value;
 
-  const item = itemList.find((i) => i.itemId === selectedItemId);
-
-  if (
-    !item ||
-    isNaN(plantedAmount) ||
-    isNaN(avgRate) ||
-    isNaN(fruiting) ||
-    !plantedOn ||
-    !expectedHarvestDate
-  ) {
+  const item = itemList.find((it) => it.id === selectedItemId);
+  if (!item) {
+    alert("No item found for ID:", selectedItemId);
+    return;
+  }
+  if (isNaN(plantedAmount)) {
+    alert("Please fill all fields with valid values. plantedAmount");
+    return;
+  }
+  if (isNaN(avgRate)) {
+    alert("Please fill all fields with valid values. avgRate");
+    return;
+  }
+  if (isNaN(fruiting)) {
+    alert("Please fill all fields with valid values. fruiting");
+    return;
+  }
+  if (!plantedOn || !expectedHarvestDate) {
     alert("Please fill all fields with valid values.");
     return;
   }
 
   // Show loading state
-  const addButton = document.getElementById("btnAddCrop");
+  
+  const addButton = document.getElementById("AddCropbtn");
   const originalText = addButton.textContent;
   addButton.textContent = "Adding...";
   addButton.disabled = true;
@@ -475,57 +368,73 @@ async function handleAddCrop() {
       plantedOn: plantedOn,
       expectedHarvestDate,
       expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
+      expectedHarvestingKg: (plantedAmount * avgRate) / 1000, // Convert to kg
       status: "Planting",
       statusPercentage: 0,
       imageUrl: getRandomRealCropImage(),
     };
 
+    const token = await getCurrentUserToken();
+    const response = await fetch("http://localhost:4000/api/farmer/addCrop", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        landId: selectedLand.index,
+        crop: cropData,
+      }),
+    });
+
+    if (!response.ok) throw new Error("Failed to add crop");
+
     // Try to add via API
-    try {
-      await addCropViaAPI(selectedLand.LandId, cropData);
-      showToast("Crop added successfully!", "success");
+    // try {
+    //   await addCropViaAPI(selectedLand.LandId, cropData);
+    //   showToast("Crop added successfully!", "success");
 
-      // Reload data from API to get the actual saved structure
-      //console.log("🔧 DEBUG: Reloading data after successful crop addition...");
-      //console.log("🔧 DEBUG: Before reload - selectedLand:", selectedLand);
-      //console.log("🔧 DEBUG: Before reload - parsedLands:", parsedLands);
+    //   // Reload data from API to get the actual saved structure
+    //   //console.log("🔧 DEBUG: Reloading data after successful crop addition...");
+    //   //console.log("🔧 DEBUG: Before reload - selectedLand:", selectedLand);
+    //   //console.log("🔧 DEBUG: Before reload - parsedLands:", parsedLands);
 
-      await loadCropsPageData();
+    //   await loadCropsPageData();
 
-      //console.log("🔧 DEBUG: After reload - parsedLands:", parsedLands);
+    //   //console.log("🔧 DEBUG: After reload - parsedLands:", parsedLands);
 
-      // Re-select the same land after data reload
-      if (selectedLand && selectedLand.LandId) {
-        const updatedLand = parsedLands.find(
-          (l) => l.LandId === selectedLand.LandId
-        );
-        if (updatedLand) {
-          selectedLand = updatedLand;
-          //console.log("🔧 DEBUG: Re-selected land after reload:", selectedLand);
-        }
-      }
+    //   // Re-select the same land after data reload
+    //   if (selectedLand && selectedLand.LandId) {
+    //     const updatedLand = parsedLands.find(
+    //       (l) => l.LandId === selectedLand.LandId
+    //     );
+    //     if (updatedLand) {
+    //       selectedLand = updatedLand;
+    //       //console.log("🔧 DEBUG: Re-selected land after reload:", selectedLand);
+    //     }
+    //   }
 
-      // Re-render the crop table
-      renderCropTable();
-      //console.log("🔧 DEBUG: Crop table re-rendered");
-    } catch (apiError) {
-      console.warn("API failed, updating locally:", apiError);
-      showToast("Added locally - will sync when online", "warning");
+    //   // Re-render the crop table
+    //   renderCropTable();
+    //   //console.log("🔧 DEBUG: Crop table re-rendered");
+    // } catch (apiError) {
+    //   console.warn("API failed, updating locally:", apiError);
+    //   showToast("Added locally - will sync when online", "warning");
 
-      // Only update local data if API failed
-      selectedLand.Crops = {
-        itemId: item.itemId,
-        plantedAmount,
-        avgRatePerUnit: avgRate,
-        fruitingPerPlant: fruiting,
-        plantedOn,
-        expectedHarvestDate,
-        status: "Planting",
-        updatedOn: new Date().toISOString(),
-        percentage: 10,
-        imageUrl: getRandomRealCropImage(),
-      };
-    }
+    //   // Only update local data if API failed
+    //   selectedLand.Crops = {
+    //     itemId: item.itemId,
+    //     plantedAmount,
+    //     avgRatePerUnit: avgRate,
+    //     fruitingPerPlant: fruiting,
+    //     plantedOn,
+    //     expectedHarvestDate,
+    //     status: "Planting",
+    //     updatedOn: new Date().toISOString(),
+    //     percentage: 10,
+    //     imageUrl: getRandomRealCropImage(),
+    //   };
+    // }
 
     // Reset form fields
     document.getElementById("inputPlantedAmt").value = "";
@@ -545,26 +454,81 @@ async function handleAddCrop() {
   }
 }
 
+function renderCropTable() {
+  const tableBody = document.querySelector("#cropTable tbody");
+  tableBody.innerHTML = "";
+
+  parsedLands.forEach((land) => {
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = land.landName;
+    tr.appendChild(tdName);
+
+    if (land.crop) {
+      // Crop exists — display its details
+
+      const crop = land.crop;
+      const options = getStatusOptions(crop.status);
+
+      tr.innerHTML += `
+        <td>${getItemDisplayName(crop.itemId)}</td>    
+        <td>${crop.plantedAmount}</td>
+        <td>${formatDateOnly(crop.plantedOn)}</td>
+        <td>
+            <select onchange="advanceCropStatus(this.value)">
+             ${options}
+            </select>
+        </td>
+        <td>${formatDateOnly(crop.updatedOn)}</td>
+        <td>
+          <input type="number" value="${
+            crop.statusPercentage
+          }" min="0" max="100" onchange="updateCropPercentage(this.value)" />
+        </td>
+        <td><img src="${crop.imageUrl}" alt="${crop.item}"></td>
+      `;
+    } else {
+      // No crop — show Add Crop button
+      const td = document.createElement("td");
+      td.colSpan = 10;
+      const btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = "Add Crop";
+      btn.onclick = () => showAddCropForm(land);
+      td.appendChild(btn);
+      tr.appendChild(td);
+    }
+
+    tableBody.appendChild(tr);
+  });
+
+  // Hide old section
+  document.getElementById("addCropSection").style.display = "none";
+}
+
+function showAddCropForm(land) {
+  selectedLand = land;
+  document.getElementById("addCropSection").style.display = "block";
+  populateItemDropdown();
+  document.getElementById("inputPlantedAmount").value = "";
+  document.getElementById("avgRatePerUnit").value = "";
+  document.getElementById("fruitingPerPlant").value = "";
+  document.getElementById("inputPlantedOn").value = "";
+  document.getElementById("expectedHarvestDate").value = "";
+}
+
+function setupAddCropButton() {
+  document
+    .getElementById("AddCropbtn")
+    .addEventListener("click", handleAddCrop);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // Load data from API
   await loadCropsPageData();
-
-  // Initialize page
-  fillLandDropdown();
-  populateItemDropdown();
-
-  if (parsedLands.length > 0) {
-    selectedLand = parsedLands[0];
-    document.getElementById("landSelector").value = selectedLand.LandId;
-    renderCropTable();
-  }
-
-  // Add event listener for add crop button
-  document
-    .getElementById("btnAddCrop")
-    .addEventListener("click", handleAddCrop);
-
-  //console.log("Farmer crops page initialized with API integration");
+  renderCropTable();
+  setupAddCropButton();
 });
 
 function formatDate(date) {
@@ -577,3 +541,17 @@ function formatDate(date) {
 // Make functions globally available for inline event handlers
 window.advanceCropStatus = advanceCropStatus;
 window.updateCropPercentage = updateCropPercentage;
+//when click on ShowFrom the form will be shown
+
+function startForm() {
+  document.querySelector(".section#addCropSection").style.display = "block";
+  fillLandDropdown();
+
+}
+//when click on ShowFrom the form will be shown
+
+function startForm() {
+  document.querySelector(".section#addCropSection").style.display = "block";
+  fillLandDropdown();
+
+}
