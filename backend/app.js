@@ -18,6 +18,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const farmerRoutes = require("./routes/farmerRoutes");
 const farmerManagerRoutes = require("./routes/farmerManagerRoutes");
+const customerRoutes = require("./routes/customerRoutes");
+const marketRoutes = require("./routes/marketRoutes");  
 
 //middlewares
 app.use(cors());
@@ -40,6 +42,8 @@ app.use(
   farmerRoutes
 );
 app.use("/api/farmerManager", farmerManagerRoutes);
+app.use("/api/customer", customerRoutes);
+app.use("/api/market", marketRoutes);
 
 const PORT = process.env.PORT || 4000;
 

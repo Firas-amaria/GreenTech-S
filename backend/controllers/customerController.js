@@ -1,6 +1,24 @@
 // customerController.js
 
-const { db, admin } = require("../firebaseConfig");
+const { DateTime } = require("luxon");
+const { admin, db } = require("../firebaseConfig");
+
+// getSavedAddresses ===
+async function getSavedAddress (req, res) {
+  try {
+    const userDoc = await db.collection("users").doc(req.user.uid).get();
+    if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
+    const data = userDoc.data();
+    const address = data.address || "";
+    res.json({ address });
+  } catch (err) {
+    console.error("Error fetching address:", err);
+    res.status(500).json({ error: "Failed to load address." });
+  }
+};
+
+
+
 
 // =================== PROFILE ===================
 async function getCustomerProfile(req, res) {
@@ -23,6 +41,14 @@ async function updateCustomerProfile(req, res) {
     res.status(500).send({ error: err.message });
   }
 }
+
+//get available shifts
+
+
+
+
+
+
 
 // =================== ITEMS ===================
 async function listItems(req, res) {
@@ -443,36 +469,7 @@ async function getRecommendations(req, res) {
 }
 
 module.exports = {
+ 
+  getSavedAddress,
   getCustomerProfile,
-  updateCustomerProfile,
-  listItems,
-  getItem,
-  searchItems,
-  getCart,
-  addToCart,
-  updateCartItem,
-  removeCartItem,
-  clearCart,
-  createOrder,
-  getOrderHistory,
-  getOrderById,
-  cancelOrder,
-  trackOrder,
-  listFavorites,
-  addFavorite,
-  removeFavorite,
-  submitProductRating,
-  submitFarmerRating,
-  getLoyaltyPoints,
-  redeemPoints,
-  listCoupons,
-  applyCoupon,
-  submitSupportTicket,
-  getSupportTickets,
-  addSupportReply,
-  getNotifications,
-  markNotificationRead,
-  getPreferences,
-  updatePreferences,
-  getRecommendations,
 };
