@@ -275,7 +275,7 @@ window.login = async (event) => {
         window.location.href = "picker-dashboard.html";
         break;
       case "customer":
-        window.location.href = "index.html";
+        window.location.href = "market.html";
         break;
       case "deliverer":
         window.location.href = "deliverer-dashboard.html";

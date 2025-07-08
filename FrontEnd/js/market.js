@@ -178,19 +178,30 @@ function renderItemCard(item, container, isPreview = false) {
         stockWarning.textContent = `Only ${item.currentAvailableQuantityKg} kg left in stock`;
         stockWarning.style.display = "block";
         addToCart.disabled = true;
-      } else {
+        if(item.currentAvailableQuantityKg <= 0) 
+          stockWarning.textContent = "Out of stock";
+      } 
+      else {
         stockWarning.style.display = "none";
         addToCart.disabled = false;
       }
     }
 
     inc.onclick = () => {
+      if(item.currentAvailableQuantityKg >input.value) {
       let val = parseInt(input.value);
       input.value = val + 1;
       validateQuantity();
+  }
+else {
+        alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
+        inc.disabled = true;
+
+      }
     };
 
     dec.onclick = () => {
+      inc.disabled = false;
       let val = parseInt(input.value);
       if (val > 1) {
         input.value = val - 1;
@@ -199,9 +210,59 @@ function renderItemCard(item, container, isPreview = false) {
     };
 
     addToCart.onclick = () => {
-      const qty = parseInt(input.value);
-      saveToCart(item, qty);
-    };
+  const qty = parseInt(input.value);
+  if (qty > item.currentAvailableQuantityKg) {
+    alert("Not enough stock available.");
+    return;
+  }
+
+  // Reduce stock immediately
+  item.currentAvailableQuantityKg -= qty;
+
+  // Prepare cart item with timestamp
+  const itemName = item.itemDisplayName || `${item.itemName} ${item.variety || ""}`;
+  const cartItem = {
+    itemId: item.itemId,
+    itemName: itemName,
+    price: item.pricePerUnit,
+    quantity: qty,
+    timestamp: Date.now()
+  };
+
+  // Add to cart (localStorage)
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const existing = cart.find(i => i.itemId === cartItem.itemId);
+  if (existing) {
+    existing.quantity += qty;
+    existing.timestamp = cartItem.timestamp;
+  } else {
+    cart.push(cartItem);
+  }
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  renderMarketPreview(false); // Refresh view
+  alert(`${itemName} added to cart (${qty} kg)`);
+
+  // ⏱ Set 3-min timer to return to stock
+  setTimeout(() => {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const index = cart.findIndex(i => i.itemId === cartItem.itemId);
+    if (index !== -1) {
+      const returnedQty = cart[index].quantity;
+
+      // Return quantity to the live item
+      const stockItem = marketItems.find(i => i.itemId === cartItem.itemId);
+      if (stockItem) {
+        stockItem.currentAvailableQuantityKg += returnedQty;
+      }
+
+      cart.splice(index, 1);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderMarketPreview(false); // Re-render view
+    }
+  }, 180000);
+};
+
 
     validateQuantity(); // Initial validation
   }
