@@ -32,10 +32,11 @@ async function loadCustomerAddress(token) {
     selectedAddress = data.address;
     document.getElementById("address-select").innerHTML = `<option>${data.address}</option>`;
   } catch (err) {
-    console.error(err);
+    console.error("Error loading address:", err);
     alert("Could not load your delivery address.");
   }
 }
+
 
 async function loadAvailableShifts(token) {
   try {
@@ -44,6 +45,7 @@ async function loadAvailableShifts(token) {
     });
     if (!res.ok) throw new Error("Failed to load shifts");
     const shifts = await res.json();
+    console.log("Available shifts:", shifts);
     const select = document.getElementById("shift-select");
     select.innerHTML = `<option value="">-- Choose shift --</option>`;
     shifts.forEach((shift) => {
@@ -53,54 +55,63 @@ async function loadAvailableShifts(token) {
       select.appendChild(option);
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error loading shifts:", err);
     alert("Could not load available shifts.");
   }
 }
 
 
+window.handleShiftSelect = async function () {
+  console.log("handleShiftSelect fired");
 
-window.handleAddressChange = function () {
-  const select = document.getElementById("address-select");
-  const value = select.value;
-  const customInput = document.getElementById("custom-address");
+  const stockId = document.getElementById("shift-select").value;
+  console.log("DEBUG: Selected stockId:", stockId);
 
-  if (value === "custom") {
-    customInput.style.display = "block";
-    selectedAddress = "";
-  } else {
-    customInput.style.display = "none";
-    selectedAddress = value;
+  if (!stockId || stockId === "" || stockId === "undefined") {
+    alert("Please select a valid shift.");
+    return;
   }
-};
 
-// ==== 3. SHIFT HANDLING ====
-window.handleShiftSelect = function () {
   if (cart.length > 0 && shiftLocked) {
-    alert("You cannot change the shift while cart has items. Please checkout or clear cart.");
+    alert("You cannot change the shift while cart has items.");
     document.getElementById("shift-select").value = deliveryShift;
     return;
   }
 
-  const shift = document.getElementById("shift-select").value;
-  const addressInput = document.getElementById("custom-address").value;
-  selectedAddress = selectedAddress || addressInput;
-
-  if (!shift || !selectedAddress.trim()) {
-    return;
-  }
-
-  deliveryShift = shift;
+  deliveryShift = stockId;
   shiftLocked = true;
-  marketItems = mockStock[shift] || [];
+
+  const token = await auth.currentUser.getIdToken();
+  //console.log("DEBUG: Token for fetching stock items:", token);
+  marketItems = await loadStockItems(token, stockId);
 
   document.getElementById("category-selection").style.display = "block";
   document.getElementById("search-section").style.display = "block";
 
-  renderMarketPreview(false); // Now show full items
+  renderMarketPreview(false);
 };
 
-// ==== 4. CATEGORY FILTER ====
+
+
+// ==== LOAD STOCK ITEMS ====
+async function loadStockItems(token, stockId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/market/available-stock/${stockId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load stock items.");
+    return await res.json();
+  } catch (err) {
+    console.error("Error loading stock items:", err);
+    alert("Could not load items for this shift.");
+    return [];
+  }
+}
+
+
+
+
+// ====  CATEGORY FILTER ====
 window.filterCategory = function (category) {
   selectedCategory = category;
   updateCategoryButtons();   // 👈 calls this right after
@@ -145,159 +156,126 @@ window.handleSearch = function () {
 
 
 // ==== 6. MARKET DISPLAY ====
-function renderMarketPreview(isPreview = true) {
+function renderMarketPreview() {
   const container = document.getElementById("market-container");
   container.innerHTML = "";
 
-  const itemsToShow = isPreview
-    ? mockItemList.map((item) => ({
-        itemId: item.itemId,
-        itemDisplayName: `${item.itemName} ${item.variety}`,
-        itemPictureUrl: `https://via.placeholder.com/100?text=${item.itemName}`,
-      }))
-      : selectedCategory === "All"
+  const itemsToShow = selectedCategory === "All"
     ? marketItems
-    : marketItems.filter((item) => item.category === selectedCategory);
+    : marketItems.filter(item => item.category === selectedCategory);
 
   if (itemsToShow.length === 0) {
     container.innerHTML = "<p>No items to display.</p>";
     return;
   }
 
-  itemsToShow.forEach((item) => {
-    renderItemCard(item, container, isPreview);
-  });
+  itemsToShow.forEach(item => renderItemCard(item, container));
 }
 
-function renderItemCard(item, container, isPreview = false) {
+function renderItemCard(item, container) {
   const card = document.createElement("div");
   card.className = "item-card";
   card.innerHTML = `
-    <img src="${item.itemPictureUrl}" />
+    <img src="https://via.placeholder.com/100?text=${encodeURIComponent(item.itemDisplayName)}" />
     <div>
       <h4>${item.itemDisplayName}</h4>
-      ${
-        isPreview
-          ? `<button onclick="alert('Please choose address and shift first.')">Add to Cart</button>`
-          : `
-            <p>Farmer: ${item.sourceFarmerName}</p>
-            <p>Price: $${item.pricePerUnit}/kg</p>
-            <div class="controls">
-              <button class="dec">-</button>
-              <input type="text" value="1" readonly />
-              <button class="inc">+</button>
-            </div>
-            <p class="stock-warning" style="display: none; color: red; font-size: 13px; margin: 4px 0;"></p>
-            <button class="add-to-cart-btn">Add to Cart</button>
-          `
-      }
+      <p>Farmer: ${item.sourceFarmerName}</p>
+      <p>Price: $${item.pricePerUnit}/kg</p>
+      <div class="controls">
+        <button class="dec">-</button>
+        <input type="text" value="1" readonly />
+        <button class="inc">+</button>
+      </div>
+      <p class="stock-warning" style="display: none; color: red; font-size: 13px; margin: 4px 0;"></p>
+      <button class="add-to-cart-btn">Add to Cart</button>
     </div>
   `;
 
-  if (!isPreview) {
-    const input = card.querySelector("input");
-    const inc = card.querySelector(".inc");
-    const dec = card.querySelector(".dec");
-    const addToCart = card.querySelector(".add-to-cart-btn");
-    const stockWarning = card.querySelector(".stock-warning");
+  const input = card.querySelector("input");
+  const inc = card.querySelector(".inc");
+  const dec = card.querySelector(".dec");
+  const addToCart = card.querySelector(".add-to-cart-btn");
+  const stockWarning = card.querySelector(".stock-warning");
 
-    function validateQuantity() {
-      const qty = parseInt(input.value);
-      if (qty > item.currentAvailableQuantityKg) {
-        stockWarning.textContent = `Only ${item.currentAvailableQuantityKg} kg left in stock`;
-        stockWarning.style.display = "block";
-        addToCart.disabled = true;
-        if(item.currentAvailableQuantityKg <= 0) 
-          stockWarning.textContent = "Out of stock";
-      } 
-      else {
-        stockWarning.style.display = "none";
-        addToCart.disabled = false;
-      }
+  function validateQuantity() {
+    const qty = parseInt(input.value);
+    if (qty > item.currentAvailableQuantityKg) {
+      stockWarning.textContent = `Only ${item.currentAvailableQuantityKg} kg left in stock`;
+      stockWarning.style.display = "block";
+      addToCart.disabled = true;
+      if (item.currentAvailableQuantityKg <= 0) stockWarning.textContent = "Out of stock";
+    } else {
+      stockWarning.style.display = "none";
+      addToCart.disabled = false;
     }
+  }
 
-    inc.onclick = () => {
-      if(item.currentAvailableQuantityKg >input.value) {
-      let val = parseInt(input.value);
-      input.value = val + 1;
+  inc.onclick = () => {
+    if (item.currentAvailableQuantityKg > input.value) {
+      input.value = parseInt(input.value) + 1;
       validateQuantity();
-  }
-else {
-        alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
-        inc.disabled = true;
-
-      }
-    };
-
-    dec.onclick = () => {
-      inc.disabled = false;
-      let val = parseInt(input.value);
-      if (val > 1) {
-        input.value = val - 1;
-        validateQuantity();
-      }
-    };
-
-    addToCart.onclick = () => {
-  const qty = parseInt(input.value);
-  if (qty > item.currentAvailableQuantityKg) {
-    alert("Not enough stock available.");
-    return;
-  }
-
-  // Reduce stock immediately
-  item.currentAvailableQuantityKg -= qty;
-
-  // Prepare cart item with timestamp
-  const itemName = item.itemDisplayName || `${item.itemName} ${item.variety || ""}`;
-  const cartItem = {
-    itemId: item.itemId,
-    itemName: itemName,
-    price: item.pricePerUnit,
-    quantity: qty,
-    timestamp: Date.now()
+    } else {
+      alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
+      inc.disabled = true;
+    }
   };
 
-  // Add to cart (localStorage)
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const existing = cart.find(i => i.itemId === cartItem.itemId);
-  if (existing) {
-    existing.quantity += qty;
-    existing.timestamp = cartItem.timestamp;
-  } else {
-    cart.push(cartItem);
-  }
-  localStorage.setItem("cart", JSON.stringify(cart));
-
-  renderMarketPreview(false); // Refresh view
-  alert(`${itemName} added to cart (${qty} kg)`);
-
-  // ⏱ Set 3-min timer to return to stock
-  setTimeout(() => {
-    let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const index = cart.findIndex(i => i.itemId === cartItem.itemId);
-    if (index !== -1) {
-      const returnedQty = cart[index].quantity;
-
-      // Return quantity to the live item
-      const stockItem = marketItems.find(i => i.itemId === cartItem.itemId);
-      if (stockItem) {
-        stockItem.currentAvailableQuantityKg += returnedQty;
-      }
-
-      cart.splice(index, 1);
-      localStorage.setItem("cart", JSON.stringify(cart));
-      renderMarketPreview(false); // Re-render view
+  dec.onclick = () => {
+    inc.disabled = false;
+    if (parseInt(input.value) > 1) {
+      input.value = parseInt(input.value) - 1;
+      validateQuantity();
     }
-  }, 180000);
-};
+  };
 
+  addToCart.onclick = () => {
+    const qty = parseInt(input.value);
+    if (qty > item.currentAvailableQuantityKg) {
+      alert("Not enough stock available.");
+      return;
+    }
+    item.currentAvailableQuantityKg -= qty;
 
-    validateQuantity(); // Initial validation
-  }
+    const cartItem = {
+      itemId: item.itemId,
+      itemName: item.itemDisplayName,
+      price: item.pricePerUnit,
+      quantity: qty,
+      timestamp: Date.now()
+    };
 
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const existing = cart.find(i => i.itemId === cartItem.itemId);
+    if (existing) {
+      existing.quantity += qty;
+      existing.timestamp = cartItem.timestamp;
+    } else {
+      cart.push(cartItem);
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+
+    renderMarketPreview();
+    alert(`${item.itemDisplayName} added to cart (${qty} kg)`);
+
+    setTimeout(() => {
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const index = cart.findIndex(i => i.itemId === cartItem.itemId);
+      if (index !== -1) {
+        const returnedQty = cart[index].quantity;
+        const stockItem = marketItems.find(i => i.itemId === cartItem.itemId);
+        if (stockItem) stockItem.currentAvailableQuantityKg += returnedQty;
+        cart.splice(index, 1);
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderMarketPreview();
+      }
+    }, 180000);
+  };
+
+  validateQuantity();
   container.appendChild(card);
 }
+
+
 
 
 // ==== 7. CART LOGIC (Only Save, No Display Yet) ====
