@@ -65,11 +65,16 @@ window.handleShiftSelect = function () {
   shiftLocked = true;
   marketItems = mockStock[shift] || [];
 
+  // ✅ Now that deliveryShift and selectedAddress are set, save them
+  localStorage.setItem("selectedShift", deliveryShift);
+  localStorage.setItem("selectedAddress", selectedAddress);
+
   document.getElementById("category-selection").style.display = "block";
   document.getElementById("search-section").style.display = "block";
 
-  renderMarketPreview(false); // Now show full items
+  renderMarketPreview(false);
 };
+
 
 // ==== 4. CATEGORY FILTER ====
 window.filterCategory = function (category) {
