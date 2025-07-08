@@ -4,31 +4,24 @@ const { authenticate, requireRole } = require("../services/authMiddleware");
 const { db } = require("../firebaseConfig"); // Add db import for inventory route
 const {
   createCrop,
-  updateCrop,
-  deleteCrop,
   approveShipmentRequest,
   submitShipmentReport,
   getApprovedShipments,
   getShipmentRequests,
   getFarmerLands,
   getItemList,
+  updateCropByLandId,
+  deleteCropByLandId,
 } = require("../controllers/farmerController");
 
 // Apply base authentication to all routes
 router.use(authenticate);
 
-//USED f-crop
-// Update crop
-router.put("/crops/:cropId", requireRole("farmer"), updateCrop);
-
-//USED f-crop
-// Delete crop
-router.delete("/crops/:cropId", requireRole("farmer"), deleteCrop);
-
 //USED f-dashboard f-shipment
 // Approve shipment request
-router.post(
-  "/shipments/requests/:requestId/approve",
+router.put(
+  "/approveShipmentRequest/:requestId",
+  authenticate,
   requireRole("farmer"),
   approveShipmentRequest
 );
@@ -61,6 +54,15 @@ router.get(
   authenticate,
   requireRole("farmer"),
   getFarmerLands
+);
+
+// NEW – match frontend
+router.put("/updateCrops/:landId", requireRole("farmer"), updateCropByLandId);
+
+router.delete(
+  "/removeLandCrops/:landId",
+  requireRole("farmer"),
+  deleteCropByLandId
 );
 
 //USED f-crop
