@@ -34,13 +34,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
-app.use(
-  "/api/farmer",
-  (req, res, next) => {
-    next();
-  },
-  farmerRoutes
-);
+app.use("/api/farmer", farmerRoutes);
 app.use("/api/farmerManager", farmerManagerRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/market", marketRoutes);
