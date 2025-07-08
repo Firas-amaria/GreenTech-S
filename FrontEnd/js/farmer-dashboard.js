@@ -193,9 +193,14 @@ function populateApprovedTable() {
   approvedShipments.forEach((sh) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${sh.id}</td>
-      <td>${formatDateOnly(sh.pickupTime)}</td>
-      <td>${sh.item}</td>
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
       <td><button class="small btn-primary" onclick="goToReport('${
         sh.id
       }')">Shipment Report</button></td>
@@ -291,13 +296,6 @@ async function approveDash(requestId) {
     try {
       await approveRequestViaAPI(requestId);
       showToast("Request approved successfully!", "success");
-
-      // Reload data from API
-
-      // await loadDashboardData();
-      // populateApprovedTable();
-      // populateRequestsTable();
-      // populateCropsTable();
     } catch (apiError) {
       console.warn("API failed, updating locally:", apiError);
     }
@@ -314,8 +312,9 @@ window.approveDash = approveDash;
 
 // ===== 7) Redirect to Report =====
 function goToReport(shipmentId) {
-  window.location.href = `f_shipment_report.html?shipmentId=${shipmentId}`;
+  window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
 }
+window.goToReport = goToReport;
 
 // ===== 9) Init =====
 window.addEventListener("load", async () => {
@@ -326,6 +325,4 @@ window.addEventListener("load", async () => {
   populateApprovedTable();
   populateRequestsTable();
   populateCropsTable();
-
-  console.log("Farmer dashboard initialized with API integration");
 });

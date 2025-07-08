@@ -622,13 +622,6 @@ document.getElementById("reportProblemBtn").addEventListener("click", () => {
   // Example: window.location.href = `/report-problem?shipmentId=${shipmentId}`;
 });
 
-// ===== Logout Link =====
-document.getElementById("logoutLink4").addEventListener("click", (e) => {
-  e.preventDefault();
-  alert("Logging out... (placeholder)");
-  // BACKEND: POST /api/logout → window.location.href = '/login.html';
-});
-
 // ===== Initialize when page loads =====
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeShipmentReport();
