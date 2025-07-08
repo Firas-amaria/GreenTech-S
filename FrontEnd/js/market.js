@@ -230,6 +230,10 @@ else {
     itemId: item.itemId,
     itemName: itemName,
     price: item.pricePerUnit,
+    shippingReqId: item.shippingReqId || null,
+    sourceFarmName: item.sourceFarmName || "Unknown Farm",
+    sourceFarmerName: item.sourceFarmerName || "Unknown Farmer",
+    sourceFarmerId: item.sourceFarmerId || null,
     quantity: qty,
     timestamp: Date.now()
   };

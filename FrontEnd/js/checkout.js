@@ -42,5 +42,20 @@ function goBack() {
 function submitOrder() {
   // Save submission flag and redirect
   localStorage.setItem("orderSubmitted", "true");
+// create a delivery oder
+  const order = {
+    items: JSON.parse(localStorage.getItem("cart")) || [],
+  
+    total: parseFloat(document.getElementById("checkout-total").textContent.replace("Total: $", "")),
+    address: localStorage.getItem("selectedAddress"),
+    shift: localStorage.getItem("selectedShift"),
+    date: new Date().toISOString()
+  };
+  localStorage.setItem("order", JSON.stringify(order));
+  localStorage.removeItem("cart");
+  localStorage.removeItem("selectedShift");
+  localStorage.removeItem("selectedAddress");
+  
+
   window.location.href = "delivery-note.html";
 }
