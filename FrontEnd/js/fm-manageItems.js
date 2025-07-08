@@ -30,8 +30,10 @@ function renderItems(items) {
   const list = document.getElementById("itemsList");
   list.innerHTML = items.map(item => `
     <div class="itemCard">
+    <center>
       <img src="${item.imageUrl || 'https://via.placeholder.com/100'}" 
-           alt="Item Image" style="max-width:100%; border-radius:8px; margin-bottom:10px;">
+           alt="Item Image" style="width:200px; height:200px; border-radius:8px; margin-bottom:10px;">
+           </center>
       <h3>${item.name}</h3>
       <p><strong>Category:</strong> ${item.category}</p>
       <p><strong>Weight:</strong> ${item.avgWeightPerUnitGr || 10}g</p>
