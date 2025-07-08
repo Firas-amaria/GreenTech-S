@@ -83,9 +83,21 @@ async function loadDashboardData() {
 // Approve shipment request via API
 async function approveRequestViaAPI(requestId) {
   try {
-    // return await apiCall(`/shipments/requests/${requestId}/approve`, {
-    //   method: "POST",
-    // });
+    console.log("request id :" + requestId);
+    const token = await getCurrentUserToken();
+
+    const response = await fetch(
+      `http://localhost:4000/api/farmer/approveShipmentRequest/${requestId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to Approve Shipment Request");
   } catch (error) {
     console.error("Failed to approve request via API:", error);
     throw error;
@@ -199,8 +211,22 @@ function populateRequestsTable() {
   tbody.innerHTML = "";
 
   shipmentRequests.forEach((req) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+    if (req.status === "forecasted") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${req.itemDisplayName}</td>
+      <td>${"Expected:" + req.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(req.scheduledPickupDate) +
+        "  " +
+        req.scheduledPickupTimeSlot
+      }</td>
+<button class="small btn-no-success" >Waiting Finalization</button>
+    `;
+      tbody.appendChild(tr);
+    } else {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
       <td>${req.itemDisplayName}</td>
       <td>${req.forecastedQuantityKg}</td>
       <td>${
@@ -212,7 +238,8 @@ function populateRequestsTable() {
         req.id
       }')">Approve</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    }
   });
 }
 
@@ -266,29 +293,13 @@ async function approveDash(requestId) {
       showToast("Request approved successfully!", "success");
 
       // Reload data from API
-      await loadDashboardData();
-      populateApprovedTable();
-      populateRequestsTable();
-      populateCropsTable();
+
+      // await loadDashboardData();
+      // populateApprovedTable();
+      // populateRequestsTable();
+      // populateCropsTable();
     } catch (apiError) {
       console.warn("API failed, updating locally:", apiError);
-      showToast("Approved locally - will sync when online", "warning");
-
-      // Fallback to local update
-      const idx = shipmentRequests.findIndex((r) => r.id === requestId);
-      if (idx < 0) return;
-      const req = shipmentRequests.splice(idx, 1)[0];
-      const newShipmentId = approvedShipments.length
-        ? Math.max(...approvedShipments.map((s) => s.id)) + 1
-        : 301;
-      approvedShipments.push({
-        id: newShipmentId,
-        item: req.item,
-        amount: req.amount,
-        pickupTime: req.pickupTime,
-      });
-      populateApprovedTable();
-      populateRequestsTable();
     }
 
     // Restore button
@@ -299,6 +310,7 @@ async function approveDash(requestId) {
     showToast("Failed to approve request. Please try again.", "error");
   }
 }
+window.approveDash = approveDash;
 
 // ===== 7) Redirect to Report =====
 function goToReport(shipmentId) {
