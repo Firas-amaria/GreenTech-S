@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { authenticate, requireRole } = require("../services/authMiddleware");
-const { db } = require("../firebaseConfig"); // Add db import for inventory route
 const {
-  createCrop,
+  createCropByLandId,
   approveShipmentRequest,
   submitShipmentReport,
   getApprovedShipments,
@@ -12,34 +11,29 @@ const {
   getItemList,
   updateCropByLandId,
   deleteCropByLandId,
+  getApprovedShipmentsByID,
 } = require("../controllers/farmerController");
-
-// Apply base authentication to all routes
 router.use(authenticate);
 
-//USED f-dashboard f-shipment
-// Approve shipment request
-router.put(
-  "/approveShipmentRequest/:requestId",
-  authenticate,
-  requireRole("farmer"),
-  approveShipmentRequest
-);
-
-//USED  f-shipmentReport
-// Submit shipment report
 router.post(
-  "/shipments/:shipmentId/report-complete",
+  "/submitShipmentReport",
+  authenticate,
   requireRole("farmer"),
   submitShipmentReport
 );
 
-//AFTER FIXES
 router.get(
   "/getApprovedShipments",
   authenticate,
   requireRole("farmer"),
   getApprovedShipments
+);
+
+router.get(
+  "/getApprovedShipmentsByID/:shipmentId",
+  authenticate,
+  requireRole("farmer"),
+  getApprovedShipmentsByID
 );
 
 router.get(
@@ -56,18 +50,33 @@ router.get(
   getFarmerLands
 );
 
-// NEW – match frontend
-router.put("/updateCrops/:landId", requireRole("farmer"), updateCropByLandId);
+router.put(
+  "/updateCrops/:landId",
+  authenticate,
+  requireRole("farmer"),
+  updateCropByLandId
+);
 
 router.delete(
   "/removeLandCrops/:landId",
+  authenticate,
   requireRole("farmer"),
   deleteCropByLandId
 );
 
-//USED f-crop
-// Create new crop
-router.post("/addCrop", authenticate, requireRole("farmer"), createCrop);
+router.post(
+  "/addCrop",
+  authenticate,
+  requireRole("farmer"),
+  createCropByLandId
+);
+
+router.put(
+  "/approveShipmentRequest/:requestId",
+  authenticate,
+  requireRole("farmer"),
+  approveShipmentRequest
+);
 
 router.get("/getItemList", getItemList);
 

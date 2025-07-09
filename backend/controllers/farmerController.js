@@ -102,61 +102,83 @@ async function manageInventory(farmerId, crop, landIndex, action) {
 //KEEP
 async function submitShipmentReport(req, res) {
   try {
-    const farmerId = req.user.uid;
-    const { shipmentId } = req.params;
-    const { containers, totalWeight, notes } = req.body;
-
-    //console.log(`[submitShipmentReport] Submitting report for shipment ${shipmentId} by farmer ${farmerId}`);
-
-    // Validate required fields
-    if (!containers || !Array.isArray(containers) || containers.length === 0) {
-      return res.status(400).json({ error: "Containers data is required" });
+    // === Auth Check ===
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: No token provided" });
     }
 
-    // Get the shipment to verify it belongs to this farmer
-    const shipmentDoc = await db.collection("shipments").doc(shipmentId).get();
+    const token = authHeader.split(" ")[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const farmerUid = decodedToken.uid;
 
-    if (!shipmentDoc.exists) {
+    // === Get Payload ===
+    const { shipmentId, totalWeightReported, containers, readyTimestamp } =
+      req.body;
+
+    if (!shipmentId || !Array.isArray(containers) || containers.length === 0) {
+      return res.status(400).json({ error: "Missing or invalid payload" });
+    }
+
+    const shipmentRef = db.collection("shipment").doc(shipmentId);
+    const shipmentSnap = await shipmentRef.get();
+
+    if (!shipmentSnap.exists) {
       return res.status(404).json({ error: "Shipment not found" });
     }
 
-    const shipmentData = shipmentDoc.data();
+    const shipmentData = shipmentSnap.data();
 
-    if (shipmentData.farmerId !== farmerId) {
-      return res.status(403).json({
-        error: "Access denied - shipment belongs to different farmer",
-      });
+    if (shipmentData.farmerId !== farmerUid) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to update this shipment" });
     }
 
-    // Update shipment with report data
-    const reportData = {
-      status: "ready_for_pickup",
-      containers: containers,
-      reportedWeight:
-        totalWeight ||
-        containers.reduce(
-          (sum, container) => sum + (container.weightKg || 0),
-          0
-        ),
-      reportNotes: notes || "",
-      reportSubmittedAt: admin.firestore.FieldValue.serverTimestamp(),
-      reportSubmittedBy: farmerId,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    const timestampNow = admin.firestore.Timestamp.now();
+
+    // === Prepare Updates ===
+    const newHistoryEntry = {
+      timestamp: timestampNow,
+      user: "farmer",
+      action: `Submitted ${containers.length} containers (${totalWeightReported} kg)`,
     };
 
-    await db.collection("shipments").doc(shipmentId).update(reportData);
+    const updatedStages = shipmentData.stages.map((stage) =>
+      stage.key === "ready-for-pickup"
+        ? { ...stage, timestamp: timestampNow, status: "ok" }
+        : stage
+    );
 
-    //console.log(`[submitShipmentReport] Successfully updated shipment ${shipmentId} with report data`);
+    // Append to farmerReports in fullReport
+    const updatedFullReport = {
+      ...shipmentData.fullReport,
+      farmerReports: [
+        ...(shipmentData.fullReport?.farmerReports || []),
+        {
+          submittedAt: timestampNow,
+          totalWeightReported,
+          containers,
+        },
+      ],
+      history: [...(shipmentData.fullReport?.history || []), newHistoryEntry],
+    };
 
-    res.json({
-      success: true,
-      message: "Shipment report submitted successfully",
-      shipmentId: shipmentId,
-      status: "ready_for_pickup",
+    // === Final Firestore Update ===
+    await shipmentRef.update({
+      "fullReport.farmerReports": updatedFullReport.farmerReports,
+      "fullReport.history": updatedFullReport.history,
+      stages: updatedStages,
+      overallStatus: "ready-for-pickup", // optional depending on your logic
+      lastUpdatedAt: new Date().toISOString(),
     });
+
+    return res
+      .status(200)
+      .json({ message: "Shipment report submitted successfully" });
   } catch (err) {
     console.error("[submitShipmentReport] Error:", err);
-    res.status(500).json({ error: "Failed to submit shipment report" });
+    return res.status(500).json({ error: err.message });
   }
 }
 
@@ -187,6 +209,42 @@ async function getApprovedShipments(req, res) {
     }));
 
     res.json(approvedShipments);
+  } catch (err) {
+    console.error("[getApprovedShipments] Error:", err);
+    res.status(500).send({ error: err.message });
+  }
+}
+
+async function getApprovedShipmentsByID(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const farmerUid = decodedToken.uid;
+
+    const { shipmentId } = req.params;
+
+    const approvedShipmentSnap = await db
+      .collection("shipment")
+      .doc(shipmentId)
+      .get();
+
+    if (!approvedShipmentSnap.exists) {
+      return res.status(404).json({ error: "Shipment not found" });
+    }
+
+    const approvedShipment = approvedShipmentSnap.data();
+
+    if (approvedShipment.farmerId !== farmerUid) {
+      return res.status(403).send("Farmer IDs don't match");
+    }
+
+    res.json(approvedShipment);
   } catch (err) {
     console.error("[getApprovedShipments] Error:", err);
     res.status(500).send({ error: err.message });
@@ -386,7 +444,7 @@ async function updateCropByLandId(req, res) {
 }
 
 //KEEP
-async function createCrop(req, res) {
+async function createCropByLandId(req, res) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -400,7 +458,7 @@ async function createCrop(req, res) {
 
     const { landId, crop } = req.body;
 
-    //console.log(`[createCrop] Creating crop for farmerId: ${farmerId}, farmId: ${farmId}`);
+    //console.log(`[createCropByLandId] Creating crop for farmerId: ${farmerId}, farmId: ${farmId}`);
 
     // Get current lands
     const lands = await getFarmerLandsByUid(farmerUid);
@@ -430,7 +488,7 @@ async function createCrop(req, res) {
     }
 
     const itemData = itemDoc.data();
-    //console.log(`[createCrop] Item found: ${itemData.name}`);
+    //console.log(`[createCropByLandId] Item found: ${itemData.name}`);
 
     // Create crop data combining frontend fields + auto-generated fields
     const cropData = {
@@ -449,7 +507,7 @@ async function createCrop(req, res) {
       updatedAt: admin.firestore.Timestamp.now(),
     };
 
-    //console.log(`[createCrop] Crop data prepared:`, cropData);
+    //console.log(`[createCropByLandId] Crop data prepared:`, cropData);
 
     // Update the specific land with crop data
     lands[landIndex].crop = cropData;
@@ -462,7 +520,7 @@ async function createCrop(req, res) {
       throw saveError;
     }
 
-    //console.log(`[createCrop] Successfully created crop in land ${landIndex}`);
+    //console.log(`[createCropByLandId] Successfully created crop in land ${landIndex}`);
     res.status(201).json({
       message: "Crop created successfully",
       crop: {
@@ -595,11 +653,12 @@ async function approveShipmentRequest(req, res) {
 module.exports = {
   getShipmentRequests,
   getApprovedShipments,
+  getApprovedShipmentsByID,
   getFarmerLands,
   getItemList,
 
   //old
-  createCrop,
+  createCropByLandId,
   updateCropByLandId,
   deleteCropByLandId,
 
