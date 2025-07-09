@@ -105,7 +105,7 @@ async function reserveItem(req, res) {
       const updatedItems = data.items.map(item => {
         if (item.id === itemKey) {
           if (item.currentAvailableQuantityKg < quantity) {
-            throw new Error("Not enough stock available.");
+            throw new Error(`Only ${item.currentAvailableQuantityKg} kg left in stock.`);
           }
           return { ...item, currentAvailableQuantityKg: item.currentAvailableQuantityKg - quantity };
         }
@@ -122,6 +122,7 @@ async function reserveItem(req, res) {
   }
 }
 
+
 async function restoreItem(req, res) {
   try {
     const { stockId, itemId, sourceFarmerId, quantity } = req.body;
@@ -135,7 +136,10 @@ async function restoreItem(req, res) {
       const data = stockDoc.data();
       const updatedItems = data.items.map(item => {
         if (item.id === itemKey) {
-          return { ...item, currentAvailableQuantityKg: item.currentAvailableQuantityKg + quantity };
+          return {
+            ...item,
+            currentAvailableQuantityKg: item.currentAvailableQuantityKg + quantity
+          };
         }
         return item;
       });
@@ -149,6 +153,75 @@ async function restoreItem(req, res) {
     res.status(400).json({ error: err.message || "Failed to restore item." });
   }
 }
+async function submitOrder(req, res) {
+  try {
+    const { uid } = req.user; // from auth middleware
+    const {
+      items,               // list of items from cart
+      deliveryAddress,     // map: street, city, lat, lng, label
+      deliveryDate,        // string (ISO) e.g. "2025-07-15T00:00:00Z"
+      deliveryShift,       // "morning", etc
+      totalOrderValue,     // monetary value
+      totalOrderWeightKg   // total weight
+    } = req.body;
+
+    if (!items || !items.length) {
+      return res.status(400).json({ error: "No items in order." });
+    }
+
+    // === Generate unique order ID ===
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const rand = Math.floor(Math.random() * 100000);
+    const orderId = `LC-1_ORD_${yyyy}_${mm}_${dd}_${deliveryShift}_${uid}_${rand}`;
+
+    // === Prepare clean delivery timestamp ===
+    const deliveryDateObj = deliveryDate ? new Date(deliveryDate) : new Date();
+    const deliveryDateTimestamp = admin.firestore.Timestamp.fromDate(deliveryDateObj);
+
+    // === Build order data ===
+    const orderData = {
+      customerId: uid,
+      logisticCenterId: "LC-1",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: "pending",
+      deliveryAddress: deliveryAddress || {},
+      deliveryDate: deliveryDateTimestamp,
+      deliveryShift: deliveryShift || "unknown",
+      totalOrderValue: totalOrderValue || 0,
+      totalOrderWeightKg: totalOrderWeightKg || 0,
+      assignedDelivererId: null,
+      delivererAssignedAt: null,
+      readyForPickupAt: null,
+      delivererPickupLocation: null,
+      pickedUpByDelivererAt: null,
+      deliveredAt: null,
+      delivererTaskRef: null,
+      items
+    };
+
+    // === Save order to orders collection ===
+    await db.collection("orders").doc(orderId).set(orderData);
+
+    // === Link order ID to customer's document ===
+    const customerRef = db.collection("customers").doc(uid);
+    await customerRef.set(
+      {
+        orders: admin.firestore.FieldValue.arrayUnion(orderId)
+      },
+      { merge: true }
+    );
+
+    console.log(`✅ Created order ${orderId} for customer ${uid}`);
+    res.json({ success: true, orderId });
+
+  } catch (err) {
+    console.error("Error creating order:", err);
+    res.status(500).json({ error: "Failed to create order." });
+  }
+}
 
 
 
@@ -158,4 +231,5 @@ module.exports = {
   getAvailableShifts,
   getItemList,reserveItem,
   restoreItem,
+  submitOrder,
 };

@@ -195,6 +195,7 @@ const createStockItem = async (req, res) => {
       const basePrice = itemData.price?.a || 0;
       const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
       const itemImageUrl = itemData.imageUrl || 'https://via.placeholder.com/100?text=No+Image';
+      const category = itemData.category || "Unknown Category";
       const sourceFarmerDoc = await db
         .collection("users")
         .doc(sourceFarmerId)

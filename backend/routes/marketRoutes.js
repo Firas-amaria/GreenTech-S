@@ -6,7 +6,8 @@ const {
   getAvailableShifts,
   getItemList,
     reserveItem,
-    restoreItem
+    restoreItem,
+    submitOrder,
 } = require("../controllers/marketController");
 
 
@@ -17,5 +18,6 @@ router.get("/available-stock/:stockId", authenticate, getAvailableStock);
 router.get("/items", authenticate, getItemList); // NEW LINE
 router.post("/reserve-item", authenticate, reserveItem);
 router.post("/restore-item", authenticate, restoreItem);
+router.post("/submit-order", authenticate, submitOrder);
 
 module.exports = router;
