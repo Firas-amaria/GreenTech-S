@@ -1,4 +1,4 @@
-import { auth, onAuthStateChanged } from "./firebase-init.js";
+import { auth, onAuthStateChanged ,signOut} from "./firebase-init.js";
 
 const API_BASE = "http://localhost:4000";
 
@@ -10,17 +10,54 @@ let selectedCategory = "";
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let shiftLocked = false;
 
+document.getElementById("logout-link").addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    await signOut(auth);
+    alert("You have been logged out.");
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error("Logout failed:", err);
+    alert("Failed to logout. Please try again.");
+  }
+});
+
 // ==== 1. AUTH CHECK + INITIAL DATA ====
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please log in to access the market.");
     window.location.href = "login.html";
   } else {
-    const token = await user.getIdToken(); // directly from the user
+    const token = await user.getIdToken();
     await loadCustomerAddress(token);
     await loadAvailableShifts(token);
+
+    const savedShift = localStorage.getItem("selectedShift");
+    const savedAddress = localStorage.getItem("selectedAddress");
+    if (savedShift && savedAddress) {
+      deliveryShift = savedShift;
+      selectedAddress = savedAddress;
+      shiftLocked = true;
+
+      selectedCategory = "All";
+      updateCategoryButtons();
+
+      document.getElementById("shift-select").value = savedShift;
+
+      marketItems = await loadStockItems(token, savedShift);
+      document.getElementById("category-selection").style.display = "block";
+      document.getElementById("search-section").style.display = "block";
+      renderMarketPreview();
+  document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
+
+}
+
+    updateCartCount();
   }
 });
+
+
+
 
 async function loadCustomerAddress(token) {
   try {
@@ -60,7 +97,6 @@ async function loadAvailableShifts(token) {
   }
 }
 
-
 window.handleShiftSelect = async function () {
   console.log("handleShiftSelect fired");
 
@@ -72,29 +108,38 @@ window.handleShiftSelect = async function () {
     return;
   }
 
-  if (cart.length > 0 && shiftLocked) {
-    alert("You cannot change the shift while cart has items.");
-    document.getElementById("shift-select").value = deliveryShift;
-    return;
+  if (shiftLocked && cart.length > 0) {
+    if (!confirm("Your cart is not empty! Changing the shift will empty your cart.\n\nDo you want to discard your cart and change delivery?")) {
+      document.getElementById("shift-select").value = deliveryShift;
+      return;
+    } else {
+      cart = [];
+      localStorage.removeItem("cart");
+      updateCartCount();
+      alert("Cart has been cleared. Please select items for the new shift.");
+    }
   }
 
   deliveryShift = stockId;
   shiftLocked = true;
 
+  selectedCategory = "All";
+  updateCategoryButtons();
+
   const token = await auth.currentUser.getIdToken();
-  //console.log("DEBUG: Token for fetching stock items:", token);
   marketItems = await loadStockItems(token, stockId);
 
-  // ✅ Now that deliveryShift and selectedAddress are set, save them
   localStorage.setItem("selectedShift", deliveryShift);
   localStorage.setItem("selectedAddress", selectedAddress);
 
   document.getElementById("category-selection").style.display = "block";
   document.getElementById("search-section").style.display = "block";
 
-  renderMarketPreview(false);
-};
+  renderMarketPreview();
+  document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
 
+
+};
 
 
 // ==== LOAD STOCK ITEMS ====
@@ -111,8 +156,6 @@ async function loadStockItems(token, stockId) {
     return [];
   }
 }
-
-
 
 
 // ====  CATEGORY FILTER ====
@@ -180,7 +223,7 @@ function renderItemCard(item, container) {
   const card = document.createElement("div");
   card.className = "item-card";
   card.innerHTML = `
-    <img src="https://via.placeholder.com/100?text=${encodeURIComponent(item.itemDisplayName)}" />
+    <img src="${item.itemImageUrl || 'https://via.placeholder.com/100?text=No+Image'}" />
     <div>
       <h4>${item.itemDisplayName}</h4>
       <p>Farmer: ${item.sourceFarmerName}</p>
@@ -202,7 +245,7 @@ function renderItemCard(item, container) {
   const stockWarning = card.querySelector(".stock-warning");
 
   function validateQuantity() {
-    const qty = parseInt(input.value);
+    const qty = parseFloat(input.value);
     if (qty > item.currentAvailableQuantityKg) {
       stockWarning.textContent = `Only ${item.currentAvailableQuantityKg} kg left in stock`;
       stockWarning.style.display = "block";
@@ -215,8 +258,8 @@ function renderItemCard(item, container) {
   }
 
   inc.onclick = () => {
-    if (item.currentAvailableQuantityKg > input.value) {
-      input.value = parseInt(input.value) + 1;
+    if (item.currentAvailableQuantityKg > parseFloat(input.value)) {
+      input.value = (parseFloat(input.value) + 1).toFixed(1);
       validateQuantity();
     } else {
       alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
@@ -226,28 +269,51 @@ function renderItemCard(item, container) {
 
   dec.onclick = () => {
     inc.disabled = false;
-    if (parseInt(input.value) > 1) {
-      input.value = parseInt(input.value) - 1;
+    if (parseFloat(input.value) > 0.0) {
+      input.value = (parseFloat(input.value) - 1).toFixed(1);
       validateQuantity();
     }
   };
 
-  addToCart.onclick = () => {
-    const qty = parseInt(input.value);
+  addToCart.onclick = async () => {
+    const qty = parseFloat(input.value);
     if (qty > item.currentAvailableQuantityKg) {
       alert("Not enough stock available.");
       return;
     }
+
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${API_BASE}/api/market/reserve-item`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        stockId: deliveryShift,
+        itemId: item.itemId,
+        sourceFarmerId: item.sourceFarmerId,
+        quantity: qty
+      })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(`Failed to add to cart: ${data.error || "Unknown error"}`);
+      return;
+    }
+
+    // ✅ Only after confirmed reserve in backend
     item.currentAvailableQuantityKg -= qty;
 
     const cartItem = {
       itemId: item.itemId,
       itemName: item.itemDisplayName,
       price: item.pricePerUnit,
-    shippingReqId: item.shippingReqId || null,
-    sourceFarmName: item.sourceFarmName || "Unknown Farm",
-    sourceFarmerName: item.sourceFarmerName || "Unknown Farmer",
-    sourceFarmerId: item.sourceFarmerId || null,
+      shippingReqId: item.shippingReqId || null,
+      sourceFarmName: item.sourceFarmName || "Unknown Farm",
+      sourceFarmerName: item.sourceFarmerName || "Unknown Farmer",
+      sourceFarmerId: item.sourceFarmerId || null,
       quantity: qty,
       timestamp: Date.now()
     };
@@ -265,18 +331,35 @@ function renderItemCard(item, container) {
     renderMarketPreview();
     alert(`${item.itemDisplayName} added to cart (${qty} kg)`);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       let cart = JSON.parse(localStorage.getItem("cart")) || [];
       const index = cart.findIndex(i => i.itemId === cartItem.itemId);
       if (index !== -1) {
         const returnedQty = cart[index].quantity;
         const stockItem = marketItems.find(i => i.itemId === cartItem.itemId);
         if (stockItem) stockItem.currentAvailableQuantityKg += returnedQty;
+
+        // ✅ Call backend to restore
+        await fetch(`${API_BASE}/api/market/restore-item`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            stockId: deliveryShift,
+            itemId: stockItem.itemId,
+            sourceFarmerId: stockItem.sourceFarmerId,
+            quantity: returnedQty
+          })
+        });
+
         cart.splice(index, 1);
         localStorage.setItem("cart", JSON.stringify(cart));
         renderMarketPreview();
       }
-    }, 180000);
+    }, 600000
+    ); // 5 minutes to restore item stock
   };
 
   validateQuantity();
@@ -284,47 +367,41 @@ function renderItemCard(item, container) {
 }
 
 
-
-
-// ==== 7. CART LOGIC (Only Save, No Display Yet) ====
-function saveToCart(item, qty) {
-  const cartItem = {
-    itemId: item.itemId,
-    itemName: item.itemDisplayName,
-    price: item.pricePerUnit,
-    quantity: qty,
-    timestamp: Date.now()
-  };
-
-  // ===== BACKEND API CALL (Commented Example) =====
-  /*
-  fetch('/api/cart/add', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Include auth token if required
-    },
-    body: JSON.stringify({
-      itemId: cartItem.itemId,
-      quantity: cartItem.quantity
-    })
-  }).then(res => res.json()).then(data => {
-    // Handle response
-  });
-  */
-
-  // ==== MOCK LOCAL STORAGE ====
+function updateCartCount() {
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const existing = cart.find(i => i.itemId === cartItem.itemId);
-  if (existing) {
-    existing.quantity += qty;
-    existing.timestamp = cartItem.timestamp;
-  } else {
-    cart.push(cartItem);
+  let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const countSpan = document.getElementById("cart-count");
+  if (countSpan) {
+    countSpan.textContent = totalItems;
   }
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-  setTimeout(() => restoreFromCart(cartItem.itemId), 180000);
 }
 
 
+
+
+// ==== 8. CHANGE DELIVERY HANDLER ====
+window.handleChangeDelivery = function () {
+  if (cart.length > 0) {
+    if (confirm("You have items in your cart. Do you want to clear your cart to change delivery?")) {
+      cart = [];
+      localStorage.removeItem("cart");
+      shiftLocked = false;
+      deliveryShift = "";
+      document.getElementById("shift-select").value = "";
+      document.getElementById("category-selection").style.display = "none";
+      document.getElementById("search-section").style.display = "none";
+      document.getElementById("market-container").innerHTML = "<p>Please select a new delivery shift and address.</p>";
+      alert("Cart cleared. You can now select a new delivery.");
+    } else {
+      alert("Keep your existing cart to finish checkout first.");
+    }
+  } else {
+    shiftLocked = false;
+    deliveryShift = "";
+    document.getElementById("shift-select").value = "";
+    document.getElementById("category-selection").style.display = "none";
+    document.getElementById("search-section").style.display = "none";
+    document.getElementById("market-container").innerHTML = "<p>Please select a new delivery shift and address.</p>";
+    alert("You can now choose a different delivery shift.");
+  }
+};

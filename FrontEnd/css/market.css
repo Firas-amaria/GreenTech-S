@@ -10,6 +10,7 @@ body {
   background-color: #f8f9fa;
   color: #333;
   padding-bottom: 60px; /* room for footer */
+   padding-top: 60px; /* space for the fixed navbar */
 }
 
 /* === NAVIGATION BAR === */
@@ -21,17 +22,49 @@ body {
   align-items: center;
 }
 
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: #28a745;
+}
+
 .nav-links a {
-  margin-right: 20px;
-  color: white;
+  position: relative;
+  display: inline-block;
+  color: #f4f4f4;
   text-decoration: none;
-  font-weight: 500;
+  margin: 0 15px;
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+/* underline animation */
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  left: 0;
+  bottom: -4px;
+  background-color: #28a745; /* your accent color */
+  transition: width 0.3s ease;
 }
 
-.nav-links a:hover {
-  text-decoration: underline;
+
+.nav-links a:hover::after {
+  width: 100%;
 }
 
+/* active page indicator */
+.nav-links a.active {
+  color: #f7f7f7;
+  font-weight: bold;
+}
+
+.nav-links a.active::after {
+  width: 100%;
+}
 /* === SECTION STYLES === */
 .section {
   margin: 15px auto;
@@ -318,4 +351,63 @@ a.add-to-cart-btn:hover {
   .nav-links a {
     margin-right: 10px;
   }
+}
+
+
+.market-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+#search-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.category-navbar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.market-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+
+.cart-details-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.cart-item {
+  border-bottom: 1px solid #ccc;
+  padding: 8px 0;
+}
+
+
+.cart-details-line button {
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+.remove-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.remove-btn:hover {
+  background-color: #d32f2f;
 }
