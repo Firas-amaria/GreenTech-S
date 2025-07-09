@@ -85,6 +85,10 @@ window.handleShiftSelect = async function () {
   //console.log("DEBUG: Token for fetching stock items:", token);
   marketItems = await loadStockItems(token, stockId);
 
+  // ✅ Now that deliveryShift and selectedAddress are set, save them
+  localStorage.setItem("selectedShift", deliveryShift);
+  localStorage.setItem("selectedAddress", selectedAddress);
+
   document.getElementById("category-selection").style.display = "block";
   document.getElementById("search-section").style.display = "block";
 
@@ -240,6 +244,10 @@ function renderItemCard(item, container) {
       itemId: item.itemId,
       itemName: item.itemDisplayName,
       price: item.pricePerUnit,
+    shippingReqId: item.shippingReqId || null,
+    sourceFarmName: item.sourceFarmName || "Unknown Farm",
+    sourceFarmerName: item.sourceFarmerName || "Unknown Farmer",
+    sourceFarmerId: item.sourceFarmerId || null,
       quantity: qty,
       timestamp: Date.now()
     };
