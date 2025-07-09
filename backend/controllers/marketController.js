@@ -52,8 +52,110 @@ async function getAvailableShifts(req, res) {
   }
 };
 
+async function getAvailableStock(req, res) {
+  try {
+    const stockId = req.params.stockId;
+    //console.log("Looking for stock document with ID:", stockId);
+
+    const stockDoc = await db.collection("availableMarketStock").doc(stockId).get();
+    //console.log("CHECKING ID EXACT MATCH:", stockId, "-> exists:", stockDoc.exists);
+
+    if (!stockDoc.exists) {
+      //console.log("Document not found in Firestore.");
+      return res.status(404).json({ error: "Stock not found for this shift." });
+    }
+
+    const stockData = stockDoc.data();
+    //console.log("Firestore data:", stockData);
+
+    res.json(stockData.items || []);
+  } catch (err) {
+    //console.error("Error fetching available stock:", err);
+    res.status(500).json({ error: "Failed to load available stock." });
+  }
+
+}
+
+async function getItemList(req, res) {
+ try {
+    const snapshot = await db.collection("items").get();
+    const itemList = snapshot.docs.map(doc => ({
+      itemId: doc.data().itemId,
+      name: doc.data().name,
+      category: doc.data().category
+    }));
+    res.json(itemList);
+  } catch (err) {
+    console.error("Error fetching item list:", err);
+    res.status(500).json({ error: "Failed to load item list." });
+  }
+}
+
+async function reserveItem(req, res) {
+  try {
+    const { stockId, itemId, sourceFarmerId, quantity } = req.body;
+    const itemKey = `${itemId}_${sourceFarmerId}`;
+    const stockRef = db.collection("availableMarketStock").doc(stockId);
+
+    await db.runTransaction(async (t) => {
+      const stockDoc = await t.get(stockRef);
+      if (!stockDoc.exists) throw new Error("Stock document not found.");
+
+      const data = stockDoc.data();
+      const updatedItems = data.items.map(item => {
+        if (item.id === itemKey) {
+          if (item.currentAvailableQuantityKg < quantity) {
+            throw new Error("Not enough stock available.");
+          }
+          return { ...item, currentAvailableQuantityKg: item.currentAvailableQuantityKg - quantity };
+        }
+        return item;
+      });
+
+      t.update(stockRef, { items: updatedItems });
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Reserve item failed:", err);
+    res.status(400).json({ error: err.message || "Failed to reserve item." });
+  }
+}
+
+async function restoreItem(req, res) {
+  try {
+    const { stockId, itemId, sourceFarmerId, quantity } = req.body;
+    const itemKey = `${itemId}_${sourceFarmerId}`;
+    const stockRef = db.collection("availableMarketStock").doc(stockId);
+
+    await db.runTransaction(async (t) => {
+      const stockDoc = await t.get(stockRef);
+      if (!stockDoc.exists) throw new Error("Stock document not found.");
+
+      const data = stockDoc.data();
+      const updatedItems = data.items.map(item => {
+        if (item.id === itemKey) {
+          return { ...item, currentAvailableQuantityKg: item.currentAvailableQuantityKg + quantity };
+        }
+        return item;
+      });
+
+      t.update(stockRef, { items: updatedItems });
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Restore item failed:", err);
+    res.status(400).json({ error: err.message || "Failed to restore item." });
+  }
+}
+
+
+
 
 module.exports = {
- 
+ getAvailableStock,
   getAvailableShifts,
+  getItemList,reserveItem,
+  restoreItem,
 };

@@ -194,7 +194,7 @@ const createStockItem = async (req, res) => {
       const itemData = itemDoc.data();
       const basePrice = itemData.price?.a || 0;
       const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
-
+      const itemImageUrl = itemData.imageUrl || 'https://via.placeholder.com/100?text=No+Image';
       const sourceFarmerDoc = await db
         .collection("users")
         .doc(sourceFarmerId)
@@ -215,17 +215,19 @@ const createStockItem = async (req, res) => {
         return null; // <- return null so we can filter it out
       }
       const farmerData = farmerDoc.data();
-
+      const stockItemId = `${itemId}_${sourceFarmerId}`;
       //shimReq unique ID
       const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
       // Add stock item
       stockData.items.push({
+        id: stockItemId,
         itemId,
         itemDisplayName,
         sourceFarmerId,
         sourceFarmerName: sourceFarmerName,
         sourceFarmName: farmerData.farmName || "UNKNOWN FARM",
         pickupAddress,
+        itemImageUrl: itemImageUrl,
         currentAvailableQuantityKg,
         originalCommittedQuantityKg,
         pricePerUnit: finalPrice,
