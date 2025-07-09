@@ -1,108 +1,41 @@
-/*******************************************************
- * 🔌 API INTEGRATED SHIPMENT REPORT
- *******************************************************/
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
-// API Configuration
-const API_BASE_URL = "http://localhost:4000/api/farmer";
-
-// Helper function to get auth token
-function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
-}
-
-// Helper function for API calls
-async function apiCall(endpoint, options = {}) {
-  const token = getAuthToken();
-
-  const config = {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+async function fetchApprovedShipmentByID() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    `http://localhost:4000/api/farmer/getApprovedShipmentsByID/${shipmentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API call failed:", error);
-    throw error;
-  }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
 }
 
-// =================================================================
-// 🔌 API INTEGRATION FUNCTIONS
-// =================================================================
-
-async function loadShipmentData(shipmentId) {
-  try {
-    // Try to load specific shipment from API
-    const shipmentData = await apiCall(`/shipments/${shipmentId}`);
-    return shipmentData;
-  } catch (error) {
-    console.warn(
-      "Failed to load shipment from API, using fallback data:",
-      error
-    );
-
-    // Fallback to mock data
-    const sampleShipments = [
-      { id: 301, item: "Tomato", amount: 120, pickupTime: "2025-06-02T08:00" },
-      { id: 302, item: "Lettuce", amount: 80, pickupTime: "2025-06-01T09:30" },
-      { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
-    ];
-
-    const fallbackShipment =
-      sampleShipments.find((s) => String(s.id) === shipmentId) || {};
-    return fallbackShipment;
-  }
+async function fetchItemList() {
+  const token = await getCurrentUserToken();
+  const response = await fetch("http://localhost:4000/api/farmer/getItemList", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
 }
 
 async function loadQualityStandards(itemId) {
   try {
-    return await apiCall(`/frontend/quality-standards/${itemId}`);
+    const itemList = await fetchItemList();
+    const item = itemList.find((it) => it.id === itemId);
+    if (!item) {
+      console.warn("No item found for ID:", itemId);
+      return "Unknown Crop";
+    }
+    return item.qualityStandards;
   } catch (error) {
-    console.warn(
-      "Failed to load quality standards from API, using fallback:",
-      error
-    );
-
-    // Fallback quality standards
-    return [
-      { parameter: "Brix (סוכר)", a: "≥ 12", b: "8–11", c: "< 8" },
-      {
-        parameter: "Acidity (חומציות)",
-        a: "Balanced (מאוזנת)",
-        b: "Slight (חמוץ/תפל)",
-        c: "Very Sour (חמוץ מאוד)",
-      },
-      {
-        parameter: "Size (גודל)",
-        a: "Medium",
-        b: "Small or Too Large",
-        c: "Inconsistent/Abnormal",
-      },
-    ];
-  }
-}
-
-async function submitShipmentReport(shipmentId, payload) {
-  try {
-    return await apiCall(`/shipments/${shipmentId}/report-complete`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    console.error("Failed to submit shipment report via API:", error);
-    throw error;
+    console.warn("Failed to load quality standards from API", error);
   }
 }
 
@@ -147,24 +80,62 @@ const shipmentId = getQueryParam("shipmentId");
 let shipment = {};
 let qualityStandards = [];
 
+const qualityParameterDisplayMap = [
+  {
+    key: "brix",
+    label: "Brix (Sugar %)",
+    inputType: "number",
+    placeholder: "e.g. 12",
+  },
+  {
+    key: "acidityPercentage",
+    label: "Acidity (%)",
+    inputType: "number",
+    placeholder: "percentage",
+  },
+  {
+    key: "pressure",
+    label: "Pressure (kg/cm²)",
+    inputType: "number",
+    placeholder: "e.g. 1.2",
+  },
+  {
+    key: "colorDescription",
+    label: "Color Description",
+    inputType: "text",
+    placeholder: "e.g. Red, Green",
+  },
+  {
+    key: "colorPercentage",
+    label: "Color (%)",
+    inputType: "number",
+    placeholder: "e.g. 80",
+  },
+  {
+    key: "weightPerUnitG",
+    label: "Weight per Unit (g)",
+    inputType: "number",
+    placeholder: "e.g. 0.5",
+  },
+  {
+    key: "diameterMM",
+    label: "Diameter (mm)",
+    inputType: "number",
+    placeholder: "e.g. 5.5",
+  },
+];
+
 // Load shipment data and quality standards
 async function initializeShipmentReport() {
   try {
-    // Load shipment data
-    shipment = await loadShipmentData(shipmentId);
+    shipment = await fetchApprovedShipmentByID(shipmentId);
 
-    // Load quality standards for this item
-    if (shipment.item) {
-      // Try to get itemId from the item name - this might need adjustment based on your data structure
-      qualityStandards = await loadQualityStandards(
-        shipment.itemId || shipment.item
-      );
+    if (shipment.itemId) {
+      qualityStandards = await loadQualityStandards(shipment.itemId);
     }
 
-    // Populate UI
+    console.log("QS:" + qualityStandards);
     populateShipmentDetails();
-
-    console.log("Shipment report initialized with API data");
   } catch (error) {
     console.error("Failed to initialize shipment report:", error);
     showToast("Failed to load shipment data", "error");
@@ -173,58 +144,52 @@ async function initializeShipmentReport() {
 
 // ===== Populate Shipment Details at Top =====
 function populateShipmentDetails() {
-  document.getElementById("spanShipmentId").textContent = shipment.id || "N/A";
-  document.getElementById("spanItem").textContent = shipment.item || "N/A";
+  document.getElementById("spanShipmentId").textContent = shipmentId || "N/A";
+  document.getElementById("spanItem").textContent =
+    shipment.itemDisplayName || "N/A";
   document.getElementById("spanAmount").textContent =
-    shipment.amount != null ? `${shipment.amount} kg` : "N/A";
-  document.getElementById("spanPickupTime").textContent = shipment.pickupTime
-    ? new Date(shipment.pickupTime).toLocaleString()
-    : "N/A";
+    `${shipment.finalConfirmedQuantityKg} kg` || "N/A";
+  document.getElementById("spanPickupTime").textContent =
+    shipment.scheduledPickupTimeSlot || "N/A";
 }
 
-// ===== Placeholder for Quality Standards (to be fetched from backend) =====
-// This will be loaded dynamically from API
-qualityStandards = [
-  // Example format; replace with real API response
-  { parameter: "Brix (סוכר)", a: "≥ 12", b: "8–11", c: "< 8" },
-  {
-    parameter: "Acidity (חומציות)",
-    a: "Balanced (מאוזנת)",
-    b: "Slight (חמוץ/תפל)",
-    c: "Very Sour (חמוץ מאוד)",
-  },
-  {
-    parameter: "Size (גודל)",
-    a: "Medium",
-    b: "Small or Too Large",
-    c: "Inconsistent/Abnormal",
-  },
-];
-
-// Build dynamic table of quality standards
-function buildQualityLegendTable() {
+function buildQualityLegendTable(qualityStandards) {
   const table = document.createElement("table");
+  table.classList.add("quality-legend-table");
+
+  // Defensive check
+  if (!qualityStandards || typeof qualityStandards !== "object") {
+    table.innerHTML = `<tbody><tr><td colspan="4"><em>No quality standards found for this item.</em></td></tr></tbody>`;
+    return table;
+  }
+
   let html = `
-        <thead>
-          <tr>
-            <th>Parameter</th>
-            <th>A (≥ / Balanced / Medium)</th>
-            <th>B (Range / Slight / Small or Too Large)</th>
-            <th>C (&lt; or &gt; / Very Sour / Inconsistent/Abnormal)</th>
-          </tr>
-        </thead>
-        <tbody>
-      `;
-  qualityStandards.forEach((q) => {
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>A (Premium)</th>
+        <th>B (Standard)</th>
+        <th>C (Below Standard)</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+
+  // Only loop through listed keys in specified order
+  for (const { key, label } of qualityParameterDisplayMap) {
+    const grades = qualityStandards[key];
+    if (!grades) continue; // skip if not present in data
+
     html += `
-          <tr>
-            <td>${q.parameter}</td>
-            <td>${q.a}</td>
-            <td>${q.b}</td>
-            <td>${q.c}</td>
-          </tr>
-        `;
-  });
+      <tr>
+        <td>${label}</td>
+        <td>${grades?.A || "-"}</td>
+        <td>${grades?.B || "-"}</td>
+        <td>${grades?.C || "-"}</td>
+      </tr>
+    `;
+  }
+
   html += "</tbody>";
   table.innerHTML = html;
   return table;
@@ -282,132 +247,94 @@ function createContainerBlocks(count) {
 
 function appendContainerBlock(index) {
   const containerDiv = document.getElementById("containersContainer");
-  const code = String(index).padStart(3, "0"); // e.g., "001"
+  const code = String(index).padStart(3, "0");
 
   const block = document.createElement("div");
   block.classList.add("container-block");
   block.id = `container-${code}`;
 
-  // Container header
   const header = document.createElement("h3");
   header.textContent = `Container Code: `;
   const codeInput = document.createElement("input");
   codeInput.type = "text";
   codeInput.value = code;
-  codeInput.readOnly = true; // scanner will set real barcode in production
+  codeInput.readOnly = true;
   header.appendChild(codeInput);
   block.appendChild(header);
-
-  // Item field
-  const rowItem = document.createElement("div");
-  rowItem.classList.add("inline-row");
-  rowItem.innerHTML = `
-        <label for="item-${code}">Item:</label>
-        <input type="text" id="item-${code}" value="${shipment.item || ""}" />
-      `;
-  block.appendChild(rowItem);
 
   // KG field
   const rowKg = document.createElement("div");
   rowKg.classList.add("inline-row");
   rowKg.innerHTML = `
-        <label for="kg-${code}">Weight (kg):</label>
-        <input type="number" id="kg-${code}" placeholder="e.g. 20" />
-      `;
-  // Whenever any kg-### input changes, recalc remaining:
+  <label for="kg-${code}">Weight (kg):</label>
+  <input type="number" id="kg-${code}" placeholder="e.g. 20" />
+`;
   rowKg
     .querySelector(`#kg-${code}`)
     .addEventListener("input", updateRemainingKg);
   block.appendChild(rowKg);
 
-  // Need-KG message under weight input
+  // Need-KG message
   const needKgMsg = document.createElement("p");
   needKgMsg.id = `needKg-${code}`;
   needKgMsg.classList.add("message");
   block.appendChild(needKgMsg);
 
-  // Time Harvested
+  // Time Harvested (split into date choice + time input)
   const rowTime = document.createElement("div");
   rowTime.classList.add("inline-row");
   rowTime.innerHTML = `
-        <label for="harvested-${code}">Time Harvested:</label>
-        <input type="datetime-local" id="harvested-${code}" />
-      `;
+  <label>Harvested:</label>
+  <select id="harvested-day-${code}">
+    <option value="today">Today</option>
+    <option value="yesterday">Yesterday</option>
+  </select>
+  <input type="time" id="harvested-time-${code}" />
+`;
   block.appendChild(rowTime);
 
-  // Quality Standards Legend (dynamic table)
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("input-and-table-wrapper");
+
+  const inputsLeft = document.createElement("div");
+  inputsLeft.classList.add("input-fields");
+
+  qualityParameterDisplayMap.forEach(
+    ({ key, label, inputType, placeholder }) => {
+      const row = document.createElement("div");
+      row.classList.add("inline-row");
+
+      const unitSuffix = label.includes("%")
+        ? "%"
+        : label.includes("mm")
+        ? "mm"
+        : "";
+
+      row.innerHTML = `
+      <label for="${key}-${code}">${label}:</label>
+      <input type="${inputType}" id="${key}-${code}" placeholder="${placeholder}" />
+      ${unitSuffix ? `<span style="margin-left:4px;">${unitSuffix}</span>` : ""}
+    `;
+
+      inputsLeft.appendChild(row);
+    }
+  );
+
+  const legendTable = buildQualityLegendTable(qualityStandards);
+  const tableWrapper = document.createElement("div");
+  tableWrapper.classList.add("table-wrapper");
   const legendTitle = document.createElement("h4");
-  legendTitle.textContent = `Quality Standards for "${shipment.item || ""}"`;
-  block.appendChild(legendTitle);
+  legendTitle.textContent = `Quality Standards for "${
+    shipment.itemDisplayName || ""
+  }"`;
+  tableWrapper.appendChild(legendTitle);
+  tableWrapper.appendChild(legendTable);
 
-  const legendTable = buildQualityLegendTable();
-  block.appendChild(legendTable);
+  wrapper.appendChild(inputsLeft);
+  wrapper.appendChild(tableWrapper);
+  block.appendChild(wrapper);
 
-  // Brix (number input)
-  const rowBrix = document.createElement("div");
-  rowBrix.classList.add("inline-row");
-  rowBrix.innerHTML = `
-        <label for="brix-${code}">Brix (סוכר):</label>
-        <input type="number" id="brix-${code}" placeholder="e.g. 12" />
-      `;
-  block.appendChild(rowBrix);
-
-  // Acidity (dropdown)
-  const rowAcidity = document.createElement("div");
-  rowAcidity.classList.add("inline-row");
-  rowAcidity.innerHTML = `
-        <label for="acidity-${code}">Acidity (חומציות):</label>
-        <input type="number" id="acidity-${code}" placeholder=" persantage" /> %`;
-
-  block.appendChild(rowAcidity);
-
-  // color description
-  const rowColor = document.createElement("div");
-  rowColor.classList.add("inline-row");
-  rowColor.innerHTML = `
-        <label for="color-${code}">Color Description:</label>
-        <input type="text" id="color-${code}" placeholder="e.g. Red, Green" />
-      `;
-  block.appendChild(rowColor);
-
-  //color percentage
-  const rowColorPercentage = document.createElement("div");
-  rowColorPercentage.classList.add("inline-row");
-  rowColorPercentage.innerHTML = `
-        <label for="colorPercentage-${code}">Color Percentage:</label>
-        <input type="number" id="colorPercentage-${code}" placeholder="e.g. 80" />%
-      `;
-
-  block.appendChild(rowColorPercentage);
-
-  // pressure
-  const rowPressure = document.createElement("div");
-  rowPressure.classList.add("inline-row");
-  rowPressure.innerHTML = `
-        <label for="pressure-${code}">Pressure:</label>
-        <input type="number" id="pressure-${code}" placeholder="e.g. 1.2" />
-      `;
-  block.appendChild(rowPressure);
-
-  // weight per unit
-  const rowWeightPerUnit = document.createElement("div");
-  rowWeightPerUnit.classList.add("inline-row");
-  rowWeightPerUnit.innerHTML = `
-        <label for="weightPerUnit-${code}">Weight per Unit:</label>
-        <input type="number" id="weightPerUnit-${code}" placeholder="e.g. 0.5" />
-      `;
-  block.appendChild(rowWeightPerUnit);
-
-  // diameter
-  const rowDiameter = document.createElement("div");
-  rowDiameter.classList.add("inline-row");
-  rowDiameter.innerHTML = `
-        <label for="diameter-${code}">Size (Diameter m"m):</label>
-        <input type="number" id="diameter-${code}" placeholder="e.g.5.5" />
-      `;
-  block.appendChild(rowDiameter);
-
-  // "Container Ready" Button
+  // ✅ Add final button
   const readyBtn = document.createElement("button");
   readyBtn.textContent = "Container Ready";
   readyBtn.classList.add("btn-primary");
@@ -422,66 +349,88 @@ function markContainerReady(code) {
   const block = document.getElementById(`container-${code}`);
   if (!block) return;
 
-  // Gather container data
-  const itemVal = block.querySelector(`#item-${code}`).value.trim();
+  // Basic fields
   const kgVal = parseFloat(block.querySelector(`#kg-${code}`).value);
-  const timeVal = block.querySelector(`#harvested-${code}`).value;
-  const brixVal = parseFloat(block.querySelector(`#brix-${code}`).value);
-  const acidityVal = block.querySelector(`#acidity-${code}`).value;
-  const sizeVal = block.querySelector(`#size-${code}`).value;
+  const dayOption = block.querySelector(`#harvested-day-${code}`).value;
+  const timeInput = block.querySelector(`#harvested-time-${code}`).value;
 
-  // Validate fields
-  if (
-    !itemVal ||
-    isNaN(kgVal) ||
-    !timeVal ||
-    isNaN(brixVal) ||
-    !acidityVal ||
-    !sizeVal
-  ) {
+  if (!timeInput) {
+    alert("Please enter harvest time.");
+    return;
+  }
+
+  // Calculate full ISO datetime
+  let baseDate = new Date();
+  if (dayOption === "yesterday") {
+    baseDate.setDate(baseDate.getDate() - 1);
+  }
+  const [hours, minutes] = timeInput.split(":").map(Number);
+  baseDate.setHours(hours, minutes, 0, 0);
+  const timeVal = baseDate.toISOString();
+
+  // Dynamically collect quality inputs
+  const qualityValues = {};
+  let missingQualityField = false;
+
+  for (const { key, inputType } of qualityParameterDisplayMap) {
+    const input = block.querySelector(`#${key}-${code}`);
+    if (!input) continue;
+
+    const val =
+      inputType === "number" ? parseFloat(input.value) : input.value.trim();
+
+    // Validate: required fields must not be empty
+    if (
+      (inputType === "number" && isNaN(val)) ||
+      (inputType === "text" && !val)
+    ) {
+      missingQualityField = true;
+      break;
+    }
+
+    qualityValues[key] = val;
+  }
+
+  if (isNaN(kgVal) || !timeVal || missingQualityField) {
     alert(
-      "Please fill in Item, Weight, Time Harvested, Brix, Acidity, and Size before marking this container as ready."
+      "Please complete all required fields (Item, Weight, Time Harvested, and Quality Parameters) before marking this container as ready."
     );
     return;
   }
 
-  // Store this container's data for later submission
+  // Store for submission
   readyContainersData.push({
     code,
-    item: itemVal,
     weightKg: kgVal,
     harvestedTime: timeVal,
-    brix: brixVal,
-    acidity: acidityVal,
-    size: sizeVal,
+    ...qualityValues,
   });
 
-  // Increase sumReadyWeight by this container's weight
+  // Weight summary
   sumReadyWeight += kgVal;
 
-  // Remove this container block from the DOM
+  // Remove from DOM
   block.remove();
   completedContainersCount++;
 
-  // Add to completed containers list
+  // Add to completed list
   const completedList = document.getElementById("completedContainersList");
   const li = document.createElement("li");
   li.textContent = `Container ${code}`;
+
   const viewBtn = document.createElement("button");
   viewBtn.textContent = "View Details";
   viewBtn.classList.add("btn-primary");
   viewBtn.addEventListener("click", () => {
     const containerData = {
       code,
-      item: itemVal,
       weightKg: kgVal,
       harvestedTime: timeVal,
-      brix: brixVal,
-      acidity: acidityVal,
-      size: sizeVal,
+      ...qualityValues,
     };
     alert(JSON.stringify(containerData, null, 2));
   });
+
   li.appendChild(viewBtn);
   completedList.appendChild(li);
 
@@ -491,7 +440,7 @@ function markContainerReady(code) {
 
 // ===== Update Remaining KG =====
 function updateRemainingKg() {
-  const totalShipmentKg = shipment.amount || 0;
+  const totalShipmentKg = shipment.finalConfirmedQuantityKg || 0;
   const remaining = totalShipmentKg - sumReadyWeight;
   const pRemaining = document.getElementById("pRemainingKg");
   const btnAdd = document.getElementById("btnAddContainer");
@@ -565,7 +514,7 @@ function updateReadyForPickupButton() {
 document
   .getElementById("btnReadyPickup")
   .addEventListener("click", async () => {
-    const totalShipmentKg = shipment.amount || 0;
+    const totalShipmentKg = shipment.finalConfirmedQuantityKg || 0;
     const remaining = totalShipmentKg - sumReadyWeight;
     const reportBtn = document.getElementById("reportProblemBtn");
 
@@ -586,30 +535,43 @@ document
     readyBtn.disabled = true;
 
     try {
-      // All filled: send readyContainersData + timestamp to backend
+      // Build the payload object
       const payload = {
+        shipmentId: shipmentId,
+        totalWeightReported: sumReadyWeight,
         containers: readyContainersData,
         readyTimestamp: new Date().toISOString(),
       };
 
-      // Use the global shipmentId if shipment.id is not available
-      const finalShipmentId = shipment.id || shipmentId;
+      const token = await getCurrentUserToken();
+      const response = await fetch(
+        `http://localhost:4000/api/farmer/submitShipmentReport`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      await submitShipmentReport(finalShipmentId, payload);
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
 
       showToast("Shipment marked ready for pickup successfully!", "success");
       reportBtn.style.display = "none";
 
-      // Redirect to dashboard after success
+      // Redirect to dashboard
       setTimeout(() => {
-        window.location.href = "f_dashboard.html";
+        window.location.href = "f-dashboard.html";
       }, 2000);
     } catch (error) {
       console.error("Failed to submit shipment report:", error);
       showToast("Failed to submit report. Please try again.", "error");
       reportBtn.style.display = "inline-block";
     } finally {
-      // Restore button
       readyBtn.textContent = originalText;
       readyBtn.disabled = false;
     }
@@ -617,13 +579,10 @@ document
 
 // ===== "Report a Problem" Button Handler =====
 document.getElementById("reportProblemBtn").addEventListener("click", () => {
-  // In a real app, redirect to problem-report form or open modal
   alert("Redirecting to problem report form...");
-  // Example: window.location.href = `/report-problem?shipmentId=${shipmentId}`;
 });
 
 // ===== Initialize when page loads =====
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeShipmentReport();
-  console.log("Shipment report page initialized with API integration");
 });
