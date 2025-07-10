@@ -1,8 +1,8 @@
-import { auth, onAuthStateChanged ,signOut} from "./firebase-init.js";
+import { auth, onAuthStateChanged, signOut } from "./firebase-init.js";
+import { initMapPicker, openMapPicker } from "./mapPicker.js";
 
 const API_BASE = "http://localhost:4000";
 
-let user = null;
 let selectedAddress = "";
 let deliveryShift = "";
 let marketItems = [];
@@ -10,19 +10,112 @@ let selectedCategory = "";
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let shiftLocked = false;
 
-document.getElementById("logout-link").addEventListener("click", async (e) => {
-  e.preventDefault();
+// 🔥 LOAD GOOGLE MAPS
+async function loadGoogleMapsScript() {
   try {
-    await signOut(auth);
-    alert("You have been logged out.");
-    window.location.href = "login.html";
+    const res = await fetch(`${API_BASE}/api/maps/google-maps-script`);
+    const data = await res.json();
+    const script = document.createElement("script");
+    script.src = data.scriptUrl + "&language=en&callback=initMap";
+    script.async = true;
+    document.head.appendChild(script);
+    console.log("✅ Google Maps script appended");
   } catch (err) {
-    console.error("Logout failed:", err);
-    alert("Failed to logout. Please try again.");
+    console.error("Failed to load Google Maps script", err);
   }
+}
+loadGoogleMapsScript();
+
+// 🔥 DOM READY ENSURER
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("add-new-address-btn").style.display = "none";
 });
 
-// ==== 1. AUTH CHECK + INITIAL DATA ====
+// ✅ MAPS CALLBACK
+window.initMap = () => {
+  console.log("✅ Google Maps callback fired");
+  initMapPicker();
+  document.getElementById("add-new-address-btn").style.display = "inline-block";
+};
+
+// ✅ ADD NEW ADDRESS BUTTON
+document.getElementById("add-new-address-btn").addEventListener("click", () => {
+  openMapPicker(async (location) => {
+    console.log("📍 Chosen location:", location);
+    localStorage.setItem("selectedAddress", location.address);
+
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${API_BASE}/api/customer/save-address`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(location)
+    });
+
+    const data = await res.json();
+    console.log("💾 Saved to customer collection:", data);
+    alert(data.message || `New address saved: ${location.address}`);
+
+    await loadCustomerAddress(token, location.address);
+  });
+});
+
+async function loadCustomerAddress(token, forceSelectAddress = null) {
+  try {
+    const res = await fetch(`${API_BASE}/api/customer/saved-address`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load addresses");
+
+    const data = await res.json();
+    const addresses = data.addresses || [];
+    const select = document.getElementById("address-select");
+    select.innerHTML = "";
+
+    if (addresses.length === 0) {
+      const option = document.createElement("option");
+      option.textContent = "No addresses added yet";
+      option.disabled = true;
+      option.selected = true;
+      select.appendChild(option);
+      selectedAddress = "";
+    } else {
+      addresses.forEach(addr => {
+        const option = document.createElement("option");
+        option.textContent = addr.address;
+        option.value = addr.address;
+        select.appendChild(option);
+      });
+      const saved = localStorage.getItem("selectedAddress");
+      if (forceSelectAddress && addresses.find(a => a.address === forceSelectAddress)) {
+        selectedAddress = forceSelectAddress;
+        select.value = selectedAddress;
+      } else if (saved && addresses.find(a => a.address === saved)) {
+        selectedAddress = saved;
+        select.value = saved;
+      } else {
+        selectedAddress = addresses[0].address;
+        select.value = selectedAddress;
+      }
+    }
+
+    select.onchange = (e) => {
+  selectedAddress = e.target.value;
+  localStorage.setItem("selectedAddress", selectedAddress);
+  console.log("✅ Address updated to:", selectedAddress);
+  // Force update market display immediately
+  renderMarketPreview();
+};
+
+  } catch (err) {
+    console.error("Error loading addresses:", err);
+    alert("Could not load your delivery addresses.");
+  }
+}
+
+// ✅ AUTH & INIT LOAD
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please log in to access the market.");
@@ -38,43 +131,32 @@ onAuthStateChanged(auth, async (user) => {
       deliveryShift = savedShift;
       selectedAddress = savedAddress;
       shiftLocked = true;
-
       selectedCategory = "All";
       updateCategoryButtons();
-
       document.getElementById("shift-select").value = savedShift;
-
       marketItems = await loadStockItems(token, savedShift);
       document.getElementById("category-selection").style.display = "block";
       document.getElementById("search-section").style.display = "block";
       renderMarketPreview();
-  document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
-
-}
-
+      document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
+    }
     updateCartCount();
   }
 });
 
-
-
-
-async function loadCustomerAddress(token) {
+document.getElementById("logout-link").addEventListener("click", async (e) => {
+  e.preventDefault();
   try {
-    const res = await fetch(`${API_BASE}/api/customer/saved-address`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error("Failed to load address");
-    const data = await res.json();
-    selectedAddress = data.address;
-    document.getElementById("address-select").innerHTML = `<option>${data.address}</option>`;
+    await signOut(auth);
+    alert("You have been logged out.");
+    window.location.href = "login.html";
   } catch (err) {
-    console.error("Error loading address:", err);
-    alert("Could not load your delivery address.");
+    console.error("Logout failed:", err);
+    alert("Failed to logout. Please try again.");
   }
-}
+});
 
-
+// ==== SHIFT LOADING & HANDLING
 async function loadAvailableShifts(token) {
   try {
     const res = await fetch(`${API_BASE}/api/market/available-shifts`, {
@@ -82,7 +164,6 @@ async function loadAvailableShifts(token) {
     });
     if (!res.ok) throw new Error("Failed to load shifts");
     const shifts = await res.json();
-    console.log("Available shifts:", shifts);
     const select = document.getElementById("shift-select");
     select.innerHTML = `<option value="">-- Choose shift --</option>`;
     shifts.forEach((shift) => {
@@ -98,12 +179,8 @@ async function loadAvailableShifts(token) {
 }
 
 window.handleShiftSelect = async function () {
-  console.log("handleShiftSelect fired");
-
   const stockId = document.getElementById("shift-select").value;
-  console.log("DEBUG: Selected stockId:", stockId);
-
-  if (!stockId || stockId === "" || stockId === "undefined") {
+  if (!stockId) {
     alert("Please select a valid shift.");
     return;
   }
@@ -122,7 +199,6 @@ window.handleShiftSelect = async function () {
 
   deliveryShift = stockId;
   shiftLocked = true;
-
   selectedCategory = "All";
   updateCategoryButtons();
 
@@ -137,12 +213,17 @@ window.handleShiftSelect = async function () {
 
   renderMarketPreview();
   document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
-
-
 };
 
+// 🔥 UPDATE CART COUNT
+function updateCartCount() {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  document.getElementById("cart-count").textContent = totalItems;
+}
 
-// ==== LOAD STOCK ITEMS ====
+
+// ==== LOAD STOCK ITEMS
 async function loadStockItems(token, stockId) {
   try {
     const res = await fetch(`${API_BASE}/api/market/available-stock/${stockId}`, {
@@ -158,21 +239,18 @@ async function loadStockItems(token, stockId) {
 }
 
 
-// ====  CATEGORY FILTER ====
+// ==== CATEGORY + SEARCH HANDLERS
 window.filterCategory = function (category) {
   selectedCategory = category;
-  updateCategoryButtons();   // 👈 calls this right after
-  renderMarketPreview(false);
+  updateCategoryButtons();
+  renderMarketPreview();
 };
 
 function updateCategoryButtons() {
-  document.querySelectorAll(".category-navbar button").forEach(btn => {
-    btn.classList.remove("active");
-  });
+  document.querySelectorAll(".category-navbar button").forEach(btn => btn.classList.remove("active"));
   const activeBtn = document.getElementById(`cat-${selectedCategory}`);
   if (activeBtn) activeBtn.classList.add("active");
 }
-
 
 // ==== 5. SEARCH ====
 window.handleSearch = function () {
@@ -367,19 +445,9 @@ function renderItemCard(item, container) {
 }
 
 
-function updateCartCount() {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const countSpan = document.getElementById("cart-count");
-  if (countSpan) {
-    countSpan.textContent = totalItems;
-  }
-}
-
-
-
 
 // ==== 8. CHANGE DELIVERY HANDLER ====
+// 🔥 CHANGE DELIVERY HANDLER
 window.handleChangeDelivery = function () {
   if (cart.length > 0) {
     if (confirm("You have items in your cart. Do you want to clear your cart to change delivery?")) {
@@ -405,3 +473,17 @@ window.handleChangeDelivery = function () {
     alert("You can now choose a different delivery shift.");
   }
 };
+
+
+
+document.getElementById("logout-link").addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    await signOut(auth);
+    alert("You have been logged out.");
+    window.location.href = "login.html";
+  } catch (err) {
+    console.error("Logout failed:", err);
+    alert("Failed to logout. Please try again.");
+  }
+});

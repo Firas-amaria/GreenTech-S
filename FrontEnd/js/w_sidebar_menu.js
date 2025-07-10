@@ -52,6 +52,15 @@ document.addEventListener("DOMContentLoaded", () => {
     className: "user-greeting",
   });
 
+  
+
+   links.push({
+    href: "../market.html",
+    text: "visit market",
+    id: "visit-market-link",
+    className: "visit-market-link",
+  });
+  
   links.push({
     href: "#",
     text: "Logout",
@@ -83,7 +92,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("logout-link").addEventListener("click", (e) => {
     e.preventDefault();
     signOut(auth)
-      .then(() => (window.location.href = "../index.html"))
+      .then(() => (window.location.href = "../login.html"))
       .catch((err) => console.error("Logout failed:", err));
   });
+
+  document.getElementById("visit-market-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    window.location.href = "../market.html";
+  });
 });
+
+

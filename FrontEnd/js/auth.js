@@ -1,7 +1,41 @@
-// js/auth.js
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 import { auth, getCurrentUserToken } from "./firebase-init.js";
+import { openMapPicker, initMapPicker } from "./mapPicker.js";
+
+
+
+// ✅ Load Google Maps dynamically only if registration address field exists
+if (document.getElementById("register-address")) {
+  fetch("http://localhost:4000/api/maps/google-maps-script")
+    .then(res => res.json())
+    .then(data => {
+      const script = document.createElement("script");
+      script.src = data.scriptUrl + "&language=en&callback=initMap";
+      script.async = true;
+      document.head.appendChild(script);
+      console.log("✅ Google Maps script appended on registration");
+    })
+    .catch(err => console.error("Failed to load Google Maps script", err));
+
+  // Expose callback to global scope for Google Maps
+  window.initMap = () => {
+    console.log("✅ Google Maps callback fired on register");
+    initMapPicker();
+  };
+}
+
+
+// ✅ SAFE MAP PICKER INIT FOR REGISTRATION
+const addrInput = document.getElementById("register-address");
+if (addrInput) {
+  addrInput.addEventListener("click", () => {
+    openMapPicker((location) => {
+      addrInput.value = location.address;
+      document.getElementById("register-lat").value = location.latitude;
+      document.getElementById("register-lng").value = location.longitude;
+    });
+  });
+}
 
 window.register = async (event) => {
   event.preventDefault();
@@ -12,11 +46,16 @@ window.register = async (event) => {
 
   const email = form["register-email"].value;
   const phone = iti.getNumber(); // This gives the full international number like +972512325456
-  const address = form["register-address"].value;
+  const address = {
+    address: form["register-address"].value,
+    latitude: form["register-lat"].value,
+    longitude: form["register-lng"].value
+  };
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
   const confirmPassword = form["confirm-password"].value;
 
+  // ... (your existing validations unchanged)
   if (!firstName) {
     document.getElementById("error-message").innerText =
       "First name is required.";
@@ -24,19 +63,15 @@ window.register = async (event) => {
     return;
   }
   if (firstName.length < 2) {
-    // console.log("aaa");
     document.getElementById("error-message").innerText =
       "First name must be at least 2 characters long.";
     form["register-fullname"].style.borderColor = "red";
-
     return;
   }
-  //check if first name contains only letters
   if (!/^[a-zA-Z]+$/.test(firstName)) {
     document.getElementById("error-message").innerText =
       "First name must contain only letters.";
     form["register-fullname"].style.borderColor = "red";
-
     return;
   }
 
@@ -44,22 +79,18 @@ window.register = async (event) => {
     document.getElementById("error-message").innerText =
       "Last name is required.";
     form["register-fullname"].style.borderColor = "red";
-
     return;
   }
   if (lastName.length < 2) {
     document.getElementById("error-message").innerText =
       "Last name must be at least 2 characters long.";
     form["register-fullname"].style.borderColor = "red";
-
     return;
   }
-  //check if last name contains only letters
   if (!/^[a-zA-Z]+$/.test(lastName)) {
     document.getElementById("error-message").innerText =
       "Last name must contain only letters.";
     form["register-fullname"].style.borderColor = "red";
-
     return;
   }
 
@@ -68,14 +99,12 @@ window.register = async (event) => {
     form["register-email"].style.borderColor = "red";
     return;
   }
-  //only gmail is allowed
   if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)) {
     document.getElementById("error-message").innerText =
       "Email must be a valid Gmail address.";
     form["register-email"].style.borderColor = "red";
     return;
   }
-  // Check if email already exists
 
   if (!phone) {
     document.getElementById("error-message").innerText =
@@ -84,21 +113,18 @@ window.register = async (event) => {
     return;
   }
 
-  // check if the phone number is vaild according to the country code
-
-  if (!address) {
+  if (!address.address) {
     document.getElementById("error-message").innerText = "Address is required.";
     form["register-address"].style.borderColor = "red";
     return;
   }
+
   if (!birthDate) {
     document.getElementById("error-message").innerText =
       "Birth date is required.";
     form["register-birthdate"].style.borderColor = "red";
     return;
-  }
-  // Check if birth date is above 18 years old
-  else {
+  } else {
     const today = new Date();
     const birthDateObj = new Date(birthDate);
     const age = today.getFullYear() - birthDateObj.getFullYear();
@@ -117,7 +143,6 @@ window.register = async (event) => {
     form["register-password"].style.borderColor = "red";
     return;
   }
-  // Check password strength
   if (password.length < 8) {
     document.getElementById("error-message").innerText =
       "Password must be at least 8 characters long.";
@@ -148,7 +173,6 @@ window.register = async (event) => {
     form["register-password"].style.borderColor = "red";
     return;
   }
-  // Check if confirm password is provided and matches the password
 
   if (!confirmPassword) {
     document.getElementById("confirmPassword-error-message").innerText =
@@ -161,7 +185,6 @@ window.register = async (event) => {
     document.getElementById("error-message").innerText =
       "Passwords do not match.";
     form["register-password"].style.borderColor = "red";
-
     return;
   }
 
@@ -187,9 +210,7 @@ window.register = async (event) => {
     );
 
     const data = await res.json();
-
     if (!res.ok) {
-      // Show backend error message if registration fails
       alert("Registration failed: " + data.error);
       return;
     }
@@ -203,30 +224,19 @@ window.register = async (event) => {
 };
 
 window.login = async (event) => {
-  // alert("Login function called!"); // Simple test to see if function runs
   event.preventDefault();
-
-  console.log("Login function called");
 
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("password").value;
 
-  console.log("Login credentials:", {
-    email,
-    password: password ? "***" : "MISSING",
-  });
-
   try {
-    console.log("Attempting Firebase authentication...");
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     console.error(error);
     document.getElementById("login-error-message").innerText = error.message;
   }
   try {
-    // Try direct method first
     const token = await getCurrentUserToken();
-
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
@@ -236,10 +246,6 @@ window.login = async (event) => {
       body: JSON.stringify({ password }),
     });
 
-    // Post password user to DB
-
-    console.log("Backend login response status:", res.status);
-
     if (!res.ok) {
       const errorData = await res.json();
       console.error("Backend login failed:", errorData);
@@ -247,11 +253,9 @@ window.login = async (event) => {
     }
 
     const data = await res.json();
-
     const role = data.role;
     const name = data.name;
 
-    //save name and role in localStorage to use later
     localStorage.setItem(
       "user",
       JSON.stringify({
@@ -260,7 +264,6 @@ window.login = async (event) => {
       })
     );
 
-    // Redirect based on role
     switch (role) {
       case "admin":
         window.location.href = "u-admin/a-dashboard.html";
@@ -285,12 +288,10 @@ window.login = async (event) => {
         break;
       default:
         alert("Unknown role. Contact support.");
-
         break;
     }
   } catch (Error) {
     console.error(Error);
     console.error("Error accured :" + Error.message);
-    // Fallback to shared utility
   }
 };

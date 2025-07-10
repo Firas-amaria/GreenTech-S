@@ -1,69 +1,96 @@
-let map, marker, selectedCallback;
+let map, marker, geocoder, autocomplete, confirmCallback;
 
-export function createMapPicker() {
-  if (document.getElementById("map-modal")) return; // Prevent multiple initializations
+export function initMapPicker() {
+  console.log("✅ Google Maps loaded: initializing picker...");
+  geocoder = new google.maps.Geocoder();
 
-  const modal = document.createElement("div");
-  modal.id = "map-modal";
-  modal.style = `
-    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(255, 255, 255, 0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;
-  `;
-  modal.innerHTML = `
-    <div id="map" style="width: 90%; height: 80%; border: 2px solid #ccc;"></div>
-    <div style="margin-top: 10px;">
-      <button id="confirm-location">Use This Location</button>
-      <button id="cancel-location">Cancel</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  // Init map
+  // 🌍 Initialize Map centered on Tel Aviv
   map = new google.maps.Map(document.getElementById("map"), {
     center: { lat: 32.0853, lng: 34.7818 },
-    zoom: 13,
+    zoom: 13
   });
 
-  marker = new google.maps.Marker({ map, draggable: true });
-
-  map.addListener("click", (event) => {
-    marker.setPosition(event.latLng);
+  // 📍 Draggable Marker
+  marker = new google.maps.Marker({
+    map,
+    draggable: true,
+    position: { lat: 32.0853, lng: 34.7818 }
   });
 
-  document.getElementById("confirm-location").addEventListener("click", () => {
-    const pos = marker.getPosition();
-    if (!pos) return;
+  // 🖱 Click sets marker
+  map.addListener("click", (e) => marker.setPosition(e.latLng));
 
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ location: pos }, (results, status) => {
-      if (status === "OK" && results[0]) {
-        const result = {
-          address: results[0].formatted_address,
-          latitude: pos.lat(),
-          longitude: pos.lng()
-        };
-        if (selectedCallback) selectedCallback(result);
-        closeMapPicker();
+  // 🔍 Setup Autocomplete restricted to Israel
+  const input = document.getElementById("map-search");
+  autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: "il" },
+    fields: ["geometry", "name", "formatted_address"]
+  });
+
+  autocomplete.bindTo("bounds", map);
+
+  // 🔥 When a place is picked
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    console.log("🔍 Autocomplete selected:", place);
+
+    if (!place.geometry) {
+      console.log("⚠️ No geometry. Trying manual geocode fallback...");
+      if (place.name) {
+        geocoder.geocode({ address: place.name }, (results, status) => {
+          if (status === "OK" && results[0]) {
+            map.panTo(results[0].geometry.location);
+            map.setZoom(15);
+            marker.setPosition(results[0].geometry.location);
+            console.log("✅ Fallback geocode success:", results[0].formatted_address);
+          } else {
+            alert("Could not find location for: " + place.name);
+          }
+        });
       } else {
-        alert("Unable to fetch address.");
+        alert("No details found. Please select from dropdown.");
       }
-    });
+    } else {
+      map.panTo(place.geometry.location);
+      map.setZoom(15);
+      marker.setPosition(place.geometry.location);
+      console.log("✅ Autocomplete success:", place.formatted_address || place.name);
+    }
   });
 
+  // 🖱 Confirm / Cancel Buttons
+  document.getElementById("confirm-location").addEventListener("click", confirmMapLocation);
   document.getElementById("cancel-location").addEventListener("click", closeMapPicker);
 }
 
 export function openMapPicker(callback) {
-  selectedCallback = callback;
-  const modal = document.getElementById("map-modal");
-  if (modal) {
-    modal.style.display = "flex";
+  confirmCallback = callback;
+  document.getElementById("map-modal").style.display = "flex";
+  setTimeout(() => {
     google.maps.event.trigger(map, "resize");
-    map.setCenter(marker.getPosition() || { lat: 32.0853, lng: 34.7818 });
-  }
+    map.setCenter(marker.getPosition());
+  }, 200);
 }
 
-function closeMapPicker() {
-  const modal = document.getElementById("map-modal");
-  if (modal) modal.style.display = "none";
+export function closeMapPicker() {
+  document.getElementById("map-modal").style.display = "none";
+}
+
+export function confirmMapLocation() {
+  const pos = marker.getPosition();
+  geocoder.geocode({ location: pos }, (results, status) => {
+    console.log("🗺 Confirm geocode results:", results);
+    if (status === "OK" && results[0]) {
+      const locationData = {
+        address: results[0].formatted_address,
+        latitude: pos.lat(),
+        longitude: pos.lng()
+      };
+      console.log("✅ Confirmed location:", locationData);
+      if (confirmCallback) confirmCallback(locationData);
+      closeMapPicker();
+    } else {
+      alert("Unable to get address. Try again.");
+    }
+  });
 }
