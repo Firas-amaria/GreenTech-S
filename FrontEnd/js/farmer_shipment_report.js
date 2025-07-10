@@ -142,6 +142,59 @@ async function initializeShipmentReport() {
   }
 }
 
+function calculateContainerGrade(container, qualityStandards) {
+  let totalScore = 0;
+  let count = 0;
+
+  for (const { key } of qualityParameterDisplayMap) {
+    const inputVal = container[key];
+    const grades = qualityStandards[key];
+    if (!grades) continue;
+
+    let score = 0;
+
+    const val = parseFloat(inputVal);
+    if (isNaN(val)) continue;
+
+    // Try to parse A/B/C ranges
+    const isNumberRange = (v) => typeof v === "string" && v.includes("-");
+
+    if (
+      isNumberRange(grades.A) &&
+      isNumberRange(grades.B) &&
+      isNumberRange(grades.C)
+    ) {
+      const parseRange = (rangeStr) => {
+        const [min, max] = rangeStr.split("-").map(Number);
+        return { min, max };
+      };
+
+      const inRange = (value, { min, max }) => value >= min && value <= max;
+
+      if (inRange(val, parseRange(grades.A))) score = 3;
+      else if (inRange(val, parseRange(grades.B))) score = 2;
+      else if (inRange(val, parseRange(grades.C))) score = 1;
+      else score = 0;
+    } else {
+      // fallback (string match or unstructured value)
+      continue;
+    }
+
+    if (score > 0) {
+      totalScore += score;
+      count++;
+    }
+  }
+
+  if (count === 0) return "C"; // default if nothing matched
+
+  const avg = totalScore / count;
+
+  if (avg > 2.5) return "A";
+  if (avg > 1.5) return "B";
+  return "C";
+}
+
 // ===== Populate Shipment Details at Top =====
 function populateShipmentDetails() {
   document.getElementById("spanShipmentId").textContent = shipmentId || "N/A";
@@ -535,7 +588,11 @@ document
     readyBtn.disabled = true;
 
     try {
-      // Build the payload object
+      readyContainersData.forEach((container, i) => {
+        const grade = calculateContainerGrade(container, qualityStandards);
+        container.grade = grade;
+      });
+
       const payload = {
         shipmentId: shipmentId,
         totalWeightReported: sumReadyWeight,

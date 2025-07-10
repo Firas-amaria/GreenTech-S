@@ -45,8 +45,9 @@ function populateShipmentDetails(shipment) {
     shipment.overallStatus || "—";
 
   const latestReport = shipment.fullReport?.farmerReports?.slice(-1)[0];
-  if (latestReport?.submittedAt?.seconds) {
-    const date = new Date(latestReport.submittedAt.seconds * 1000);
+  if (latestReport?.submittedAt?._seconds) {
+    const date = new Date(latestReport.submittedAt._seconds * 1000);
+
     document.getElementById("spanSubmittedAt").textContent =
       date.toLocaleString();
   }
@@ -71,6 +72,8 @@ function populateContainers(farmerReports) {
     div.innerHTML = `
       <h3>Container Code: ${container.code}</h3>
       <p><strong>Weight:</strong> ${container.weightKg} kg</p>
+      <p><strong>Grade:</strong> ${container.grade} </p>
+
       <p><strong>Harvested Time:</strong> ${new Date(
         container.harvestedTime
       ).toLocaleString()}</p>
@@ -98,12 +101,13 @@ function populateHistory(history = []) {
   }
 
   history
-    .sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds) // latest first
+    .sort((a, b) => b.timestamp?._seconds - a.timestamp?._seconds)
     .forEach((entry) => {
       const li = document.createElement("li");
-      const timeStr = entry.timestamp?.seconds
-        ? new Date(entry.timestamp.seconds * 1000).toLocaleString()
+      const timeStr = entry.timestamp?._seconds
+        ? new Date(entry.timestamp._seconds * 1000).toLocaleString()
         : "—";
+
       li.textContent = `[${timeStr}] ${entry.user}: ${entry.action}`;
       ul.appendChild(li);
     });

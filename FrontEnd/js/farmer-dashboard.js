@@ -275,27 +275,31 @@ function populateCropsTable() {
   parsedLands.forEach((land) => {
     const crop = land.crop;
 
-    // Skip lands that don't have crops
     if (!crop) {
       console.log(`Land ${land.landName} has no crops, skipping...`);
       return;
     }
 
     const tr = document.createElement("tr");
+
+    // Format updatedAt safely
+    const updatedDate = crop.updatedAt?._seconds
+      ? formatDateOnly(new Date(crop.updatedAt._seconds * 1000))
+      : "—";
+
     tr.innerHTML = `
       <td>${land.landName}</td>
       <td>${getItemDisplayName(crop.itemId)}</td>
       <td>${crop.plantedAmount}</td>
       <td>${formatDateOnly(crop.plantedDate)}</td>
       <td>${crop.status}</td>
-      <td>${crop.updatedAt}</td>
+      <td>${updatedDate}</td>
       <td>${crop.statusPercentage + "%"}</td>
-      <td><img src="${
-        crop.imageUrl || "https://via.placeholder.com/50"
-      }" alt="${
-      getItemDisplayName(crop.itemId) || "Crop"
-    }" width="50" height="50"/></td>
+      <td><img src="${crop.imageUrl || "https://via.placeholder.com/50"}"
+               alt="${getItemDisplayName(crop.itemId) || "Crop"}"
+               width="50" height="50"/></td>
     `;
+
     tbody.appendChild(tr);
   });
 }
