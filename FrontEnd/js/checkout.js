@@ -12,6 +12,9 @@ onAuthStateChanged(auth, async (user) => {
   await loadCheckout();
 });
 
+
+
+
 async function loadCheckout() {
   const container = document.getElementById("checkout-container");
   const totalEl = document.getElementById("checkout-total");

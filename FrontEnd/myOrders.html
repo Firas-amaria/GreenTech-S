@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Orders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/myOrders.css" />
+  <link rel="stylesheet" href="css/market.css" />
+</head>
+<body>
+    <!-- === NAVIGATION BAR === -->
+  <nav class="navbar">
+  <div class="nav-links left">
+    <a href="market.html" >Market</a>
+    <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
+    <a href="profile.html">Profile</a>
+    <a href="myOrders.html" class="active">My Orders</a>
+  </div>
+  <div class="nav-links right">
+   <a href="#" id="logout-link">Logout</a>
+
+  </div>
+</nav>
+
+  <h1>My Orders</h1>
+  <div id="orders-container" style="margin-top: 20px;"></div>
+
+  <script type="module" src="js/myOrders.js">
+
+
+  </script>
+</body>
+</html>
