@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Shipment Report | Farmer App</title>
+  <link rel="stylesheet" href="../css/farmer-dashboard.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+</head>
+
+<body>
+  <nav class="sidebar"></nav>
+
+  <div class="main">
+    <h1>View Shipment Report</h1>
+
+    <div class="section" id="shipmentInfoSection">
+      <h2>Shipment Details</h2>
+      <div class="inline-row"><label>Shipment ID:</label> <span id="spanShipmentId">—</span></div>
+      <div class="inline-row"><label>Item:</label> <span id="spanItem">—</span></div>
+      <div class="inline-row"><label>Amount (kg):</label> <span id="spanAmount">—</span></div>
+      <div class="inline-row"><label>Pickup Time:</label> <span id="spanPickupTime">—</span></div>
+      <div class="inline-row"><label>Status:</label> <span id="spanStatus">—</span></div>
+      <div class="inline-row"><label>Report Submitted At:</label> <span id="spanSubmittedAt">—</span></div>
+    </div>
+
+    <div class="section" id="containerSection">
+      <h2>Reported Containers</h2>
+      <div id="containerList"></div>
+    </div>
+
+    <div class="section" id="historySection">
+      <h2>Report History</h2>
+      <ul id="historyList"></ul>
+    </div>
+  </div>
+
+  <script type="module" src="../js/w_sidebar_menu.js"></script>
+  <script type="module" src="../js/farmer_shipment_report_view.js"></script>
+</body>
+
+</html>

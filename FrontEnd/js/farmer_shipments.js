@@ -159,8 +159,9 @@ function populateApprovedTable() {
     (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
   );
   approvedShipments.forEach((sh) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+    if (sh.overallStatus == "at-farm") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
       <td>${sh.itemDisplayName}</td>
       <td>${sh.forecastedQuantityKg}</td>
       <td>${
@@ -169,11 +170,28 @@ function populateApprovedTable() {
         sh.scheduledPickupTimeSlot
       }</td>
       <td>${sh.pickupAddress}</td>
-      <td><button class="small btn-primary" onclick="goToReport('${
+      <td><button class="small btn-primary" onclick="createReport('${
         sh.id
-      }')">Shipment Report</button></td>
+      }')">Create Report</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    } else if (sh.overallStatus == "ready-for-pickup") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-secondary" onclick="viewReport('${
+        sh.id
+      }')">View Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
 }
 
@@ -216,11 +234,42 @@ function populateRequestsTable() {
   });
 }
 
-// ===== Go to Shipment Report =====
-function goToReport(shipmentId) {
+async function approveDash(requestId) {
+  try {
+    // Show loading state
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = "Approving...";
+    button.disabled = true;
+
+    // Try to approve via API
+    try {
+      await approveRequestViaAPI(requestId);
+      showToast("Request approved successfully!", "success");
+    } catch (apiError) {
+      console.warn("API failed, updating locally:", apiError);
+    }
+
+    // Restore button
+    button.textContent = originalText;
+    button.disabled = false;
+  } catch (error) {
+    console.error("Failed to approve request:", error);
+    showToast("Failed to approve request. Please try again.", "error");
+  }
+}
+window.approveDash = approveDash;
+
+// ===== 7) Redirect to Report =====
+function createReport(shipmentId) {
   window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
 }
-window.goToReport = goToReport;
+window.createReport = createReport;
+
+function viewReport(shipmentId) {
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
+}
+window.viewReport = viewReport;
 
 // ===== Initial Render =====
 window.addEventListener("load", async () => {

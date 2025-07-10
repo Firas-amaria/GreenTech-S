@@ -191,8 +191,9 @@ function populateApprovedTable() {
     (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
   );
   approvedShipments.forEach((sh) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+    if (sh.overallStatus == "at-farm") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
       <td>${sh.itemDisplayName}</td>
       <td>${sh.forecastedQuantityKg}</td>
       <td>${
@@ -201,11 +202,28 @@ function populateApprovedTable() {
         sh.scheduledPickupTimeSlot
       }</td>
       <td>${sh.pickupAddress}</td>
-      <td><button class="small btn-primary" onclick="goToReport('${
+      <td><button class="small btn-primary" onclick="createReport('${
         sh.id
-      }')">Shipment Report</button></td>
+      }')">Create Report</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    } else if (sh.overallStatus == "ready-for-pickup") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-secondary" onclick="viewReport('${
+        sh.id
+      }')">View Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
 }
 
@@ -311,10 +329,15 @@ async function approveDash(requestId) {
 window.approveDash = approveDash;
 
 // ===== 7) Redirect to Report =====
-function goToReport(shipmentId) {
+function createReport(shipmentId) {
   window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
 }
-window.goToReport = goToReport;
+window.createReport = createReport;
+
+function viewReport(shipmentId) {
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
+}
+window.viewReport = viewReport;
 
 // ===== 9) Init =====
 window.addEventListener("load", async () => {

@@ -72,6 +72,18 @@
    background-color: #1a2733;
  }
 
+ .btn-secondary {
+   background-color: #185835;
+   color: #fff;
+   border: none;
+   padding: 6px 10px;
+   font-size: 0.9rem;
+ }
+
+ .btn-secondary:hover {
+   background-color: #1a331f;
+ }
+
  .btn-success {
    background-color: #27ae60;
    color: #fff;
