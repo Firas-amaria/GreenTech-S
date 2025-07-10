@@ -4,18 +4,29 @@ const { DateTime } = require("luxon");
 const { admin, db } = require("../firebaseConfig");
 
 // getSavedAddresses ===
-async function getSavedAddress (req, res) {
+async function getSavedAddress(req, res) {
   try {
-    const userDoc = await db.collection("users").doc(req.user.uid).get();
-    if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
-    const data = userDoc.data();
-    const address = data.address || "";
-    res.json({ address });
+    const { uid } = req.user;
+
+    const customerRef = db.collection("customers").doc(uid);
+    let customerSnap = await customerRef.get();
+
+    if (!customerSnap.exists) {
+      await ensureCustomerExists(uid);
+      // refetch after creation
+      customerSnap = await customerRef.get();
+    }
+
+    const data = customerSnap.data();
+    const addresses = data.addresses || [];
+
+    return res.json({ addresses });
   } catch (err) {
-    console.error("Error fetching address:", err);
-    res.status(500).json({ error: "Failed to load address." });
+    console.error("Error fetching customer addresses:", err);
+    return res.status(500).json({ error: "Failed to load addresses." });
   }
-};
+}
+
 
 
 
@@ -71,12 +82,54 @@ async function updateCustomerProfile(req, res) {
   }
 }
 
+const addNewAddress = async (req, res) => {
+  try {
+    const { uid } = req.user;
+    const { address, latitude, longitude } = req.body;
+
+    if (!address || latitude == null || longitude == null) {
+      return res.status(400).json({ error: "Missing address data." });
+    }
+
+    // 🔥 Ensure customer doc exists first
+    await ensureCustomerExists(uid);
+
+    const customerRef = db.collection("customers").doc(uid);
+    const customerSnap = await customerRef.get();
+    const customerData = customerSnap.data();
+
+    const existing = (customerData.addresses || []).find(
+      (a) => a.address === address
+    );
+
+    if (existing) {
+      return res.json({ message: "Address already exists." });
+    }
+
+    await customerRef.update({
+      addresses: [...(customerData.addresses || []), { address, latitude, longitude }]
+    });
+
+    return res.json({ message: "Address saved." });
+  } catch (err) {
+    console.error("Error saving address:", err);
+    return res.status(500).json({ error: "Failed to save address." });
+  }
+};
 
 
+async function ensureCustomerExists(uid) {
+  const customerRef = db.collection("customers").doc(uid);
+  const customerSnap = await customerRef.get();
 
-
-
-
+  if (!customerSnap.exists) {
+    await customerRef.set({
+      createdAt: new Date().toISOString(),
+      addresses: []
+    });
+    console.log(`✅ Created new customer doc for uid ${uid}`);
+  }
+}
 
 
 
@@ -85,7 +138,7 @@ async function updateCustomerProfile(req, res) {
 
 
 module.exports = {
- 
+ addNewAddress,
   getSavedAddress,
   getCustomerProfile,
   getCustomerOrders,

@@ -49,7 +49,7 @@ const registerCustomer = async (req, res) => {
       address,
       role: "customer",
       password: hashPass,
-      logisticCenterId: "0001",
+      logisticCenterId: "LC-1",
       createdAt: now,
       updatedAt: now,
     });
