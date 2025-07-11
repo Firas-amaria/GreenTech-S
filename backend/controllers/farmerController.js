@@ -113,14 +113,14 @@ async function submitShipmentReport(req, res) {
     const farmerUid = decodedToken.uid;
 
     // === Get Payload ===
-    const { shipmentId, totalWeightReported, containers, readyTimestamp } =
-      req.body;
+    const { shipmentId, containers } = req.body;
 
     if (!shipmentId || !Array.isArray(containers) || containers.length === 0) {
       return res.status(400).json({ error: "Missing or invalid payload" });
     }
 
-    const shipmentRef = db.collection("shipment").doc(shipmentId);
+    // === Get Shipment Doc ===
+    const shipmentRef = db.collection("farmerShipmentReports").doc(shipmentId);
     const shipmentSnap = await shipmentRef.get();
 
     if (!shipmentSnap.exists) {
@@ -137,41 +137,56 @@ async function submitShipmentReport(req, res) {
 
     const timestampNow = admin.firestore.Timestamp.now();
 
-    // === Prepare Updates ===
-    const newHistoryEntry = {
-      timestamp: timestampNow,
-      user: "farmer",
-      action: `Submitted ${containers.length} containers (${totalWeightReported} kg)`,
-    };
-
-    const updatedStages = shipmentData.stages.map((stage) =>
-      stage.key === "ready-for-pickup"
-        ? { ...stage, timestamp: timestampNow, status: "ok" }
-        : stage
-    );
-
-    // Append to farmerReports in fullReport
-    const updatedFullReport = {
-      ...shipmentData.fullReport,
-      farmerReports: [
-        ...(shipmentData.fullReport?.farmerReports || []),
-        {
-          submittedAt: timestampNow,
-          totalWeightReported,
-          containers,
-        },
-      ],
-      history: [...(shipmentData.fullReport?.history || []), newHistoryEntry],
-    };
-
-    // === Final Firestore Update ===
+    // === Update Shipment Doc with containers + metadata ===
     await shipmentRef.update({
-      "fullReport.farmerReports": updatedFullReport.farmerReports,
-      "fullReport.history": updatedFullReport.history,
-      stages: updatedStages,
-      overallStatus: "ready-for-pickup", // optional depending on your logic
-      lastUpdatedAt: new Date().toISOString(),
+      containers, // top-level containers array
+      status: "ready-for-pickup",
+      statusUpdatedAt: timestampNow,
+      lastUpdatedAt: timestampNow,
+      history: admin.firestore.FieldValue.arrayUnion({
+        timestamp: timestampNow,
+        user: "farmer",
+        action: `Submitted ${containers.length} containers.`,
+      }),
+      stages: admin.firestore.FieldValue.arrayUnion({
+        key: "ready-for-pickup",
+        label: "Ready for Pickup",
+        timestamp: timestampNow,
+        status: "ok",
+      }),
     });
+
+    const farmerShipmentDoc = {
+      id: shipmentId,
+      approvedAt: shipmentData.approvedAt?.toDate().toISOString() || null,
+      createdAt: shipmentData.createdAt?.toDate().toISOString() || null,
+      updatedAt: timestampNow.toDate().toISOString(),
+      pickupTime: shipmentData.pickupTime || null,
+      destination: shipmentData.destination || null,
+      farmerId: farmerUid,
+      driver: shipmentData.driver || null,
+      reportSubmittedAt: timestampNow.toDate().toISOString(),
+      reportSubmittedBy: farmerUid,
+      reportNotes: "",
+      reportedWeight: totalWeight,
+      totalWeight: totalWeight,
+      totalVolume: totalWeight, // Change this logic if volume ≠ weight
+      status: "pending",
+      items: shipmentData.item
+        ? [
+            {
+              name: shipmentData.item.name,
+              quantity: shipmentData.item.quantityKg,
+            },
+          ]
+        : [],
+      containers: containers,
+    };
+
+    await db
+      .collection("farmer_shipment")
+      .doc(shipmentId)
+      .set(farmerShipmentDoc);
 
     return res
       .status(200)
@@ -182,7 +197,87 @@ async function submitShipmentReport(req, res) {
   }
 }
 
-//AFTER FIXES functions to keep :-
+async function approveShipmentRequest(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const farmerUid = decodedToken.uid;
+
+    const { requestId } = req.params;
+
+    // Step 1: Get the shipment request document
+    const requestRef = db.collection("shipmentRequests").doc(requestId);
+    const requestDoc = await requestRef.get();
+
+    if (!requestDoc.exists) {
+      return res.status(404).json({ error: "Shipment request not found" });
+    }
+
+    const requestData = requestDoc.data();
+
+    // Check that the request belongs to the logged-in farmer
+    if (requestData.farmerId !== farmerUid) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to approve this request" });
+    }
+
+    // Step 2: Update the request's status to "approved"
+    await requestRef.update({
+      status: "approved",
+      approvedAt: admin.firestore.Timestamp.now(),
+    });
+
+    const shipmentId = requestId.replace("_SReq_", "_SH_");
+
+    await db
+      .collection("farmerShipmentReports")
+      .doc(shipmentId)
+      .set({
+        ...requestData,
+        driverId: null, // to be filled later
+        origin: requestData.pickupAddress || null,
+        destination: null, // e.g., warehouse name – unknown for now
+        createdAt: admin.firestore.Timestamp.now(),
+        status: "at-farm",
+        problemFlag: false,
+        shipmentRequestId: requestId,
+        shipmentBarcode: null, // You can customize the format
+        farmerReports: [],
+
+        containerBarcodes: [],
+        history: [
+          {
+            timestamp: admin.firestore.Timestamp.now(),
+            user: "system",
+            action: "Shipment record generated.",
+          },
+        ],
+        stages: [
+          {
+            key: "at-farm",
+            label: "At Farm",
+            timestamp: admin.firestore.Timestamp.now(),
+            status: "ok",
+          },
+        ],
+      });
+
+    res.status(200).json({
+      message: "Shipment request approved and shipment created",
+      shipmentId: shipmentId,
+    });
+  } catch (err) {
+    console.error("[approveShipmentRequest] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+}
 
 async function getApprovedShipments(req, res) {
   try {
@@ -198,7 +293,7 @@ async function getApprovedShipments(req, res) {
 
     // Get shipments
     const shipmentsSnapshot = await db
-      .collection("shipment")
+      .collection("farmerShipmentReports")
       .where("farmerId", "==", farmerUid)
       .get();
 
@@ -232,7 +327,7 @@ async function getApprovedShipmentsByID(req, res) {
     const { shipmentId } = req.params;
 
     const approvedShipmentSnap = await db
-      .collection("shipment")
+      .collection("farmerShipmentReports")
       .doc(shipmentId)
       .get();
 
@@ -535,118 +630,6 @@ async function createCropByLandId(req, res) {
   } catch (err) {
     console.error("Error creating crop:", err);
     res.status(500).send({ error: err.message });
-  }
-}
-
-async function approveShipmentRequest(req, res) {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const farmerUid = decodedToken.uid;
-
-    const { requestId } = req.params;
-
-    // Step 1: Get the shipment request document
-    const requestRef = db.collection("shipmentRequests").doc(requestId);
-    const requestDoc = await requestRef.get();
-
-    if (!requestDoc.exists) {
-      return res.status(404).json({ error: "Shipment request not found" });
-    }
-
-    const requestData = requestDoc.data();
-
-    // Check that the request belongs to the logged-in farmer
-    if (requestData.farmerId !== farmerUid) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to approve this request" });
-    }
-
-    // Step 2: Update the request's status to "approved"
-    await requestRef.update({
-      status: "approved",
-      approvedAt: admin.firestore.Timestamp.now(),
-    });
-
-    const shipmentId = requestId.replace("_SReq_", "_SH_");
-
-    await db
-      .collection("shipment")
-      .doc(shipmentId)
-      .set({
-        ...requestData,
-        driverId: null, // to be filled later
-        origin: requestData.pickupAddress || null,
-        destination: null, // e.g., warehouse name – unknown for now
-        createdAt: admin.firestore.Timestamp.now(),
-        overallStatus: "at-farm",
-        problemFlag: false,
-        shipmentRequestId: requestId,
-        shipmentBarcode: null, // You can customize the format
-        containerBarcodes: [],
-
-        stages: [
-          {
-            key: "at-farm",
-            label: "At Farm",
-            timestamp: admin.firestore.Timestamp.now(),
-            status: "ok",
-          },
-          {
-            key: "ready-for-pickup",
-            label: "Ready for Pickup",
-            timestamp: admin.firestore.Timestamp.now(),
-            status: "ok",
-          },
-          {
-            key: "in-transit",
-            label: "In Transit",
-            timestamp: admin.firestore.Timestamp.now(),
-            status: "ok",
-          },
-        ],
-
-        fullReport: {
-          shipmentId: shipmentId,
-          status: "at-farm",
-          farmerId: requestData.farmerId || null,
-          amount: requestData.finalConfirmedQuantityKg
-            ? `${requestData.finalConfirmedQuantityKg} kg`
-            : null,
-          pickupTime: new Date(`${requestData.scheduledPickupDate}`),
-          driver: {
-            name: null,
-            phone: null,
-            uid: null,
-          },
-          shipmentStatus: "In Transit (Driver en route)",
-          farmerReports: [],
-          logisticsResults: {},
-          warehousePlacement: [],
-          history: [
-            {
-              timestamp: admin.firestore.Timestamp.now(),
-              user: "system",
-              action: "Shipment record generated.",
-            },
-          ],
-        },
-      });
-
-    res.status(200).json({
-      message: "Shipment request approved and shipment created",
-      shipmentId: shipmentId,
-    });
-  } catch (err) {
-    console.error("[approveShipmentRequest] Error:", err);
-    res.status(500).json({ error: err.message });
   }
 }
 
