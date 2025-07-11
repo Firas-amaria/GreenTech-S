@@ -191,16 +191,39 @@ function populateApprovedTable() {
     (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
   );
   approvedShipments.forEach((sh) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${sh.id}</td>
-      <td>${formatDateOnly(sh.pickupTime)}</td>
-      <td>${sh.item}</td>
-      <td><button class="small btn-primary" onclick="goToReport('${
+    if (sh.overallStatus == "at-farm") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-primary" onclick="createReport('${
         sh.id
-      }')">Shipment Report</button></td>
+      }')">Create Report</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    } else if (sh.overallStatus == "ready-for-pickup") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-secondary" onclick="viewReport('${
+        sh.id
+      }')">View Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
 }
 
@@ -252,27 +275,31 @@ function populateCropsTable() {
   parsedLands.forEach((land) => {
     const crop = land.crop;
 
-    // Skip lands that don't have crops
     if (!crop) {
       console.log(`Land ${land.landName} has no crops, skipping...`);
       return;
     }
 
     const tr = document.createElement("tr");
+
+    // Format updatedAt safely
+    const updatedDate = crop.updatedAt?._seconds
+      ? formatDateOnly(new Date(crop.updatedAt._seconds * 1000))
+      : "—";
+
     tr.innerHTML = `
       <td>${land.landName}</td>
       <td>${getItemDisplayName(crop.itemId)}</td>
       <td>${crop.plantedAmount}</td>
       <td>${formatDateOnly(crop.plantedDate)}</td>
       <td>${crop.status}</td>
-      <td>${crop.updatedAt}</td>
+      <td>${updatedDate}</td>
       <td>${crop.statusPercentage + "%"}</td>
-      <td><img src="${
-        crop.imageUrl || "https://via.placeholder.com/50"
-      }" alt="${
-      getItemDisplayName(crop.itemId) || "Crop"
-    }" width="50" height="50"/></td>
+      <td><img src="${crop.imageUrl || "https://via.placeholder.com/50"}"
+               alt="${getItemDisplayName(crop.itemId) || "Crop"}"
+               width="50" height="50"/></td>
     `;
+
     tbody.appendChild(tr);
   });
 }
@@ -291,13 +318,6 @@ async function approveDash(requestId) {
     try {
       await approveRequestViaAPI(requestId);
       showToast("Request approved successfully!", "success");
-
-      // Reload data from API
-
-      // await loadDashboardData();
-      // populateApprovedTable();
-      // populateRequestsTable();
-      // populateCropsTable();
     } catch (apiError) {
       console.warn("API failed, updating locally:", apiError);
     }
@@ -313,9 +333,15 @@ async function approveDash(requestId) {
 window.approveDash = approveDash;
 
 // ===== 7) Redirect to Report =====
-function goToReport(shipmentId) {
-  window.location.href = `f_shipment_report.html?shipmentId=${shipmentId}`;
+function createReport(shipmentId) {
+  window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
 }
+window.createReport = createReport;
+
+function viewReport(shipmentId) {
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
+}
+window.viewReport = viewReport;
 
 // ===== 9) Init =====
 window.addEventListener("load", async () => {
@@ -326,6 +352,4 @@ window.addEventListener("load", async () => {
   populateApprovedTable();
   populateRequestsTable();
   populateCropsTable();
-
-  console.log("Farmer dashboard initialized with API integration");
 });

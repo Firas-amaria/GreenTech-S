@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shipments | Farmer App</title>
   <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/farmer-dashboard.css" />
 
 
 </head>
@@ -21,29 +22,25 @@
 
     <!-- ===== Approved Shipments ===== -->
     <div class="section">
-      <h2>Approved Shipments</h2>
-      <table id="tblApprovedPage">
+      <h2>Approved Shipments (Next Pickup First)</h2>
+      <table id="tblApprovedDash">
         <thead>
           <tr>
-            <th>Shipment ID</th>
+            <th>Item Name</th>
+            <th>Amount</th>
             <th>Pickup Time</th>
-            <th>Item</th>
+            <th>Location</th>
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Injected by JS -->
-        </tbody>
+        <tbody></tbody>
       </table>
-      <p style="font-size:0.9rem; color:#555;">
-        <!-- BACKEND: Later, GET /api/shipments/approved -->
-      </p>
     </div>
 
     <!-- ===== Shipment Requests ===== -->
     <div class="section">
       <h2>Pending Shipment Requests</h2>
-      <table id="tblRequestsPage">
+      <table id="tblRequestsDash">
         <thead>
           <tr>
             <th>Item</th>
@@ -52,13 +49,8 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Injected by JS -->
-        </tbody>
+        <tbody></tbody>
       </table>
-      <p style="font-size:0.9rem; color:#555;">
-        <!-- BACKEND: Later, GET /api/shipments/requests -->
-      </p>
     </div>
   </div>
 

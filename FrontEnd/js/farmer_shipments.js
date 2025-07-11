@@ -1,42 +1,4 @@
-/*******************************************************
- * 🔌 API INTEGRATED SHIPMENTS PAGE
- *******************************************************/
-
-// API Configuration
-const API_BASE_URL = "http://localhost:4000/api/farmer";
-
-// Helper function to get auth token
-function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
-}
-
-// Helper function for API calls
-async function apiCall(endpoint, options = {}) {
-  const token = getAuthToken();
-
-  const config = {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("API call failed:", error);
-    throw error;
-  }
-}
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
 // Global variables (will be loaded from API)
 let approvedShipments = [];
@@ -46,51 +8,68 @@ let shipmentRequests = [];
 // 🔌 API INTEGRATION FUNCTIONS
 // =================================================================
 
+async function fetchApprovedShipments() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getApprovedShipments",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
+async function fetchShipmentRequests() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getShipmentRequests",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
 async function loadShipmentsData() {
   try {
     showLoadingIndicator("Loading shipments data...");
 
-    // Load from API - use the structured endpoint
-    const data = await apiCall("/frontend/shipments");
+    approvedShipments = await fetchApprovedShipments();
+    shipmentRequests = await fetchShipmentRequests();
 
-    console.log("Raw API shipments data:", data);
-    
-    // Use the structured response
-    approvedShipments = data.approvedShipments || [];
-    shipmentRequests = data.shipmentRequests || [];
-
-    console.log("Successfully loaded shipments from API");
-    console.log("Approved shipments:", approvedShipments);
-    console.log("Shipment requests:", shipmentRequests);
     hideLoadingIndicator();
     return true;
   } catch (error) {
     console.warn("Failed to load from API, using fallback data:", error);
     hideLoadingIndicator();
-    showToast("Using offline mode - some features may be limited", "warning");
-
-    // Fallback to mock data
-    approvedShipments = [
-      { id: 301, item: "Tomato", amount: 120, pickupTime: "2025-06-02T08:00" },
-      { id: 302, item: "Lettuce", amount: 80, pickupTime: "2025-06-01T09:30" },
-      { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
-    ];
-
-    shipmentRequests = [
-      { id: 1, item: "Carrot", amount: 50, pickupTime: "2025-06-03T10:00" },
-      { id: 2, item: "Spinach", amount: 40, pickupTime: "2025-06-05T13:30" },
-    ];
-
-    return false;
   }
+  return false;
 }
 
 // Approve shipment request via API
 async function approveRequestViaAPI(requestId) {
   try {
-    return await apiCall(`/shipments/requests/${requestId}/approve`, {
-      method: "POST",
-    });
+    console.log("request id :" + requestId);
+    const token = await getCurrentUserToken();
+
+    const response = await fetch(
+      `http://localhost:4000/api/farmer/approveShipmentRequest/${requestId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to Approve Shipment Request");
   } catch (error) {
     console.error("Failed to approve request via API:", error);
     throw error;
@@ -161,51 +140,101 @@ function formatDateTimeLocal(dtLocal) {
   if (isNaN(d)) return dtLocal;
   return d.toLocaleString();
 }
+function formatDateOnly(isoString) {
+  const d = new Date(isoString);
+  return isNaN(d)
+    ? isoString
+    : `${String(d.getDate()).padStart(2, "0")}/${String(
+        d.getMonth() + 1
+      ).padStart(2, "0")}/${d.getFullYear()}`;
+}
 
 // ===== Populate Approved Shipments =====
-function populateApprovedPage() {
+function populateApprovedTable() {
+  const tbody = document.querySelector("#tblApprovedDash tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
   approvedShipments.sort(
     (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
   );
-  const tbody = document.querySelector("#tblApprovedPage tbody");
-  tbody.innerHTML = "";
   approvedShipments.forEach((sh) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-          <td>${sh.id}</td>
-          <td>${formatDateTimeLocal(sh.pickupTime)}</td>
-          <td>${sh.item}</td>
-          <td>
-            <button class="btn-primary" onclick="goToReport(${sh.id})">
-              Shipment Report
-            </button>
-          </td>
-        `;
-    tbody.appendChild(tr);
+    if (sh.overallStatus == "at-farm") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-primary" onclick="createReport('${
+        sh.id
+      }')">Create Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    } else if (sh.overallStatus == "ready-for-pickup") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-secondary" onclick="viewReport('${
+        sh.id
+      }')">View Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
 }
 
 // ===== Populate Shipment Requests =====
-function populateRequestsPage() {
-  const tbody = document.querySelector("#tblRequestsPage tbody");
+function populateRequestsTable() {
+  const tbody = document.querySelector("#tblRequestsDash tbody");
+  if (!tbody) return;
   tbody.innerHTML = "";
+
   shipmentRequests.forEach((req) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-          <td>${req.item}</td>
-          <td>${req.amount}</td>
-          <td>${formatDateTimeLocal(req.pickupTime)}</td>
-          <td>
-            <button class="btn-success" onclick="approveRequest(${req.id})">
-              Approve
-            </button>
-          </td>
-        `;
-    tbody.appendChild(tr);
+    if (req.status === "forecasted") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${req.itemDisplayName}</td>
+      <td>${"Expected:" + req.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(req.scheduledPickupDate) +
+        "  " +
+        req.scheduledPickupTimeSlot
+      }</td>
+<button class="small btn-no-success" >Waiting Finalization</button>
+    `;
+      tbody.appendChild(tr);
+    } else {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${req.itemDisplayName}</td>
+      <td>${req.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(req.scheduledPickupDate) +
+        "  " +
+        req.scheduledPickupTimeSlot
+      }</td>
+      <td><button class="small btn-success" onclick="approveDash('${
+        req.id
+      }')">Approve</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
 }
 
-async function approveRequest(requestId) {
+async function approveDash(requestId) {
   try {
     // Show loading state
     const button = event.target;
@@ -217,30 +246,8 @@ async function approveRequest(requestId) {
     try {
       await approveRequestViaAPI(requestId);
       showToast("Request approved successfully!", "success");
-
-      // Reload data from API
-      await loadShipmentsData();
-      populateApprovedPage();
-      populateRequestsPage();
     } catch (apiError) {
       console.warn("API failed, updating locally:", apiError);
-      showToast("Approved locally - will sync when online", "warning");
-
-      // Fallback to local update
-      const idx = shipmentRequests.findIndex((r) => r.id === requestId);
-      if (idx < 0) return;
-      const req = shipmentRequests.splice(idx, 1)[0];
-      const newShipmentId = approvedShipments.length
-        ? Math.max(...approvedShipments.map((s) => s.id)) + 1
-        : 301;
-      approvedShipments.push({
-        id: newShipmentId,
-        item: req.item,
-        amount: req.amount,
-        pickupTime: req.pickupTime,
-      });
-      populateApprovedPage();
-      populateRequestsPage();
     }
 
     // Restore button
@@ -251,22 +258,18 @@ async function approveRequest(requestId) {
     showToast("Failed to approve request. Please try again.", "error");
   }
 }
+window.approveDash = approveDash;
 
-// ===== Go to Shipment Report =====
-function goToReport(shipmentId) {
-  window.location.href = `f_shipment_report.html?shipmentId=${shipmentId}`;
+// ===== 7) Redirect to Report =====
+function createReport(shipmentId) {
+  window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
 }
+window.createReport = createReport;
 
-const logoutBtn =
-  document.getElementById("btnLogout") ||
-  document.getElementById("logoutLink2");
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    alert("Logging out... (placeholder)");
-    // window.location.href = '/login.html';
-  });
+function viewReport(shipmentId) {
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
 }
+window.viewReport = viewReport;
 
 // ===== Initial Render =====
 window.addEventListener("load", async () => {
@@ -274,8 +277,6 @@ window.addEventListener("load", async () => {
   await loadShipmentsData();
 
   // Populate tables
-  populateApprovedPage();
-  populateRequestsPage();
-
-  console.log("Farmer shipments page initialized with API integration");
+  populateApprovedTable();
+  populateRequestsTable();
 });
