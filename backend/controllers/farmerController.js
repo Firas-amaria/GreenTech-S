@@ -99,7 +99,7 @@ async function manageInventory(farmerId, crop, landIndex, action) {
 }
 
 // Submit Shipment Report
-//KEEP
+//TODO comeback after Barcode gen
 async function submitShipmentReport(req, res) {
   try {
     // === Auth Check ===
@@ -201,6 +201,8 @@ async function getApprovedShipments(req, res) {
       .collection("shipment")
       .where("farmerId", "==", farmerUid)
       .get();
+
+    // .where("overallStatus", "==", "at-farm")
 
     // Filter and format approved shipments
     const approvedShipments = shipmentsSnapshot.docs.map((doc) => ({
@@ -580,7 +582,6 @@ async function approveShipmentRequest(req, res) {
       .doc(shipmentId)
       .set({
         ...requestData,
-
         driverId: null, // to be filled later
         origin: requestData.pickupAddress || null,
         destination: null, // e.g., warehouse name – unknown for now

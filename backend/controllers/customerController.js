@@ -28,29 +28,33 @@ async function getSavedAddress(req, res) {
 }
 
 
-
-
 async function getCustomerOrders(req, res) {
   try {
     const { uid } = req.user;
     const customerSnap = await db.collection("customers").doc(uid).get();
 
     if (!customerSnap.exists) {
-      return res.json([]); // customer doesn't exist yet
+      return res.json([]);
     }
 
     const customerData = customerSnap.data();
     const orderIds = customerData.orders || [];
 
     if (!orderIds.length) {
-      return res.json([]); // no orders
+      return res.json([]);
     }
 
-    // load all orders
     const orderDocs = await Promise.all(orderIds.map(id => db.collection("orders").doc(id).get()));
     const orders = orderDocs
       .filter(doc => doc.exists)
-      .map(doc => ({ id: doc.id, ...doc.data() }));
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          deliveryDate: data.deliveryDate?.toDate().toISOString() || null
+        };
+      });
 
     res.json(orders);
   } catch (err) {
@@ -58,6 +62,8 @@ async function getCustomerOrders(req, res) {
     res.status(500).json({ error: "Failed to load orders." });
   }
 }
+
+
 
 
 // =================== PROFILE ===================
