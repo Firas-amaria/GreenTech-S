@@ -352,12 +352,18 @@ const getShipmentRequestsForShift = async (req, res) => {
     const formattedDate = `${yyyy}_${mm}_${dd}`;
 
     // 🔥 Load matching availableMarketStock
-    const stockDocId = `LC-1_AS_${shift}_${formattedDate}`;
+    const stockDocId = `LC-1_AS_${formattedDate}_${shift}`;
+    console.log(`Looking up stock document: ${stockDocId}`);
+
     const stockDoc = await db
       .collection("availableMarketStock")
       .doc(stockDocId)
       .get();
-    const stockItems = stockDoc.exists ? stockDoc.data().items : [];
+    const stockItems = stockDoc.exists && stockDoc.data().items
+      ? stockDoc.data().items
+      : [];
+
+    console.log("Loaded stock items:", stockItems);
 
     // 🔍 Query all shipmentRequests with status != finalized
     const snapshot = await db
@@ -365,7 +371,9 @@ const getShipmentRequestsForShift = async (req, res) => {
       .where("status", "!=", "finalized")
       .get();
 
-    // 🔍 Filter by ID structure
+    console.log("Found shipment requests:", snapshot.size);
+
+    // 🔍 Filter by ID structure and enrich
     const filtered = snapshot.docs
       .filter((doc) => {
         const parts = doc.id.split("_");
@@ -380,18 +388,21 @@ const getShipmentRequestsForShift = async (req, res) => {
       })
       .map((doc) => {
         const data = doc.data();
-        // 🔍 Try to find matching stock item
+        console.log("Processing shipment request:", doc.id, data);
+
         const matchingItem = stockItems.find(
           (item) =>
-            item.itemId === data.itemId && item.sourceFarmerId === data.farmerId
+            String(item.itemId) === String(data.itemId) &&
+            String(item.sourceFarmerId) === String(data.farmerId)
         );
 
-        let committedOrders = null;
-        if (matchingItem) {
-          committedOrders =
-            matchingItem.originalCommittedQuantityKg -
-            matchingItem.currentAvailableQuantityKg;
+        if (!matchingItem) {
+          console.log(`No stock match for itemId=${data.itemId}, farmerId=${data.farmerId}`);
         }
+
+        const committedOrders = matchingItem
+          ? matchingItem.originalCommittedQuantityKg - matchingItem.currentAvailableQuantityKg
+          : 0;
 
         return {
           id: doc.id,
@@ -399,6 +410,8 @@ const getShipmentRequestsForShift = async (req, res) => {
           committedOrders,
         };
       });
+
+    console.log("Prepared shipment requests:", filtered);
 
     res.status(200).json(filtered);
   } catch (error) {

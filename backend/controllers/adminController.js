@@ -1,4 +1,190 @@
 const { admin, db } = require("../firebaseConfig");
+const { DateTime } = require("luxon");
+const { FieldPath } = require("firebase-admin").firestore;
+
+function parseTimeStr(timeStr) {
+  const [hour, minute] = timeStr.split(":").map(Number);
+  return { hour, minute };
+}
+
+async function getUpcomingOrdersByShift(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token provided." });
+
+    await admin.auth().verifyIdToken(token);
+
+    // Load shifts
+    const shiftsSnap = await db.collection("shifts").get();
+    if (shiftsSnap.empty) return res.status(404).json({ error: "No shifts defined." });
+
+    const shifts = [];
+    shiftsSnap.forEach(doc => {
+      const data = doc.data();
+      shifts.push({
+        name: doc.id,
+        start: data.start,
+        end: data.end
+      });
+    });
+    shifts.sort((a, b) => {
+      const aTime = parseTimeStr(a.start);
+      const bTime = parseTimeStr(b.start);
+      return aTime.hour - bTime.hour || aTime.minute - bTime.minute;
+    });
+
+    // Build upcoming shifts
+    const now = DateTime.local();
+    const upcomingShifts = [];
+    let dayCursor = DateTime.local();
+
+    while (upcomingShifts.length < 4) {
+      const dateStr = dayCursor.toISODate().replace(/-/g, "_");
+
+      for (const shift of shifts) {
+        const { hour: shiftEndHour, minute: shiftEndMinute } = parseTimeStr(shift.end);
+
+        const shiftEndTime = dayCursor.set({
+          hour: shiftEndHour,
+          minute: shiftEndMinute,
+          second: 0,
+          millisecond: 0
+        });
+
+        if (shiftEndTime > now) {
+          upcomingShifts.push({
+            date: dateStr,
+            shift: shift.name.toLowerCase()
+          });
+          if (upcomingShifts.length === 4) break;
+        }
+      }
+
+      dayCursor = dayCursor.plus({ days: 1 });
+    }
+
+    // Query orders for each upcoming shift by doc ID prefix
+    const results = [];
+    for (const entry of upcomingShifts) {
+      const prefix = `LC-1_ORD_${entry.date}_${entry.shift}`;
+      console.log(`Looking for orders by docId prefix: ${prefix}`);
+
+      const ordersSnap = await db.collection("orders")
+        .where(FieldPath.documentId(), ">=", prefix)
+        .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+        .get();
+
+      console.log(`Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`);
+
+
+      results.push({
+        shift: entry.shift,
+        date: entry.date,
+         totalOrders: ordersSnap.size
+      });
+    }
+
+    return res.json(results);
+
+  } catch (error) {
+    console.error("Error fetching upcoming orders by shift:", error.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
+async function getOrdersForShift(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token." });
+
+    await admin.auth().verifyIdToken(token);
+
+    const { shift, date } = req.query;
+    if (!shift || !date) return res.status(400).json({ error: "Missing shift or date." });
+
+    const prefix = `LC-1_ORD_${date}_${shift}`;
+    console.log(`Fetching orders for docId prefix: ${prefix}`);
+
+    const ordersSnap = await db.collection("orders")
+      .where(FieldPath.documentId(), ">=", prefix)
+      .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+      .get();
+
+    const orders = [];
+    ordersSnap.forEach(doc => {
+      const data = doc.data();
+      orders.push({
+        id: doc.id,
+        customerId: data.customerId,
+        status: data.status,
+        totalWeight: data.totalOrderWeightKg,
+        totalValue: data.totalOrderValue
+      });
+    });
+
+    return res.json(orders);
+
+  } catch (error) {
+    console.error("Error loading orders for shift:", error.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function getOrdersWithSummaryForShift(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token." });
+
+    await admin.auth().verifyIdToken(token);
+
+    const { shift, date } = req.query;
+    if (!shift || !date) return res.status(400).json({ error: "Missing shift or date." });
+
+    const prefix = `LC-1_ORD_${date}_${shift}`;
+    console.log(`Fetching orders+summary for docId prefix: ${prefix}`);
+
+    const ordersSnap = await db.collection("orders")
+      .where(FieldPath.documentId(), ">=", prefix)
+      .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+      .get();
+
+    const orders = [];
+    const summaryMap = {};
+
+    ordersSnap.forEach(doc => {
+      const data = doc.data();
+      const docParts = doc.id.split("_");
+      const randomNumber = docParts[docParts.length - 1];
+
+      // Push entire order data, plus extracted orderNumber
+      orders.push({
+        orderNumber: randomNumber,
+        ...data
+      });
+
+      // Build item summary
+      (data.items || []).forEach(item => {
+        if (!summaryMap[item.itemName]) {
+          summaryMap[item.itemName] = { totalKg: 0, sources: {} };
+        }
+        summaryMap[item.itemName].totalKg += item.quantity;
+
+        const farm = item.sourceFarmName || "Unknown Farm";
+        if (!summaryMap[item.itemName].sources[farm]) {
+          summaryMap[item.itemName].sources[farm] = 0;
+        }
+        summaryMap[item.itemName].sources[farm] += item.quantity;
+      });
+    });
+
+    return res.json({ orders, summary: summaryMap });
+
+  } catch (error) {
+    console.error("Error loading orders+summary for shift:", error.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
 
 // Admin API to approve a pending employee and move them into their role collection
 const roleCollectionMap = {
@@ -347,4 +533,7 @@ module.exports = {
   deleteUser,
   getAllUsers,
   getAllApplications,
+  getUpcomingOrdersByShift,
+  getOrdersForShift,
+  getOrdersWithSummaryForShift,
 };

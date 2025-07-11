@@ -10,10 +10,26 @@ const {
   getAllApplications,
   updateUser,
   deleteUser,
+getUpcomingOrdersByShift,
+getOrdersForShift,
+getOrdersWithSummaryForShift,
+
 } = require("../controllers/adminController");
 
 // router.post("/import-json", importJsonToFirestore);
 
+/*DASHBOARD*/
+router.get(
+  "/orders-by-shift",
+  authenticate,
+  requireRole("admin"),
+  getUpcomingOrdersByShift
+);
+router.get("/orders-for-shift", authenticate, requireRole("admin"), getOrdersForShift);
+
+router.get("/orders-with-summary-for-shift", authenticate, requireRole("admin"), getOrdersWithSummaryForShift);
+
+/*JOB APPLICATION AND USER MANAGEMENT*/ 
 router.put(
   "/updateApplication/:uid",
   authenticate,
