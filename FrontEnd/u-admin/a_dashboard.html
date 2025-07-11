@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Logistics Center Manager Dashboard</title>
   <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet"  href="../css/admin.css"/>
 </head>
 
 <body>
@@ -26,25 +27,35 @@
     <!-- Statistics / KPIs Section -->
     <section id="stats-section">
       <h2>Key Statistics</h2>
-      <div class="stats-cards">
-        <div class="stat-card" id="total-shipments-today">
-          <h3>Shipments Today</h3>
-          <p class="stat-value">--</p>
-        </div>
-        <div class="stat-card" id="pending-applications">
-          <h3>Pending Job Applications</h3>
-          <p class="stat-value">--</p>
-        </div>
-        <div class="stat-card" id="upcoming-schedule">
-          <h3>Events This Week</h3>
-          <p class="stat-value">--</p>
-        </div>
-        <div class="stat-card" id="open-reports">
-          <h3>Open Reports</h3>
-          <p class="stat-value">--</p>
-        </div>
+    <div class="stats-cards">
+      <div class="stat-card" id="total-shipments-today">
+        <h3>Shipments Today</h3>
+        <p class="stat-value">--</p>
       </div>
-    </section>
+      <div class="stat-card" id="pending-applications">
+        <h3>Pending Job Applications</h3>
+        <p class="stat-value">--</p>
+      </div>
+      <div class="stat-card" id="upcoming-schedule">
+        <h3>Events This Week</h3>
+        <p class="stat-value">--</p>
+      </div>
+      <div class="stat-card" id="open-reports">
+        <h3>Open Reports</h3>
+        <p class="stat-value">--</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="committed-orders-section">
+    <h2>Upcoming Pending Orders</h2>
+    <div id="committed-orders-cards" class="stats-cards"></div>
+  </section>
+
+  <section id="shipments-by-shift-section">
+    <h2>Shipments by Shift</h2>
+    <div id="shipments-cards" class="stats-cards"></div>
+  </section>
 
     <!-- Latest Notifications Section -->
     <section id="notifications-section">

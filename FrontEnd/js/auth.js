@@ -266,7 +266,7 @@ window.login = async (event) => {
 
     switch (role) {
       case "admin":
-        window.location.href = "u-admin/a-dashboard.html";
+        window.location.href = "u-admin/a_dashboard.html";
         break;
       case "farmer":
         window.location.href = "u-farmer/f-dashboard.html";

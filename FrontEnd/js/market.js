@@ -359,7 +359,7 @@ function renderItemCard(item, container) {
       alert("Not enough stock available.");
       return;
     }
-
+    
     const token = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/api/market/reserve-item`, {
       method: 'POST',

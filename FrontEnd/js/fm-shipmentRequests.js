@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               <th>Farmer</th>
               <th>Pickup Address</th>
               <th>Forecasted</th>
+              <th>Commited Orders</th>
               <th>Final Amount</th>
               <th>Action</th>
             </tr>
@@ -55,6 +56,7 @@ function renderShipmentTable(requests, itemId, shift) {
   tbody.innerHTML = "";
 
   requests.forEach((req) => {
+    console.log(req.committedOrders)
     const tr = document.createElement("tr");
     const inputId = `final-${itemId}-${req.farmerId}`;
 
@@ -62,6 +64,7 @@ function renderShipmentTable(requests, itemId, shift) {
       <td>${req.farmerName}</td>
       <td>${req.pickupAddress || "UNKNOWN"}</td>
       <td>${req.forecastedQuantityKg} kg</td>
+      <td>${req.committedOrders} kg</td>
       <td><input type="number" min="0" value="${
         req.finalConfirmedQuantityKg || req.forecastedQuantityKg
       }" id="${inputId}"></td>

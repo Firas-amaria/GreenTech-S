@@ -2,32 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Orders</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="css/myOrders.css" />
-  <link rel="stylesheet" href="css/market.css" />
+  <link rel="stylesheet" href="./css/myOrders.css" />
 </head>
 <body>
-    <!-- === NAVIGATION BAR === -->
   <nav class="navbar">
-  <div class="nav-links left">
-    <a href="market.html" >Market</a>
-    <a href="cart.html">Cart (<span id="cart-count">0</span>)</a>
-    <a href="profile.html">Profile</a>
-    <a href="myOrders.html" class="active">My Orders</a>
+    <div class="nav-links">
+      <a href="market.html">Market</a>
+      <a href="cart.html">Cart (0)</a>
+      <a href="profile.html">Profile</a>
+      <a href="orders.html" class="active">My Orders</a>
+    </div>
+  </nav>
+
+  <div class="orders-page">
+    <h1>My Orders</h1>
+
+    <div class="order-filters">
+      <select id="time-filter">
+        <option value="all">All Orders</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <input type="date" id="start-date" style="display: none;">
+      <input type="date" id="end-date" style="display: none;">
+      <button id="filter-button" style="display: none;">Apply</button>
+    </div>
+
+    <div class="orders-list" id="orders-container">
+      <p>Loading your orders...</p>
+    </div>
   </div>
-  <div class="nav-links right">
-   <a href="#" id="logout-link">Logout</a>
 
-  </div>
-</nav>
+  <footer class="footer">
+    <a href="jobs.html">Job Opportunities</a>
+  </footer>
 
-  <h1>My Orders</h1>
-  <div id="orders-container" style="margin-top: 20px;"></div>
-
-  <script type="module" src="js/myOrders.js">
-
-
-  </script>
+  <script type="module" src="js/myOrders.js"></script>
 </body>
 </html>

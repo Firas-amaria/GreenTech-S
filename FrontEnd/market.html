@@ -23,44 +23,34 @@
 </nav>
 
 
-  <main>
+<main>
 
-    <!-- === DELIVERY SELECTION SECTION === -->
-    <section class="section" id="delivery-selection">
-      <h3>Select Delivery Address and Shift</h3>
-
-      <!-- Address Selection -->
-     <label for="address-select">Saved Address:</label>
-<select id="address-select" onchange="handleAddressChange()">
-  <option value="">-- Choose saved address --</option>
-</select>
-<button id="add-new-address-btn" style="margin-left: 10px;">Add New Address</button>
-
-
-      <!-- Shift Selection -->
-      <label for="shift-select" style="margin-top: 20px;">Delivery Shift:</label>
-      <select id="shift-select" onchange="handleShiftSelect()">
+  <!-- DELIVERY ADDRESS BOX -->
+  <section class="section delivery-address-section">
+    <h3>Select Delivery Address&shift</h3>
+    <div class="delivery-select">
+      <select id="address-select" onchange="handleAddressChange()">
+        <option value="">-- Choose saved address --</option>
       </select>
-    
-    <button onclick="handleChangeDelivery()">Change Delivery</button>
+      <button id="add-new-address-btn">Add New Address</button>
+   
+   
+      <select id="shift-select" onchange="handleShiftSelect()"></select>
+      <button onclick="handleChangeDelivery()">Change</button>
+     </div>
+  </section>
 
-    </section>
-<section class="market-wrapper">
-  
-  <!-- === SEARCH PANEL === -->
+ 
+
+  <!-- MARKET ITEMS BOX -->
+  <section class="section market-section">
+    <!-- STICKY SEARCH + CATEGORIES -->
+<div class="sticky-controls">
   <div id="search-section">
-    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center;">
-      <input
-        type="text"
-        id="search-input"
-        placeholder="e.g., Lettuce"
-      />
-      <button id="search-button" onclick="handleSearch()">Search</button>
-    </div>
-    <div id="search-results" class="market-container"></div>
+    <input type="text" id="search-input" placeholder="e.g., Lettuce" />
+    <button id="search-button" onclick="handleSearch()">Search</button>
   </div>
 
-  <!-- === CATEGORY FILTERS === -->
   <div id="category-selection">
     <nav class="category-navbar">
       <button onclick="filterCategory('All')" id="cat-All" class="active">All</button>
@@ -68,13 +58,15 @@
       <button onclick="filterCategory('Vegetables')" id="cat-Vegetables">Vegetables</button>
     </nav>
   </div>
+</div>
 
-  <!-- === MAIN ITEM DISPLAY === -->
-  <div id="market-container" class="market-container"></div>
 
-</section>
+    <div id="market-container" class="market-container"></div>
+  </section>
 
-  </main>
+</main>
+
+
 
   <!-- === FOOTER === -->
   <footer class="footer">
