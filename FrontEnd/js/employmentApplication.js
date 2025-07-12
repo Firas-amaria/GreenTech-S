@@ -14,13 +14,6 @@ import {
 
 
 
-document.getElementById("logout-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  signOut(auth)
-    .then(() => (window.location.href = "index.html"))
-    .catch((err) => console.error("Logout failed:", err));
-});
-
 window.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, (user) => {
     if (!user) {
@@ -191,6 +184,7 @@ if (role.name === "farmer") {
     addBtn.type = "button";
     addBtn.id = "add-land-btn";
     addBtn.textContent = "Add Land";
+    addBtn.style.cssText= "background-color : #28a745;";
 
     // Create section first
     const landsSection = document.createElement("div");
@@ -232,7 +226,7 @@ if (role.name === "farmer") {
     </div>
   `;
 
-  form.innerHTML += `<button type="submit">Submit Application</button>`;
+  form.innerHTML += `<button type="submit" style= "background-color :rgb(46, 164, 73);";>Submit Application</button>`;
   container.appendChild(form);
 
   form.addEventListener("submit", async (e) => {

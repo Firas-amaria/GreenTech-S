@@ -104,19 +104,9 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-document.getElementById("logout-link").addEventListener("click", (event) => {
-  event.preventDefault(); // Prevent the default link action
 
-  signOut(auth)
-    .then(() => {
-      console.log("User signed out successfully.");
-      window.location.href = "index.html"; // Redirect after logout
-    })
-    .catch((error) => {
-      console.error("Error signing out:", error);
-    });
-});
 
+ 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded"); // <-- another check
 
