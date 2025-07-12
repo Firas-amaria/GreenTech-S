@@ -70,13 +70,7 @@ window.goBack = function () {
 window.submitOrder = async function() {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const stockId = localStorage.getItem("selectedShift");
-  const address = {
-    street: "123 Main Street",
-    city: "Tel Aviv",
-    lat: 32.0853,
-    lng: 34.7818,
-    label: "Home"
-  };
+  const address = localStorage.getItem("selectedAddress");
 
   const total = parseFloat(document.getElementById("checkout-total").textContent.replace("Total: $", ""));
 
