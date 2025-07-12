@@ -19,7 +19,7 @@ async function loadUpcomingOrdersByShift(token) {
   if (!container) return;
 
   try {
-    const res = await fetch(`${API_BASE}/api/admin/orders-by-shift`, {
+    const res = await fetch(`${API_BASE}/api/admin/orders-for-upcoming-shifts`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 

@@ -19,7 +19,7 @@ async function loadGoogleMapsScript() {
     script.src = data.scriptUrl + "&language=en&callback=initMap";
     script.async = true;
     document.head.appendChild(script);
-    console.log("✅ Google Maps script appended");
+   // console.log("✅ Google Maps script appended");
   } catch (err) {
     console.error("Failed to load Google Maps script", err);
   }
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ✅ MAPS CALLBACK
 window.initMap = () => {
-  console.log("✅ Google Maps callback fired");
+  //console.log("✅ Google Maps callback fired");
   initMapPicker();
   document.getElementById("add-new-address-btn").style.display = "inline-block";
 };
@@ -138,23 +138,13 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById("category-selection").style.display = "block";
       document.getElementById("search-section").style.display = "block";
       renderMarketPreview();
-      document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
+      //document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
     }
     updateCartCount();
   }
 });
 
-document.getElementById("logout-link").addEventListener("click", async (e) => {
-  e.preventDefault();
-  try {
-    await signOut(auth);
-    alert("You have been logged out.");
-    window.location.href = "login.html";
-  } catch (err) {
-    console.error("Logout failed:", err);
-    alert("Failed to logout. Please try again.");
-  }
-});
+
 
 // ==== SHIFT LOADING & HANDLING
 async function loadAvailableShifts(token) {
@@ -212,7 +202,7 @@ window.handleShiftSelect = async function () {
   document.getElementById("search-section").style.display = "block";
 
   renderMarketPreview();
-  document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
+ // document.querySelector(".market-wrapper").scrollIntoView({ behavior: "smooth" });
 };
 
 // 🔥 UPDATE CART COUNT
@@ -476,16 +466,3 @@ window.handleChangeDelivery = function () {
   }
 };
 
-
-
-document.getElementById("logout-link").addEventListener("click", async (e) => {
-  e.preventDefault();
-  try {
-    await signOut(auth);
-    alert("You have been logged out.");
-    window.location.href = "login.html";
-  } catch (err) {
-    console.error("Logout failed:", err);
-    alert("Failed to logout. Please try again.");
-  }
-});
