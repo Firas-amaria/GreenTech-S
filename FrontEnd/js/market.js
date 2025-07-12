@@ -218,7 +218,7 @@ window.handleShiftSelect = async function () {
 // 🔥 UPDATE CART COUNT
 function updateCartCount() {
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  let totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  let totalItems = cart.length;
   document.getElementById("cart-count").textContent = totalItems;
 }
 
@@ -304,11 +304,11 @@ function renderItemCard(item, container) {
     <img src="${item.itemImageUrl || 'https://via.placeholder.com/100?text=No+Image'}" />
     <div>
       <h4>${item.itemDisplayName}</h4>
-      <p>Farmer: ${item.sourceFarmerName}</p>
-      <p>Price: $${item.pricePerUnit}/kg</p>
+      <p>${item.sourceFarmName} by ${item.sourceFarmerName}</p>
+      <p>Price: $${item.pricePerUnit.toFixed(2)}/kg</p>
       <div class="controls">
         <button class="dec">-</button>
-        <input type="text" value="1" readonly />
+        <input type="text" value="0.5" readonly />
         <button class="inc">+</button>
       </div>
       <p class="stock-warning" style="display: none; color: red; font-size: 13px; margin: 4px 0;"></p>
@@ -337,7 +337,7 @@ function renderItemCard(item, container) {
 
   inc.onclick = () => {
     if (item.currentAvailableQuantityKg > parseFloat(input.value)) {
-      input.value = (parseFloat(input.value) + 1).toFixed(1);
+      input.value = (parseFloat(input.value) + 0.5).toFixed(1);
       validateQuantity();
     } else {
       alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
@@ -348,7 +348,7 @@ function renderItemCard(item, container) {
   dec.onclick = () => {
     inc.disabled = false;
     if (parseFloat(input.value) > 0.0) {
-      input.value = (parseFloat(input.value) - 1).toFixed(1);
+      input.value = (parseFloat(input.value) - 0.5).toFixed(1);
       validateQuantity();
     }
   };
@@ -359,7 +359,7 @@ function renderItemCard(item, container) {
       alert("Not enough stock available.");
       return;
     }
-    
+
     const token = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/api/market/reserve-item`, {
       method: 'POST',
@@ -387,6 +387,7 @@ function renderItemCard(item, container) {
     const cartItem = {
       itemId: item.itemId,
       itemName: item.itemDisplayName,
+      itemImageUrl: item.itemImageUrl,
       price: item.pricePerUnit,
       shippingReqId: item.shippingReqId || null,
       sourceFarmName: item.sourceFarmName || "Unknown Farm",
@@ -397,7 +398,7 @@ function renderItemCard(item, container) {
     };
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existing = cart.find(i => i.itemId === cartItem.itemId);
+    const existing = cart.find(i => i.itemId === cartItem.itemId && i.sourceFarmerId === cartItem.sourceFarmerId);
     if (existing) {
       existing.quantity += qty;
       existing.timestamp = cartItem.timestamp;
@@ -406,18 +407,18 @@ function renderItemCard(item, container) {
     }
     localStorage.setItem("cart", JSON.stringify(cart));
 
+    updateCartCount();
     renderMarketPreview();
     alert(`${item.itemDisplayName} added to cart (${qty} kg)`);
 
     setTimeout(async () => {
       let cart = JSON.parse(localStorage.getItem("cart")) || [];
-      const index = cart.findIndex(i => i.itemId === cartItem.itemId);
+      const index = cart.findIndex(i => i.itemId === cartItem.itemId && i.sourceFarmerId === cartItem.sourceFarmerId);
       if (index !== -1) {
         const returnedQty = cart[index].quantity;
-        const stockItem = marketItems.find(i => i.itemId === cartItem.itemId);
+        const stockItem = marketItems.find(i => i.itemId === cartItem.itemId && i.sourceFarmerId === cartItem.sourceFarmerId);
         if (stockItem) stockItem.currentAvailableQuantityKg += returnedQty;
 
-        // ✅ Call backend to restore
         await fetch(`${API_BASE}/api/market/restore-item`, {
           method: 'POST',
           headers: {
@@ -434,15 +435,16 @@ function renderItemCard(item, container) {
 
         cart.splice(index, 1);
         localStorage.setItem("cart", JSON.stringify(cart));
+        updateCartCount();
         renderMarketPreview();
       }
-    }, 600000
-    ); // 5 minutes to restore item stock
+    }, 600000); // 10 min to restore
   };
 
   validateQuantity();
   container.appendChild(card);
 }
+
 
 
 

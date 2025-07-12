@@ -33,16 +33,22 @@ async function loadCartItems() {
     const itemDiv = document.createElement("div");
     itemDiv.className = "cart-item";
     itemDiv.innerHTML = `
-      <div style="font-weight: bold;">
-        ${item.itemName} from ${item.sourceFarmName} by ${item.sourceFarmerName}
-      </div>
-      <div class="cart-details-line">
-        quantity: <button class="dec-btn">-</button> 
-        <span class="qty">${item.quantity}</span>kg 
-        <button class="inc-btn">+</button>
-        price: $${item.price.toFixed(2)}/kg
-        subtotal: $${subtotal.toFixed(2)}
-        <button class="remove-btn" style="margin-left:auto;">Remove</button>
+      <div style="display: flex; align-items: center;">
+        <img src="${item.itemImageUrl || 'https://via.placeholder.com/80?text=No+Image'}"
+             alt="${item.itemName}" style="width: 80px; height: 80px; object-fit: cover; margin-right: 15px; border-radius: 8px;">
+        <div style="flex: 1;">
+          <div style="font-weight: bold; margin-bottom: 4px;">
+            ${item.itemName} from ${item.sourceFarmName} by ${item.sourceFarmerName}
+          </div>
+          <div class="cart-details-line">
+            quantity: <button class="dec-btn">-</button> 
+            <span class="qty">${item.quantity}</span>kg 
+            <button class="inc-btn">+</button>
+            price: $${item.price.toFixed(2)}/kg
+            subtotal: $${subtotal.toFixed(2)}
+            <button class="remove-btn" style="margin-left: auto;">Remove</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -51,9 +57,9 @@ async function loadCartItems() {
     const removeBtn = itemDiv.querySelector(".remove-btn");
 
     decBtn.onclick = async () => {
-      if (item.quantity > 1) {
-        await restoreStock(item, 1);
-        item.quantity -= 1;
+      if (item.quantity > 0.5) {
+        await restoreStock(item, 0.5);
+        item.quantity = parseFloat((item.quantity - 0.5).toFixed(1));
         localStorage.setItem("cart", JSON.stringify(cart));
         loadCartItems();
       } else {
@@ -62,9 +68,9 @@ async function loadCartItems() {
     };
 
     incBtn.onclick = async () => {
-      const reserved = await reserveStock(item, 1);
+      const reserved = await reserveStock(item, 0.5);
       if (reserved) {
-        item.quantity += 1;
+        item.quantity = parseFloat((item.quantity + 0.5).toFixed(1));
         localStorage.setItem("cart", JSON.stringify(cart));
         loadCartItems();
       } else {
@@ -152,7 +158,6 @@ window.checkout = function () {
     return;
   }
 
-  // Could send full cart to backend to create an order
   console.log("Ready to checkout:", { cart, shift, address });
 
   window.location.href = "checkout.html";

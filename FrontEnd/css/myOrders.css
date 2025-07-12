@@ -6,39 +6,6 @@ body {
   padding-bottom: 60px;
 }
 
-/* NAVBAR */
-.navbar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  background: #28a745;
-  color: white;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: center;
-  z-index: 1000;
-}
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  margin: 0 15px;
-  font-size: 16px;
-  position: relative;
-}
-.nav-links a::after {
-  content: "";
-  position: absolute;
-  width: 0%;
-  height: 2px;
-  left: 0;
-  bottom: -4px;
-  background-color: white;
-  transition: width 0.3s;
-}
-.nav-links a:hover::after,
-.nav-links a.active::after {
-  width: 100%;
-}
 
 /* ORDERS PAGE */
 .orders-page {
