@@ -179,6 +179,7 @@ const createStockItem = async (req, res) => {
         itemId,
         itemDisplayName,
         sourceFarmerId,
+        sourceFarmName,
         pickupAddress,
         currentAvailableQuantityKg,
         originalCommittedQuantityKg,
@@ -234,6 +235,7 @@ const createStockItem = async (req, res) => {
         pricePerUnit: finalPrice,
         status: "active",
         shipReqId: sreqId,
+        category,
       });
 
       const shiftTimeData = db.collection("shifts").doc(shiftType);

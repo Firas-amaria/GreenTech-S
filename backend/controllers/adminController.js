@@ -1,12 +1,25 @@
 const { admin, db } = require("../firebaseConfig");
 const { DateTime } = require("luxon");
 const { FieldPath } = require("firebase-admin").firestore;
+const { getUpcomingShiftsList } = require("../utils/shiftHelper");
+
+async function exampleController(req, res) {
+  try {
+    const upcomingShifts = await getUpcomingShiftsList(db, 6);
+    console.log("Upcoming shifts:", upcomingShifts);
+    return res.json(upcomingShifts);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+}
+
+
 
 function parseTimeStr(timeStr) {
   const [hour, minute] = timeStr.split(":").map(Number);
   return { hour, minute };
 }
-
 
 
 async function getOrdersForUpcomingShifts(req, res) {
@@ -30,7 +43,6 @@ async function getOrdersForUpcomingShifts(req, res) {
       });
     });
 
-    // Sort by logical time
     shifts.sort((a, b) => {
       const timeA = parseTimeStr(a.start).hour * 60 + parseTimeStr(a.start).minute;
       const timeB = parseTimeStr(b.start).hour * 60 + parseTimeStr(b.start).minute;
@@ -39,9 +51,9 @@ async function getOrdersForUpcomingShifts(req, res) {
 
     const now = DateTime.local();
     const upcomingShifts = [];
-    let dayCursor = DateTime.local();
+    let dayCursor = now;
 
-    while (upcomingShifts.length < 4) {
+    while (upcomingShifts.length < 6) {
       const dateStr = dayCursor.toISODate().replace(/-/g, "_");
 
       for (const shift of shifts) {
@@ -49,41 +61,32 @@ async function getOrdersForUpcomingShifts(req, res) {
         const { hour: endHour, minute: endMinute } = parseTimeStr(shift.end);
 
         let shiftStartTime = dayCursor.set({
-          hour: startHour,
-          minute: startMinute,
-          second: 0,
-          millisecond: 0
+          hour: startHour, minute: startMinute, second: 0, millisecond: 0
         });
 
         let shiftEndTime = dayCursor.set({
-          hour: endHour,
-          minute: endMinute,
-          second: 0,
-          millisecond: 0
+          hour: endHour, minute: endMinute, second: 0, millisecond: 0
         });
 
-        // If end is less than start (e.g. night shift), move end to next day
+        // Handle night shifts that end after midnight
         if (endHour < startHour || (endHour === startHour && endMinute < startMinute)) {
           shiftEndTime = shiftEndTime.plus({ days: 1 });
         }
 
         if (shiftEndTime > now) {
-          upcomingShifts.push({
-            date: dateStr,
-            shift: shift.name
-          });
-          if (upcomingShifts.length === 4) break;
+          upcomingShifts.push({ date: dateStr, shift: shift.name });
+          if (upcomingShifts.length === 6) break;
         }
       }
 
       dayCursor = dayCursor.plus({ days: 1 });
     }
 
-    // Query orders for each shift
+    // Now for each shift, count matching orders by docId prefix
     const results = [];
     for (const entry of upcomingShifts) {
       const prefix = `LC-1_ORD_${entry.date}_${entry.shift}`;
-      console.log(`Looking for orders by docId prefix: ${prefix}`);
+      console.log(`Counting orders for: ${prefix}`);
 
       const ordersSnap = await db.collection("orders")
         .where(FieldPath.documentId(), ">=", prefix)
@@ -107,14 +110,14 @@ async function getOrdersForUpcomingShifts(req, res) {
   }
 }
 
-//gets all the orders committed in that shift
+//gets all orders made for the shift
 async function getOrdersForShift(req, res) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ error: "No token." });
 
     await admin.auth().verifyIdToken(token);
-    
+
     const { shift, date } = req.query;
     if (!shift || !date) return res.status(400).json({ error: "Missing shift or date." });
 
@@ -146,6 +149,7 @@ async function getOrdersForShift(req, res) {
   }
 }
 
+// orders summary for shift -orders+ summarry by items, by farmer
 async function getOrdersWithSummaryForShift(req, res) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -172,24 +176,25 @@ async function getOrdersWithSummaryForShift(req, res) {
       const docParts = doc.id.split("_");
       const randomNumber = docParts[docParts.length - 1];
 
-      // Push entire order data, plus extracted orderNumber
       orders.push({
         orderNumber: randomNumber,
         ...data
       });
 
-      // Build item summary
       (data.items || []).forEach(item => {
         if (!summaryMap[item.itemName]) {
           summaryMap[item.itemName] = { totalKg: 0, sources: {} };
         }
         summaryMap[item.itemName].totalKg += item.quantity;
 
-        const farm = item.sourceFarmName || "Unknown Farm";
-        if (!summaryMap[item.itemName].sources[farm]) {
-          summaryMap[item.itemName].sources[farm] = 0;
+        const farmerId = item.sourceFarmerId || "UNKNOWN_ID";
+        const farmName = item.sourceFarmName || "UNKNOWN FARM";
+        const farmerKey = `${farmerId}|${farmName}`;
+
+        if (!summaryMap[item.itemName].sources[farmerKey]) {
+          summaryMap[item.itemName].sources[farmerKey] = 0;
         }
-        summaryMap[item.itemName].sources[farm] += item.quantity;
+        summaryMap[item.itemName].sources[farmerKey] += item.quantity;
       });
     });
 
@@ -200,6 +205,8 @@ async function getOrdersWithSummaryForShift(req, res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
+
 
 // Admin API to approve a pending employee and move them into their role collection
 const roleCollectionMap = {
