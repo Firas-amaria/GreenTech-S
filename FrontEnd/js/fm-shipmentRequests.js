@@ -56,7 +56,7 @@ function renderShipmentTable(requests, itemId, shift) {
   tbody.innerHTML = "";
 
   requests.forEach((req) => {
-    console.log(req.committedOrders)
+    // console.log(req.committedOrders);
     const tr = document.createElement("tr");
     const inputId = `final-${itemId}-${req.farmerId}`;
 
@@ -66,7 +66,7 @@ function renderShipmentTable(requests, itemId, shift) {
       <td>${req.forecastedQuantityKg} kg</td>
       <td>${req.committedOrders} kg</td>
       <td><input type="number" min="0" value="${
-        req.finalConfirmedQuantityKg || req.forecastedQuantityKg
+        req.committedOrders
       }" id="${inputId}"></td>
       <td><button>Finalize</button></td>
     `;
