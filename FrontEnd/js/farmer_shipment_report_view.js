@@ -24,8 +24,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const shipment = await res.json();
 
     populateShipmentDetails(shipment);
-    populateContainers(shipment.farmerReports || []);
-    populateHistory(shipment.history || []);
+    populateContainers(shipment.fullReport?.farmerReports || []);
+    populateHistory(shipment.fullReport?.history || []);
   } catch (error) {
     console.error("Error loading shipment view:", error);
     alert("Error loading shipment report. Try again.");
@@ -44,7 +44,7 @@ function populateShipmentDetails(shipment) {
   document.getElementById("spanStatus").textContent =
     shipment.overallStatus || "—";
 
-  const latestReport = shipment.farmerReports?.slice(-1)[0];
+  const latestReport = shipment.fullReport?.farmerReports?.slice(-1)[0];
   if (latestReport?.submittedAt?._seconds) {
     const date = new Date(latestReport.submittedAt._seconds * 1000);
 

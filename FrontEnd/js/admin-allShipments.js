@@ -1,350 +1,17 @@
-// ==========================================
-// js/shipments.js
-// ==========================================
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
-//backend api not found in admin routes
+async function fetchShipments() {
+  const token = await getCurrentUserToken();
+  const response = await fetch("http://localhost:4000/api/admin/getShipments", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) throw new Error("Failed to fetch Shipments");
+  return await response.json();
+}
 
-// ***** MOCK DATA *****
-// Now includes a fullReport object per shipment, with all requested fields.
-const mockShipments = [
-  {
-    id: "SH-1001",
-    origin: "Farm A",
-    destination: "Warehouse B",
-    stages: [
-      {
-        key: "at-farm",
-        label: "At Farm",
-        timestamp: "2025-06-01T08:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "ready-for-pickup",
-        label: "Ready for Pickup",
-        timestamp: "2025-06-01T10:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "in-transit",
-        label: "In Transit",
-        timestamp: "2025-06-01T12:00:00Z",
-        status: "problem", // PROBLEM flag here
-      },
-      // Later stages not reached yet; will render as “upcoming.”
-    ],
-    fullReport: {
-      shipmentId: "SH-1001",
-      status: "Approved",
-      farmerId: "FARMER-55",
-      amount: "2000 kg",
-      pickupTime: "2025-06-01T10:00:00Z",
-      driver: {
-        name: "John Doe",
-        phone: "+972-52-1234567",
-      },
-      shipmentStatus: "In Transit (problem at In-Transit stage)",
-      farmerReports: [
-        {
-          containerId: "C-5001",
-          qualityStandards: {
-            brix: 22,
-            acidity: "balanced",
-            size: "medium",
-          },
-          pickedTime: "2025-06-01T08:05:00Z",
-        },
-        {
-          containerId: "C-5002",
-          qualityStandards: {
-            brix: 21,
-            acidity: "slight",
-            size: "small",
-          },
-          pickedTime: "2025-06-01T08:10:00Z",
-        },
-        // …more containers
-      ],
-      logisticsResults: {
-        stats: {
-          gradeA: 1500, // kilos
-          gradeB: 400,
-          gradeC: 50,
-          rejectionPercent: "5%",
-        },
-        newBarcodes: {
-          gradeA: ["BAR-A-1001", "BAR-A-1002" /* … */],
-          gradeB: ["BAR-B-2001" /* … */],
-          gradeC: ["BAR-C-3001" /* … */],
-        },
-        endOfDay: {
-          sold: 1900, // kilos
-          left: 100, // kilos
-        },
-      },
-      warehousePlacement: [
-        {
-          barcode: "BAR-A-1001",
-          location: "Shelf 1A",
-        },
-        {
-          barcode: "BAR-B-2001",
-          location: "Shelf 2C",
-        },
-        // …more placements
-      ],
-      history: [
-        {
-          timestamp: "2025-06-01T08:00:00Z",
-          user: "farmer_manager",
-          action: "Posted shipment request",
-        },
-        {
-          timestamp: "2025-06-01T10:00:00Z",
-          user: "system",
-          action: "Shipment approved",
-        },
-        {
-          timestamp: "2025-06-01T12:00:00Z",
-          user: "transporter_system",
-          action: "Driver John Doe accepted",
-        },
-        {
-          timestamp: "2025-06-01T12:30:00Z",
-          user: "qc_supervisor",
-          action: "Detected problem in transit (delayed)",
-        },
-        // …further history entries
-      ],
-    },
-  },
-  {
-    id: "SH-1002",
-    origin: "Farm C",
-    destination: "Warehouse B",
-    stages: [
-      {
-        key: "at-farm",
-        label: "At Farm",
-        timestamp: "2025-06-01T07:30:00Z",
-        status: "ok",
-      },
-      {
-        key: "ready-for-pickup",
-        label: "Ready for Pickup",
-        timestamp: "2025-06-01T09:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "in-transit",
-        label: "In Transit",
-        timestamp: "2025-06-01T11:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "arrived",
-        label: "Arrived",
-        timestamp: "2025-06-01T16:00:00Z",
-        status: "current", // CURRENT stage
-      },
-      // “sorting” and “warehouse” auto‐render as “upcoming.”
-    ],
-    fullReport: {
-      shipmentId: "SH-1002",
-      status: "Approved",
-      farmerId: "FARMER-73",
-      amount: "1500 kg",
-      pickupTime: "2025-06-01T09:00:00Z",
-      driver: {
-        name: "Alice Smith",
-        phone: "+972-50-7654321",
-      },
-      shipmentStatus: "Arrived",
-      farmerReports: [
-        {
-          containerId: "C-6001",
-          qualityStandards: {
-            brix: 23,
-            acidity: "balanced",
-            size: "medium",
-          },
-          pickedTime: "2025-06-01T07:35:00Z",
-        },
-        {
-          containerId: "C-6002",
-          qualityStandards: {
-            brix: 22,
-            acidity: "very sour",
-            size: "small",
-          },
-          pickedTime: "2025-06-01T07:40:00Z",
-        },
-      ],
-      logisticsResults: {
-        stats: {
-          gradeA: 1200,
-          gradeB: 250,
-          gradeC: 30,
-          rejectionPercent: "3%",
-        },
-        newBarcodes: {
-          gradeA: ["BAR-A-1101", "BAR-A-1102" /* … */],
-          gradeB: ["BAR-B-2101" /* … */],
-          gradeC: ["BAR-C-3101" /* … */],
-        },
-        endOfDay: {
-          sold: 1400,
-          left: 100,
-        },
-      },
-      warehousePlacement: [
-        {
-          barcode: "BAR-A-1101",
-          location: "Shelf 3B",
-        },
-        {
-          barcode: "BAR-B-2101",
-          location: "Shelf 4A",
-        },
-      ],
-      history: [
-        {
-          timestamp: "2025-06-01T07:30:00Z",
-          user: "farmer_manager",
-          action: "Posted shipment request",
-        },
-        {
-          timestamp: "2025-06-01T09:00:00Z",
-          user: "system",
-          action: "Shipment approved",
-        },
-        {
-          timestamp: "2025-06-01T11:00:00Z",
-          user: "driver_AliceSmith",
-          action: "Delivered to Warehouse B",
-        },
-      ],
-    },
-  },
-  {
-    id: "SH-1003",
-    origin: "Farm B",
-    destination: "Warehouse A",
-    stages: [
-      {
-        key: "at-farm",
-        label: "At Farm",
-        timestamp: "2025-06-01T06:45:00Z",
-        status: "ok",
-      },
-      {
-        key: "ready-for-pickup",
-        label: "Ready for Pickup",
-        timestamp: "2025-06-01T08:30:00Z",
-        status: "ok",
-      },
-      {
-        key: "in-transit",
-        label: "In Transit",
-        timestamp: "2025-06-01T10:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "arrived",
-        label: "Arrived",
-        timestamp: "2025-06-01T14:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "sorting",
-        label: "Sorting",
-        timestamp: "2025-06-01T17:00:00Z",
-        status: "ok",
-      },
-      {
-        key: "warehouse",
-        label: "Warehouse",
-        timestamp: "2025-06-01T19:30:00Z",
-        status: "current", // Already at final stage
-      },
-    ],
-    fullReport: {
-      shipmentId: "SH-1003",
-      status: "Approved",
-      farmerId: "FARMER-21",
-      amount: "1800 kg",
-      pickupTime: "2025-06-01T08:30:00Z",
-      driver: {
-        name: "Michael Cohen",
-        phone: "+972-54-8765432",
-      },
-      shipmentStatus: "Warehouse",
-      farmerReports: [
-        {
-          containerId: "C-7001",
-          qualityStandards: {
-            brix: 24,
-            acidity: "balanced",
-            size: "medium",
-          },
-          pickedTime: "2025-06-01T06:50:00Z",
-        },
-        {
-          containerId: "C-7002",
-          qualityStandards: {
-            brix: 23,
-            acidity: "slight",
-            size: "medium",
-          },
-          pickedTime: "2025-06-01T06:55:00Z",
-        },
-      ],
-      logisticsResults: {
-        stats: {
-          gradeA: 1600,
-          gradeB: 150,
-          gradeC: 50,
-          rejectionPercent: "2.8%",
-        },
-        newBarcodes: {
-          gradeA: ["BAR-A-1201", "BAR-A-1202" /* … */],
-          gradeB: ["BAR-B-2201" /* … */],
-          gradeC: ["BAR-C-3201" /* … */],
-        },
-        endOfDay: {
-          sold: 1700,
-          left: 100,
-        },
-      },
-      warehousePlacement: [
-        {
-          barcode: "BAR-A-1201",
-          location: "Shelf 5A",
-        },
-        {
-          barcode: "BAR-B-2201",
-          location: "Shelf 6C",
-        },
-      ],
-      history: [
-        {
-          timestamp: "2025-06-01T06:45:00Z",
-          user: "farmer_manager",
-          action: "Posted shipment request",
-        },
-        {
-          timestamp: "2025-06-01T08:30:00Z",
-          user: "system",
-          action: "Shipment approved",
-        },
-        {
-          timestamp: "2025-06-01T10:00:00Z",
-          user: "driver_MichaelCohen",
-          action: "Delivered to Warehouse A",
-        },
-      ],
-    },
-  },
-];
+let Shipments = [];
 
 // The six fixed stages—in this order
 const allStagesOrder = [
@@ -366,13 +33,28 @@ function buildStageMap(stagesArr) {
 }
 
 // Helper: format ISO timestamp → "YYYY-MM-DD hh:mm"
-function formatTimestamp(iso) {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
+function formatTimestamp(input) {
+  let date;
+
+  if (!input) return "";
+
+  // If it's Firestore Timestamp object
+  if (typeof input === "object" && "_seconds" in input) {
+    date = new Date(input._seconds * 1000);
+  }
+  // If it's already a Date or string
+  else {
+    date = new Date(input);
+  }
+
+  if (isNaN(date)) return "Invalid Date";
+
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
@@ -476,49 +158,59 @@ function renderShipmentCard(shipment) {
       }</td></tr>
     </table>
 
-    <h4>Farmer Reports (per container)</h4>
+  <h4 style="display: inline-block;">Farmer Reports (per container)</h4>
+  <button class="order-report-btn" style="margin-left: 10px; font-size: 14px;">Order Report</button>
+
     <table class="report-table">
       <thead>
         <tr>
           <th>Container ID</th>
-          <th>Brix</th>
-          <th>Acidity</th>
-          <th>Size</th>
-          <th>Picked Time</th>
         </tr>
       </thead>
       <tbody>
+      
   `;
 
-  fr.farmerReports.forEach((c) => {
-    frHtml += `
+  if (
+    Array.isArray(fr.farmerReports) &&
+    fr.farmerReports.length > 0 &&
+    Array.isArray(fr.farmerReports[0].containers)
+  ) {
+    fr.farmerReports[0].containers.forEach((c) => {
+      frHtml += `
       <tr>
-        <td>${c.containerId}</td>
-        <td>${c.qualityStandards.brix}</td>
-        <td>${c.qualityStandards.acidity}</td>
-        <td>${c.qualityStandards.size}</td>
-        <td>${formatTimestamp(c.pickedTime)}</td>
+        <td><a href="#">${c.code}</a></td>
       </tr>
     `;
-  });
+    });
+  } else {
+    frHtml += `
+    <tr>
+      <td colspan="1">No container data available</td>
+    </tr>
+  `;
+  }
 
-  frHtml += `
-      </tbody>
-    </table>
+  frHtml += `</tbody>
+    </table>`;
+
+  if (fr.logisticsResults && Object.keys(fr.logisticsResults).length > 0) {
+    frHtml += `
+      
 
     <h4>Logistics Center Results</h4>
     <table class="report-table">
       <tr><td><strong>Grade A (kgs):</strong></td><td>${
-        fr.logisticsResults.stats.gradeA
+        fr.logisticsResults?.stats.gradeA
       }</td></tr>
       <tr><td><strong>Grade B (kgs):</strong></td><td>${
-        fr.logisticsResults.stats.gradeB
+        fr.logisticsResults?.stats.gradeB
       }</td></tr>
       <tr><td><strong>Grade C (kgs):</strong></td><td>${
-        fr.logisticsResults.stats.gradeC
+        fr.logisticsResults?.stats.gradeC
       }</td></tr>
       <tr><td><strong>Rejection %:</strong></td><td>${
-        fr.logisticsResults.stats.rejectionPercent
+        fr.logisticsResults?.stats.rejectionPercent
       }</td></tr>
     </table>
 
@@ -551,6 +243,7 @@ function renderShipmentCard(shipment) {
       </thead>
       <tbody>
   `;
+  }
 
   fr.warehousePlacement.forEach((wp) => {
     frHtml += `
@@ -595,6 +288,12 @@ function renderShipmentCard(shipment) {
   fullReportDiv.innerHTML = frHtml;
   card.appendChild(fullReportDiv);
 
+  const orderReportBtn = fullReportDiv.querySelector(".order-report-btn");
+  if (orderReportBtn) {
+    orderReportBtn.addEventListener("click", () => {
+      alert("Order report button clicked!");
+    });
+  }
   // --- Event Listener: toggle Full Report ---
   reportBtn.addEventListener("click", () => {
     const isVisible = fullReportDiv.style.display === "block";
@@ -663,18 +362,72 @@ function applyFilterLogic() {
   populateShipmentsList(filtered);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   // Real API call (commented out):
-  // fetch("/api/admin/shipments")
-  //   .then((res) => res.json())
-  //   .then((data) => populateShipmentsList(data))
-  //   .catch((err) => console.error(err));
-
+  Shipments = await fetchShipments();
   // Use mock data by default:
-  populateShipmentsList(mockShipments);
+  populateShipmentsList(Shipments);
 
   // Wire up filter button
   document
     .getElementById("apply-filters")
     .addEventListener("click", applyFilterLogic);
 });
+
+// Add alert behavior to "Order Report" button
+
+function calculateStageTimings(shiftStartStr) {
+  const allStagesOrder = [
+    { key: "at-farm", durationMin: 90 }, // 1h30m
+    { key: "ready-for-pickup", durationMin: 1 }, // 1m
+    { key: "in-transit", durationMin: 60 }, // 1h
+    { key: "arrived", durationMin: 15 }, // 15m
+    { key: "sorting", durationMin: 60 }, // 1h
+    { key: "warehouse", durationMin: 0 }, // just arrival
+  ];
+
+  const result = [];
+
+  let currentTime = parseTime(shiftStartStr); // e.g. 08:00 => Date object today
+  for (let i = 0; i < allStagesOrder.length; i++) {
+    const stage = allStagesOrder[i];
+
+    // start time
+    let startTime = new Date(currentTime);
+
+    // duration
+    let endTime = new Date(startTime.getTime() + stage.durationMin * 60000);
+
+    result.push({
+      key: stage.key,
+      start: formatTime(startTime),
+      end: stage.durationMin > 0 ? formatTime(endTime) : formatTime(startTime),
+      durationMin: stage.durationMin,
+    });
+
+    // if current stage is "in-transit", which starts same time as ready-for-pickup,
+    // we don't shift currentTime forward yet.
+    if (stage.key === "ready-for-pickup") continue;
+
+    // if current stage is in-transit (starts at same time as ready-for-pickup), we also need to wait.
+    if (stage.key === "in-transit") {
+      endTime = new Date(startTime.getTime() + stage.durationMin * 60000);
+    }
+
+    // move current time forward
+    currentTime = new Date(endTime);
+  }
+
+  return result;
+}
+
+function parseTime(timeStr) {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  const now = new Date();
+  now.setHours(hours, minutes, 0, 0);
+  return now;
+}
+
+function formatTime(date) {
+  return date.toTimeString().slice(0, 5); // "HH:MM"
+}
