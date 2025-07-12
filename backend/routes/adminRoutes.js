@@ -10,14 +10,14 @@ const {
   getAllApplications,
   updateUser,
   deleteUser,
-getOrdersForUpcomingShifts,
-getOrdersForShift,
-getOrdersWithSummaryForShift,
-
+  getOrdersForUpcomingShifts,
+  getOrdersForShift,
+  getOrdersWithSummaryForShift,
+  getShipments,
 } = require("../controllers/adminController");
 
 // router.post("/import-json", importJsonToFirestore);
-
+router.get("/getShipments", authenticate, requireRole("admin"), getShipments);
 /*DASHBOARD*/
 router.get(
   "/orders-for-upcoming-shifts",
@@ -25,11 +25,21 @@ router.get(
   requireRole("admin"),
   getOrdersForUpcomingShifts
 );
-router.get("/orders-for-shift", authenticate, requireRole("admin"), getOrdersForShift);
+router.get(
+  "/orders-for-shift",
+  authenticate,
+  requireRole("admin"),
+  getOrdersForShift
+);
 
-router.get("/orders-with-summary-for-shift", authenticate, requireRole("admin"), getOrdersWithSummaryForShift);
+router.get(
+  "/orders-with-summary-for-shift",
+  authenticate,
+  requireRole("admin"),
+  getOrdersWithSummaryForShift
+);
 
-/*JOB APPLICATION AND USER MANAGEMENT*/ 
+/*JOB APPLICATION AND USER MANAGEMENT*/
 router.put(
   "/updateApplication/:uid",
   authenticate,

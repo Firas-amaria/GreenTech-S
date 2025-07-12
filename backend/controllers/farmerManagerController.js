@@ -116,8 +116,6 @@ const getFarmerInventory = async (req, res) => {
   }
 };
 
-
-
 const createStockItem = async (req, res) => {
   const authHeader = req.headers.authorization;
 
@@ -195,7 +193,8 @@ const createStockItem = async (req, res) => {
       const itemData = itemDoc.data();
       const basePrice = itemData.price?.a || 0;
       const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
-      const itemImageUrl = itemData.imageUrl || 'https://via.placeholder.com/100?text=No+Image';
+      const itemImageUrl =
+        itemData.imageUrl || "https://via.placeholder.com/100?text=No+Image";
       const category = itemData.category || "Unknown Category";
       const sourceFarmerDoc = await db
         .collection("users")
@@ -323,7 +322,7 @@ function getNextOrTodayWeekdayDate(dayName) {
   console.log(`🔍 Today is: ${today.toISOString()}`);
   const todayDay = today.getDay();
   console.log(`🔍 Target day is: ${targetDay} (${dayName})`);
-  const diff = targetDay - todayDay; // 0 = today
+  let diff = targetDay - todayDay; // 0 = today
   if (diff < 0) {
     diff += 7; // If the target day is in the past, move to next week
   }
@@ -361,9 +360,8 @@ const getShipmentRequestsForShift = async (req, res) => {
       .collection("availableMarketStock")
       .doc(stockDocId)
       .get();
-    const stockItems = stockDoc.exists && stockDoc.data().items
-      ? stockDoc.data().items
-      : [];
+    const stockItems =
+      stockDoc.exists && stockDoc.data().items ? stockDoc.data().items : [];
 
     console.log("Loaded stock items:", stockItems);
 
@@ -394,16 +392,18 @@ const getShipmentRequestsForShift = async (req, res) => {
 
         const matchingItem = stockItems.find(
           (item) =>
-            item.itemId=== data.itemId &&
-            item.sourceFarmerId === data.farmerId
+            item.itemId === data.itemId && item.sourceFarmerId === data.farmerId
         );
 
         if (!matchingItem) {
-          console.log(`No stock match for itemId=${data.itemId}, farmerId=${data.farmerId}`);
+          console.log(
+            `No stock match for itemId=${data.itemId}, farmerId=${data.farmerId}`
+          );
         }
 
         const committedOrders = matchingItem
-          ? matchingItem.originalCommittedQuantityKg - matchingItem.currentAvailableQuantityKg
+          ? matchingItem.originalCommittedQuantityKg -
+            matchingItem.currentAvailableQuantityKg
           : 0;
 
         return {
@@ -460,7 +460,9 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
 
       await farmerInventoryRef.update({
         maxOrder: parseFloat(updatedMaxOrder),
-        currentAvailableForProcurementKg: parseFloat(updateAVailableForProcurementKg),
+        currentAvailableForProcurementKg: parseFloat(
+          updateAVailableForProcurementKg
+        ),
       });
     }
 
@@ -660,12 +662,11 @@ async function updateApplicationStatus(req, res) {
   }
 }
 
-
 // GET all items for farmer manager with all details
 const getAllItems = async (req, res) => {
   try {
     const snapshot = await db.collection("items").get();
-    const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     return res.json(items);
   } catch (err) {
     console.error("Error getting items:", err);
@@ -692,17 +693,19 @@ const addNewItem = async (req, res) => {
 const updateItem = async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection("items").doc(id).update({
-      ...req.body,
-      lastUpdated: new Date().toISOString(),
-    });
+    await db
+      .collection("items")
+      .doc(id)
+      .update({
+        ...req.body,
+        lastUpdated: new Date().toISOString(),
+      });
     return res.json({ success: true });
   } catch (err) {
     console.error("Error updating item:", err);
     return res.status(500).json({ error: "Failed to update item" });
   }
 };
-
 
 const deleteItem = async (req, res) => {
   try {
@@ -720,7 +723,6 @@ const deleteItem = async (req, res) => {
   }
 };
 
-
 module.exports = {
   updateApplicationStatus,
   getAllUsers,
@@ -732,8 +734,8 @@ module.exports = {
   getFarmerInventory,
   createStockItem,
   getDashboardStatus,
-   getAllItems,
+  getAllItems,
   addNewItem,
   updateItem,
-  deleteItem
+  deleteItem,
 };
