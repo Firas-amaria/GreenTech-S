@@ -352,7 +352,7 @@ const getShipmentRequestsForShift = async (req, res) => {
     const formattedDate = `${yyyy}_${mm}_${dd}`;
 
     // 🔥 Load matching availableMarketStock
-    const stockDocId = `LC-1_AS_${formattedDate}_${shift}`;
+    const stockDocId = `LC-1_AS_${formattedDate}_${shiftType}`;
     console.log(`Looking up stock document: ${stockDocId}`);
 
     const stockDoc = await db
@@ -392,8 +392,8 @@ const getShipmentRequestsForShift = async (req, res) => {
 
         const matchingItem = stockItems.find(
           (item) =>
-            String(item.itemId) === String(data.itemId) &&
-            String(item.sourceFarmerId) === String(data.farmerId)
+            item.itemId=== data.itemId &&
+            item.sourceFarmerId === data.farmerId
         );
 
         if (!matchingItem) {

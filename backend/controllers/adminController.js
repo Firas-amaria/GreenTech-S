@@ -7,7 +7,9 @@ function parseTimeStr(timeStr) {
   return { hour, minute };
 }
 
-async function getUpcomingOrdersByShift(req, res) {
+
+
+async function getOrdersForUpcomingShifts(req, res) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ error: "No token provided." });
@@ -18,22 +20,23 @@ async function getUpcomingOrdersByShift(req, res) {
     const shiftsSnap = await db.collection("shifts").get();
     if (shiftsSnap.empty) return res.status(404).json({ error: "No shifts defined." });
 
-    const shifts = [];
+    let shifts = [];
     shiftsSnap.forEach(doc => {
       const data = doc.data();
       shifts.push({
-        name: doc.id,
+        name: doc.id.toLowerCase(),
         start: data.start,
         end: data.end
       });
     });
+
+    // Sort by logical time
     shifts.sort((a, b) => {
-      const aTime = parseTimeStr(a.start);
-      const bTime = parseTimeStr(b.start);
-      return aTime.hour - bTime.hour || aTime.minute - bTime.minute;
+      const timeA = parseTimeStr(a.start).hour * 60 + parseTimeStr(a.start).minute;
+      const timeB = parseTimeStr(b.start).hour * 60 + parseTimeStr(b.start).minute;
+      return timeA - timeB;
     });
 
-    // Build upcoming shifts
     const now = DateTime.local();
     const upcomingShifts = [];
     let dayCursor = DateTime.local();
@@ -42,19 +45,32 @@ async function getUpcomingOrdersByShift(req, res) {
       const dateStr = dayCursor.toISODate().replace(/-/g, "_");
 
       for (const shift of shifts) {
-        const { hour: shiftEndHour, minute: shiftEndMinute } = parseTimeStr(shift.end);
+        const { hour: startHour, minute: startMinute } = parseTimeStr(shift.start);
+        const { hour: endHour, minute: endMinute } = parseTimeStr(shift.end);
 
-        const shiftEndTime = dayCursor.set({
-          hour: shiftEndHour,
-          minute: shiftEndMinute,
+        let shiftStartTime = dayCursor.set({
+          hour: startHour,
+          minute: startMinute,
           second: 0,
           millisecond: 0
         });
 
+        let shiftEndTime = dayCursor.set({
+          hour: endHour,
+          minute: endMinute,
+          second: 0,
+          millisecond: 0
+        });
+
+        // If end is less than start (e.g. night shift), move end to next day
+        if (endHour < startHour || (endHour === startHour && endMinute < startMinute)) {
+          shiftEndTime = shiftEndTime.plus({ days: 1 });
+        }
+
         if (shiftEndTime > now) {
           upcomingShifts.push({
             date: dateStr,
-            shift: shift.name.toLowerCase()
+            shift: shift.name
           });
           if (upcomingShifts.length === 4) break;
         }
@@ -63,7 +79,7 @@ async function getUpcomingOrdersByShift(req, res) {
       dayCursor = dayCursor.plus({ days: 1 });
     }
 
-    // Query orders for each upcoming shift by doc ID prefix
+    // Query orders for each shift
     const results = [];
     for (const entry of upcomingShifts) {
       const prefix = `LC-1_ORD_${entry.date}_${entry.shift}`;
@@ -76,11 +92,10 @@ async function getUpcomingOrdersByShift(req, res) {
 
       console.log(`Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`);
 
-
       results.push({
         shift: entry.shift,
         date: entry.date,
-         totalOrders: ordersSnap.size
+        totalOrders: ordersSnap.size
       });
     }
 
@@ -92,14 +107,14 @@ async function getUpcomingOrdersByShift(req, res) {
   }
 }
 
-
+//gets all the orders committed in that shift
 async function getOrdersForShift(req, res) {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ error: "No token." });
 
     await admin.auth().verifyIdToken(token);
-
+    
     const { shift, date } = req.query;
     if (!shift || !date) return res.status(400).json({ error: "Missing shift or date." });
 
@@ -533,7 +548,7 @@ module.exports = {
   deleteUser,
   getAllUsers,
   getAllApplications,
-  getUpcomingOrdersByShift,
+  getOrdersForUpcomingShifts,
   getOrdersForShift,
   getOrdersWithSummaryForShift,
 };

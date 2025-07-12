@@ -10,7 +10,7 @@ const {
   getAllApplications,
   updateUser,
   deleteUser,
-getUpcomingOrdersByShift,
+getOrdersForUpcomingShifts,
 getOrdersForShift,
 getOrdersWithSummaryForShift,
 
@@ -20,10 +20,10 @@ getOrdersWithSummaryForShift,
 
 /*DASHBOARD*/
 router.get(
-  "/orders-by-shift",
+  "/orders-for-upcoming-shifts",
   authenticate,
   requireRole("admin"),
-  getUpcomingOrdersByShift
+  getOrdersForUpcomingShifts
 );
 router.get("/orders-for-shift", authenticate, requireRole("admin"), getOrdersForShift);
 
