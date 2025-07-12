@@ -1,54 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shipments | Admin Dashboard</title>
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="../css/shipments.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shipments | Admin Dashboard</title>
-  <link rel="stylesheet" href="../css/styles.css" />
-  <link rel="stylesheet" href="../css/shipments.css" />
-</head>
+  <body>
+    <!-- ===== Navigation Bar ===== -->
+    <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
+    <header>
+      <nav id="main-nav"></nav>
+    </header>
 
-<body>
-  <!-- ===== Navigation Bar ===== -->
-  <!-- Put this file in a common “includes” folder and include it at the top of each admin page -->
-  <header>
-    <nav id="main-nav"></nav>
+    <!-- ===== Main Content ===== -->
+    <main id="shipments-content">
+      <h1>All Shipments</h1>
 
-  </header>
+      <!-- (Optional) Search / Filter Bar -->
+      <section id="shipment-filters">
+        <input
+          type="text"
+          id="search-shipment"
+          placeholder="Search by Shipment ID or Origin/Destination"
+        />
+        <select id="filter-stage">
+          <option value="">All Stages</option>
+          <option value="at-farm">At Farm</option>
+          <option value="ready-for-pickup">Ready for Pickup</option>
+          <option value="in-transit">In Transit</option>
+          <option value="arrived">Arrived</option>
+          <option value="sorting">Sorting</option>
+          <option value="warehouse">Warehouse</option>
+        </select>
+        <button id="apply-filters">Apply Filters</button>
+      </section>
 
-
-
-  <!-- ===== Main Content ===== -->
-  <main id="shipments-content">
-    <h1>All Shipments</h1>
-
-    <!-- (Optional) Search / Filter Bar -->
-    <section id="shipment-filters">
-      <input type="text" id="search-shipment" placeholder="Search by Shipment ID or Origin/Destination" />
-      <select id="filter-stage">
-        <option value="">All Stages</option>
-        <option value="at-farm">At Farm</option>
-        <option value="ready-for-pickup">Ready for Pickup</option>
-        <option value="in-transit">In Transit</option>
-        <option value="arrived">Arrived</option>
-        <option value="sorting">Sorting</option>
-        <option value="warehouse">Warehouse</option>
-      </select>
-      <button id="apply-filters">Apply Filters</button>
-    </section>
-
-    <!-- Shipments List -->
-    <section id="shipments-list-section">
-      <div id="shipments-list">
-        <!-- JS will inject mock “shipment-card” elements here -->
-      </div>
-    </section>
-  </main>
-  <!-- TODO: Implement shipment card rendering -->
-  <script type="module" src="../js/admin-allShipments.js"></script>
-  <script src="../js/m_nav_menu.js"></script>
-
-</body>
-
+      <!-- Shipments List -->
+      <section id="shipments-list-section">
+        <div id="shipments-list">
+          <!-- JS will inject mock “shipment-card” elements here -->
+        </div>
+      </section>
+    </main>
+    <!-- TODO: Implement shipment card rendering -->
+    <script type="module" src="../js/admin-allShipments.js"></script>
+    <script src="../js/m_nav_menu.js"></script>
+  </body>
 </html>

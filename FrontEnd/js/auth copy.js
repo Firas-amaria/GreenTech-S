@@ -1,9 +1,7 @@
 // js/auth.js
-// import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 import {
   getAuth,
-  createUserWithEmailAndPassword, // THIS IS MISSING
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -18,7 +16,7 @@ window.register = async (event) => {
   const lastName = form["register-fullname"].value.split(" ")[1] || "";
 
   const email = form["register-email"].value;
-  const phone = iti.getNumber(); // This gives the full international number like +972512325456
+  const phone = form["register-phone"].value;
   const address = form["register-address"].value;
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
@@ -30,8 +28,9 @@ window.register = async (event) => {
     form["register-fullname"].style.borderColor = "red";
     return;
   }
+  console.log(firstName.length);
   if (firstName.length < 2) {
-    // console.log("aaa");
+    console.log("aaa");
     document.getElementById("error-message").innerText =
       "First name must be at least 2 characters long.";
     form["register-fullname"].style.borderColor = "red";
@@ -173,6 +172,15 @@ window.register = async (event) => {
   }
 
   try {
+    // Firebase user creation (client-side)
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // Send user data to backend
     const res = await fetch(
       "http://localhost:4000/api/auth/register-customer",
       {
@@ -181,6 +189,7 @@ window.register = async (event) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          uid: user.uid,
           firstName,
           lastName,
           email,
@@ -192,132 +201,54 @@ window.register = async (event) => {
         }),
       }
     );
-
     const data = await res.json();
-
-    if (!res.ok) {
-      // Show backend error message if registration fails
-      alert("Registration failed: " + data.error);
-      return;
-    }
-
+    console.log(data);
     alert("Registration successful!");
     window.location.href = "login.html";
   } catch (error) {
     console.error(error);
-    alert("Registration failed - Unknown Error ");
+    document.getElementById("error-message").innerText = error.message;
   }
 };
 
 window.login = async (event) => {
-  alert("Login function called!"); // Simple test to see if function runs
   event.preventDefault();
-
-  console.log("Login function called");
 
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("password").value;
 
-  console.log("Login credentials:", {
-    email,
-    password: password ? "***" : "MISSING",
-  });
-
   try {
-    console.log("Attempting Firebase authentication...");
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email,
       password
     );
-
     const user = userCredential.user;
-    console.log("Firebase auth successful, user:", user.uid, user.email);
+    console.log(user);
 
     // Get token using shared utility
-    console.log("Getting token from Firebase...");
-    let token;
-    try {
-      // Try direct method first
-      token = await user.getIdToken();
-      console.log(
-        "Got token directly from user:",
-        token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-      );
-    } catch (directError) {
-      console.error("Direct token fetch failed:", directError);
-      // Fallback to shared utility
-      try {
-        token = await getCurrentUserToken();
-        console.log(
-          "Got token from utility:",
-          token ? `${token.substring(0, 20)}...` : "NO TOKEN"
-        );
-      } catch (utilityError) {
-        console.error("Utility token fetch failed:", utilityError);
-      }
-    }
+    const token = await getCurrentUserToken();
+    console.log(user.uid);
 
-    // Store the authentication token immediately after getting it
-    if (token) {
-      localStorage.setItem("token", token);
-      console.log("Token stored in localStorage");
-      // Verify storage
-      const storedToken = localStorage.getItem("token");
-      console.log(
-        "Verified stored token:",
-        storedToken ? `${storedToken.substring(0, 20)}...` : "NOT STORED"
-      );
-    } else {
-      console.error("No token received from Firebase");
-    }
-
-    // Post password user to DB
+    //**** SEND ALSO PASSWORD */
+    // Fetch user role from backend
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ uid: user.uid }),
     });
 
-    console.log("Backend login response status:", res.status);
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("Backend login failed:", errorData);
-      throw new Error(`Backend login failed: ${res.status}`);
-    }
-
-    // // Fetch user info from backend
-    // await fetch("http://localhost:4000/api/user/profile", {
-    //   method: "GET",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //     Authorization: `Bearer ${token}`,
-    //   },
-    // });
-
     const data = await res.json();
-    // console.log("User data from backend:", data);
+    const role = data.message;
 
-    const role = data.role;
-    const name = data.name;
-
-    console.log("User role:", role);
-
-    // //save name and role in localStorage to use later
-    // localStorage.setItem(
-    //   "user",
-    //   JSON.stringify({
-    //     role: role,
-    //     name: name,
-    //   })
-    // );
-
+    // console.log(token);
+    // ADDED: Store token and user data in localStorage for transporter.html
+    localStorage.setItem("token", token);
     localStorage.setItem(
-      "user",
+      "userData",
       JSON.stringify({
         uid: user.uid,
         email: user.email,
@@ -326,25 +257,31 @@ window.login = async (event) => {
       })
     );
 
+    // Save token to txt file
     await saveTokenToFile(token, role);
-
-    // alert(`Welcome ${name}! You are logged in as ${role}.`);
-
+    console.log("User role===:", role);
+    alert("====3242423432432====", role);
     // Redirect based on role
     switch (role) {
-      case "admin":
-        window.location.href = "u-admin/a_dashboard.html";
-        break;
+      // case "admin":
+      //   console.log("role inside switch:", role);
 
-      case "transportationManager":
-        window.location.href = "trasportationManeger-dashboard.html";
-        break;
-
+      //   alert("========");
+      //   // Save admin token to file
+      //   await saveTokenToFile(token, "admin");
+      //   // Redirect to admin dashboard
+      //   alert("Welcome Admin! Redirecting to admin dashboard...");
+      //   window.location.href = "admin-dashboard.html";
+      //   break;
       case "farmer":
-        window.location.href = "u-farmer/f_dashboard.html";
+        window.location.href = "farmer-dashboard.html";
         break;
       case "Operation-Manager":
         window.location.href = "opManager-dashboard.html";
+        break;
+      case "transportationManager":
+      case "admin":
+        window.location.href = "trasportationManeger-dashboard.html";
         break;
       case "picker":
         window.location.href = "picker-dashboard.html";
@@ -352,22 +289,18 @@ window.login = async (event) => {
       case "customer":
         window.location.href = "index.html";
         break;
-
-      case "deliverer":
-        alert("navigating to transporter.html");
-        window.location.href = "transporter.html";
-        break;
       case "industrialDriver":
-        alert("navigating to transporter.html");
-        window.location.href = "transporter.html";
+        alert("industrial driver login");
+        window.location.href = "transporter.html"; // Both roles go to transporter.html
+      case "deliverer":
+        console.log(token);
+        alert("tannsspppoorrrr");
+        window.location.href = "transporter.html"; // Both roles go to transporter.html
         break;
       default:
         alert("Unknown role. Contact support.");
-
         break;
     }
-
-    //window.location.href = "index.html";
   } catch (error) {
     console.error(error);
     document.getElementById("login-error-message").innerText = error.message;

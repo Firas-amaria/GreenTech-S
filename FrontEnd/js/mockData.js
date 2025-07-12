@@ -26,14 +26,14 @@ export const mockApplications = [
       vehicleInsurance: "on",
       schedule: JSON.parse(
         '{"Sunday":["Morning"],"Monday":["Afternoon"],"Tuesday":["Morning"],"Wednesday":["Afternoon"],"Thursday":["Afternoon"],"Friday":["Morning"],"Saturday":["Morning"]}'
-      )
-    }
+      ),
+    },
   },
 
   // Industrial Driver Application
   {
     id: "APP-ID-002",
-    role: "industrial-driver",
+    role: "industrialDriver",
     submittedAt: "2025-06-12T16:42:48.122Z",
     status: "pending",
     details: {
@@ -55,8 +55,8 @@ export const mockApplications = [
       refrigerated: "on",
       schedule: JSON.parse(
         '{"Sunday":["Afternoon"],"Monday":["Afternoon"],"Tuesday":["Evening"],"Wednesday":["Afternoon","Evening"],"Thursday":["Morning"],"Friday":["Morning"],"Saturday":["Afternoon"]}'
-      )
-    }
+      ),
+    },
   },
 
   // Farmer Application
@@ -75,9 +75,9 @@ export const mockApplications = [
       agreement: "on",
       lands: JSON.parse(
         '[{"id":"LAND-001","name":"ss","ownership":"owner","acres":"22","pickupAddress":{"address":"hggh uf gj  hjh","latitude":0,"longitude":0},"location":{"address":"","latitude":0,"longitude":0}}]'
-      )
-    }
-  }
+      ),
+    },
+  },
 ];
 
 // Additional mock item list
@@ -87,7 +87,7 @@ export const mockItemList = [
   { id: "ITEM-003", itemName: "Cucumber", variety: "Slicing" },
   { id: "ITEM-004", itemName: "Cucumber", variety: "Pickling" },
   { id: "ITEM-005", itemName: "Lettuce", variety: "Romaine" },
-  { id: "ITEM-006", itemName: "Lettuce", variety: "Iceberg" }
+  { id: "ITEM-006", itemName: "Lettuce", variety: "Iceberg" },
 ];
 
 // Roles definitions
@@ -110,11 +110,11 @@ export const mockRoles = [
       { label: "Vehicle Capacity", type: "number" },
       { label: "Driver License #", type: "text" },
       { label: "Vehicle Registration #", type: "text" },
-      { label: "Insurance Confirmed", type: "checkbox" }
-    ]
+      { label: "Insurance Confirmed", type: "checkbox" },
+    ],
   },
   {
-    name: "industrial-driver",
+    name: "industrialDriver",
     description: "Deliver refrigerated or hazardous shipments.",
     fields: [
       { label: "First Name", type: "text" },
@@ -132,8 +132,8 @@ export const mockRoles = [
       { label: "Driver License #", type: "text" },
       { label: "Vehicle Registration #", type: "text" },
       { label: "Insurance Confirmed", type: "checkbox" },
-      { label: "Refrigerated Capable", type: "checkbox" }
-    ]
+      { label: "Refrigerated Capable", type: "checkbox" },
+    ],
   },
   {
     name: "farmer",
@@ -146,7 +146,7 @@ export const mockRoles = [
       { label: "Agricultural Insurance", type: "checkbox" },
       { label: "Farm Name", type: "text" },
       { label: "Agreement Signed", type: "checkbox" },
-      { label: "Lands (JSON)", type: "textarea" }
-    ]
-  }
+      { label: "Lands (JSON)", type: "textarea" },
+    ],
+  },
 ];

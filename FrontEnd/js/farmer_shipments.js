@@ -7,7 +7,7 @@ const API_BASE_URL = "http://localhost:4000/api/farmer";
 
 // Helper function to get auth token
 function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
+  return localStorage.getItem("token") || null;
 }
 
 // Helper function for API calls
@@ -54,7 +54,7 @@ async function loadShipmentsData() {
     const data = await apiCall("/frontend/shipments");
 
     console.log("Raw API shipments data:", data);
-    
+
     // Use the structured response
     approvedShipments = data.approvedShipments || [];
     shipmentRequests = data.shipmentRequests || [];

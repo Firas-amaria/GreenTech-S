@@ -45,7 +45,7 @@ const RolesTable = [
     ],
   },
   {
-    name: "industrial-driver",
+    name: "industrialDriver",
     description: "Delivers goods from farms to the logistics center.",
     includeSchedule: true,
     includeLand: false,

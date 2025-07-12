@@ -7,7 +7,7 @@ const API_BASE_URL = "http://localhost:4000/api/farmer";
 
 // Helper function to get auth token
 function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
+  return localStorage.getItem("token") || null;
 }
 
 // Helper function for API calls
@@ -44,11 +44,19 @@ async function apiCall(endpoint, options = {}) {
 
 async function loadShipmentData(shipmentId) {
   try {
-    console.log('DEBUG: loadShipmentData called with shipmentId:', shipmentId);
-    // Try to load specific shipment from API
-    const shipmentData = await apiCall(`/shipments/${shipmentId}`);
-    console.log('DEBUG: Received shipment data from API:', shipmentData);
-    return shipmentData;
+    // Load all shipments from API and find the specific one
+    const allShipmentsData = await apiCall("/shipments");
+    
+    // Find the specific shipment by ID
+    const shipments = allShipmentsData.shipments || allShipmentsData || [];
+    
+    const shipmentData = shipments.find(s => String(s.id) === String(shipmentId));
+    
+    if (shipmentData) {
+      return shipmentData;
+    } else {
+      throw new Error(`Shipment with ID ${shipmentId} not found`);
+    }
   } catch (error) {
     console.warn(
       "Failed to load shipment from API, using fallback data:",
@@ -62,8 +70,8 @@ async function loadShipmentData(shipmentId) {
       { id: 303, item: "Potato", amount: 200, pickupTime: "2025-06-04T11:00" },
     ];
 
-    const fallbackShipment = sampleShipments.find((s) => String(s.id) === shipmentId) || {};
-    console.log('DEBUG: Using fallback shipment data:', fallbackShipment);
+    const fallbackShipment =
+      sampleShipments.find((s) => String(s.id) === shipmentId) || {};
     return fallbackShipment;
   }
 }
@@ -98,9 +106,16 @@ async function loadQualityStandards(itemId) {
 
 async function submitShipmentReport(shipmentId, payload) {
   try {
+    // Add status update to the payload, ensuring QR code is preserved
+    const updatedPayload = {
+      ...payload,
+      status: "shipment_ready",
+      qrcode: payload.qrcode // Explicitly ensure shipment QR code is included
+    };
+    
     return await apiCall(`/shipments/${shipmentId}/report-complete`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(updatedPayload),
     });
   } catch (error) {
     console.error("Failed to submit shipment report via API:", error);
@@ -146,24 +161,32 @@ function getQueryParam(param) {
 }
 
 const shipmentId = getQueryParam("shipmentId");
-console.log('DEBUG: Extracted shipmentId from URL:', shipmentId);
-console.log('DEBUG: Current URL:', window.location.href);
-console.log('DEBUG: URL search params:', window.location.search);
 let shipment = {};
 let qualityStandards = [];
 
 // Load shipment data and quality standards
 async function initializeShipmentReport() {
   try {
-    console.log('DEBUG: Initializing shipment report with shipmentId:', shipmentId);
-    
+    if (!shipmentId) {
+      throw new Error("No shipment ID provided in URL");
+    }
+
     // Load shipment data
     shipment = await loadShipmentData(shipmentId);
-    console.log('DEBUG: Loaded shipment data:', shipment);
+
+    if (!shipment || Object.keys(shipment).length === 0) {
+      throw new Error("No shipment data found");
+    }
 
     // Load quality standards for this item
-    if (shipment.item) {
-      // Try to get itemId from the item name - this might need adjustment based on your data structure
+    if (shipment.items && Array.isArray(shipment.items) && shipment.items.length > 0) {
+      // Use the first item for quality standards (or you could load for all items)
+      const firstItem = shipment.items[0];
+      qualityStandards = await loadQualityStandards(
+        firstItem.itemId || firstItem.name
+      );
+    } else if (shipment.item) {
+      // Fallback for legacy format
       qualityStandards = await loadQualityStandards(
         shipment.itemId || shipment.item
       );
@@ -172,7 +195,6 @@ async function initializeShipmentReport() {
     // Populate UI
     populateShipmentDetails();
 
-    console.log("Shipment report initialized with API data");
   } catch (error) {
     console.error("Failed to initialize shipment report:", error);
     showToast("Failed to load shipment data", "error");
@@ -181,13 +203,46 @@ async function initializeShipmentReport() {
 
 // ===== Populate Shipment Details at Top =====
 function populateShipmentDetails() {
-  document.getElementById("spanShipmentId").textContent = shipment.id || "N/A";
-  document.getElementById("spanItem").textContent = shipment.item || "N/A";
-  document.getElementById("spanAmount").textContent =
-    shipment.amount != null ? `${shipment.amount} kg` : "N/A";
-  document.getElementById("spanPickupTime").textContent = shipment.pickupTime
-    ? new Date(shipment.pickupTime).toLocaleString()
-    : "N/A";
+  // Populate Shipment ID
+  const spanShipmentId = document.getElementById("spanShipmentId");
+  if (spanShipmentId) {
+    spanShipmentId.textContent = shipment.id || "N/A";
+  }
+  
+  // Populate Items - combine all items from the items array
+  let itemsText = "N/A";
+  if (shipment.items && Array.isArray(shipment.items) && shipment.items.length > 0) {
+    itemsText = shipment.items
+      .map(item => `${item.name} (${item.quantity} ${item.unit || 'units'})`)
+      .join(", ");
+  } else if (shipment.item) {
+    // Fallback for legacy format
+    itemsText = shipment.item;
+  }
+  const spanItem = document.getElementById("spanItem");
+  if (spanItem) {
+    spanItem.textContent = itemsText;
+  }
+  
+  // Populate Amount - use totalWeight from farmer shipments or amount from legacy format
+  let amountText = "N/A";
+  if (shipment.totalWeight != null) {
+    amountText = `${shipment.totalWeight} kg`;
+  } else if (shipment.amount != null) {
+    amountText = `${shipment.amount} kg`;
+  }
+  const spanAmount = document.getElementById("spanAmount");
+  if (spanAmount) {
+    spanAmount.textContent = amountText;
+  }
+  
+  // Populate Pickup Time
+  const spanPickupTime = document.getElementById("spanPickupTime");
+  if (spanPickupTime) {
+    spanPickupTime.textContent = shipment.pickupTime
+      ? new Date(shipment.pickupTime).toLocaleString()
+      : "N/A";
+  }
 }
 
 // ===== Placeholder for Quality Standards (to be fetched from backend) =====
@@ -238,6 +293,35 @@ function buildQualityLegendTable() {
   return table;
 }
 
+// =================================================================
+// 🔌 QR CODE GENERATION FUNCTIONS
+// =================================================================
+
+/**
+ * Generate QR code as base64 data URL
+ * @param {string} text - Text to encode in QR code
+ * @returns {Promise<string>} - Base64 data URL of QR code
+ */
+async function generateQRCode(text) {
+  try {
+    // Generate QR code as data URL (base64)
+    const qrCodeDataURL = await QRCode.toDataURL(text, {
+      width: 256,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    return qrCodeDataURL;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw error;
+  }
+}
+
+// =================================================================
+
 // ===== Globals =====
 let containerCountGlobal = 0; // number of containers generated
 let completedContainersCount = 0; // how many have been marked ready
@@ -247,9 +331,9 @@ let sumReadyWeight = 0; // sum of weights for containers already marked ready
 const readyContainersData = [];
 
 // ===== Generate Container Blocks =====
-document
-  .getElementById("btnGenerateContainers")
-  .addEventListener("click", () => {
+const btnGenerateContainers = document.getElementById("btnGenerateContainers");
+if (btnGenerateContainers) {
+  btnGenerateContainers.addEventListener("click", () => {
     const count = parseInt(
       document.getElementById("inputContainerCount").value
     );
@@ -263,6 +347,7 @@ document
       "block";
     updateRemainingKg();
   });
+}
 
 function createContainerBlocks(count) {
   const containerDiv = document.getElementById("containersContainer");
@@ -472,7 +557,7 @@ function markContainerReady(code) {
 
 // ===== Update Remaining KG =====
 function updateRemainingKg() {
-  const totalShipmentKg = shipment.amount || 0;
+  const totalShipmentKg = shipment.totalWeight || shipment.amount || 0;
   const remaining = totalShipmentKg - sumReadyWeight;
   const pRemaining = document.getElementById("pRemainingKg");
   const btnAdd = document.getElementById("btnAddContainer");
@@ -516,17 +601,20 @@ function updateRemainingKg() {
 }
 
 // ===== Add a Single Container Block =====
-document.getElementById("btnAddContainer").addEventListener("click", () => {
-  const nextIndex = containerCountGlobal + 1;
-  containerCountGlobal = nextIndex;
-  appendContainerBlock(nextIndex);
-  updateRemainingKg();
-  // Scroll newly added container into view
-  const newContainerId = `container-${String(nextIndex).padStart(3, "0")}`;
-  document
-    .getElementById(newContainerId)
-    .scrollIntoView({ behavior: "smooth" });
-});
+const btnAddContainer = document.getElementById("btnAddContainer");
+if (btnAddContainer) {
+  btnAddContainer.addEventListener("click", () => {
+    const nextIndex = containerCountGlobal + 1;
+    containerCountGlobal = nextIndex;
+    appendContainerBlock(nextIndex);
+    updateRemainingKg();
+    // Scroll newly added container into view
+    const newContainerId = `container-${String(nextIndex).padStart(3, "0")}`;
+    document
+      .getElementById(newContainerId)
+      .scrollIntoView({ behavior: "smooth" });
+  });
+}
 
 // ===== Update "Ready for Pickup" Button State =====
 function updateReadyForPickupButton() {
@@ -543,10 +631,10 @@ function updateReadyForPickupButton() {
 }
 
 // ===== "Shipment is Ready" Button Handler =====
-document
-  .getElementById("btnReadyPickup")
-  .addEventListener("click", async () => {
-    const totalShipmentKg = shipment.amount || 0;
+const btnReadyPickup = document.getElementById("btnReadyPickup");
+if (btnReadyPickup) {
+  btnReadyPickup.addEventListener("click", async () => {
+    const totalShipmentKg = shipment.totalWeight || shipment.amount || 0;
     const remaining = totalShipmentKg - sumReadyWeight;
     const reportBtn = document.getElementById("reportProblemBtn");
 
@@ -567,25 +655,42 @@ document
     readyBtn.disabled = true;
 
     try {
-      // All filled: send readyContainersData + timestamp to backend
+      // Use the global shipmentId if shipment.id is not available
+      const finalShipmentId = shipment.id || shipmentId;
+      
+      // Generate QR codes for shipment and containers
+      readyBtn.textContent = "Generating QR Codes...";
+      
+      // Generate shipment QR code
+      const shipmentQRCode = await generateQRCode(finalShipmentId);
+      
+      // Generate QR codes for each container
+      const containersWithQR = await Promise.all(
+        readyContainersData.map(async (container) => {
+          const containerQRCode = await generateQRCode(container.code);
+          return {
+            ...container,
+            qrcode: containerQRCode
+          };
+        })
+      );
+
+      // All filled: send readyContainersData + timestamp + QR codes to backend
       const payload = {
-        containers: readyContainersData,
+        containers: containersWithQR,
         readyTimestamp: new Date().toISOString(),
+        qrcode: shipmentQRCode,
       };
 
       // Try to submit via API
-      console.log('DEBUG: About to submit shipment report');
-      console.log('DEBUG: shipment object:', shipment);
-      console.log('DEBUG: shipment.id:', shipment.id);
-      console.log('DEBUG: global shipmentId:', shipmentId);
-      
-      // Use the global shipmentId if shipment.id is not available
-      const finalShipmentId = shipment.id || shipmentId;
-      console.log('DEBUG: Using final shipmentId:', finalShipmentId);
+      readyBtn.textContent = "Submitting...";
       
       await submitShipmentReport(finalShipmentId, payload);
 
-      showToast("Shipment marked ready for pickup successfully!", "success");
+      showToast(
+        `Shipment marked ready for pickup successfully! Generated ${containersWithQR.length + 1} QR codes.`, 
+        "success"
+      );
       reportBtn.style.display = "none";
 
       // Redirect to dashboard after success
@@ -594,7 +699,14 @@ document
       }, 2000);
     } catch (error) {
       console.error("Failed to submit shipment report:", error);
-      showToast("Failed to submit report. Please try again.", "error");
+      
+      // Check if error is related to QR code generation
+      if (error.message && error.message.includes('QR')) {
+        showToast("Failed to generate QR codes. Please try again.", "error");
+      } else {
+        showToast("Failed to submit report. Please try again.", "error");
+      }
+      
       reportBtn.style.display = "inline-block";
     } finally {
       // Restore button
@@ -602,23 +714,29 @@ document
       readyBtn.disabled = false;
     }
   });
+}
 
 // ===== "Report a Problem" Button Handler =====
-document.getElementById("reportProblemBtn").addEventListener("click", () => {
-  // In a real app, redirect to problem-report form or open modal
-  alert("Redirecting to problem report form...");
-  // Example: window.location.href = `/report-problem?shipmentId=${shipmentId}`;
-});
+const reportProblemBtn = document.getElementById("reportProblemBtn");
+if (reportProblemBtn) {
+  reportProblemBtn.addEventListener("click", () => {
+    // In a real app, redirect to problem-report form or open modal
+    alert("Redirecting to problem report form...");
+    // Example: window.location.href = `/report-problem?shipmentId=${shipmentId}`;
+  });
+}
 
 // ===== Logout Link =====
-document.getElementById("logoutLink4").addEventListener("click", (e) => {
-  e.preventDefault();
-  alert("Logging out... (placeholder)");
-  // BACKEND: POST /api/logout → window.location.href = '/login.html';
-});
+const logoutLink = document.getElementById("logoutLink4");
+if (logoutLink) {
+  logoutLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Logging out... (placeholder)");
+    // BACKEND: POST /api/logout → window.location.href = '/login.html';
+  });
+}
 
 // ===== Initialize when page loads =====
 document.addEventListener("DOMContentLoaded", async () => {
   await initializeShipmentReport();
-  console.log("Shipment report page initialized with API integration");
 });
