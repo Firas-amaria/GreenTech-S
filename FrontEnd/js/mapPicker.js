@@ -1,7 +1,7 @@
 let map, marker, geocoder, autocomplete, confirmCallback;
 
 export function initMapPicker() {
-  console.log("✅ Google Maps loaded: initializing picker...");
+  //console.log("✅ Google Maps loaded: initializing picker...");
   geocoder = new google.maps.Geocoder();
 
   // 🌍 Initialize Map centered on Tel Aviv
