@@ -9,10 +9,6 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-document.getElementById("logout-link").addEventListener("click", async () => {
-  await signOut(auth);
-  window.location.href = "login.html";
-});
 
 // ==== LOAD CART ====
 document.addEventListener("DOMContentLoaded", loadCartItems);
