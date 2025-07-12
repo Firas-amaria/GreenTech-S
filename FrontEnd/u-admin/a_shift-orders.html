@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Orders for Shift</title>
   <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet"  href="../css/admin.css"/>
   <style>
     #sub-nav ul {
       list-style: none;
@@ -64,7 +65,15 @@
     </nav>
 
     <section id="order-summary-section">
-      <h2>Order Summary by Item</h2>
+      <div id="summary-title">
+         <h2>Order Summaries:</h2>
+      <select id="summary-sort">
+  <option value="item">Sort by Item</option>
+  <option value="farmer">Sort by Farmer</option>
+</select>
+      </div>
+     
+
       <div id="summary-container"></div>
     </section>
 

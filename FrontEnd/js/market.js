@@ -379,7 +379,7 @@ function renderItemCard(item, container) {
       itemName: item.itemDisplayName,
       itemImageUrl: item.itemImageUrl,
       price: item.pricePerUnit,
-      shippingReqId: item.shippingReqId || null,
+      shipReqId: item.shipReqId || null,
       sourceFarmName: item.sourceFarmName || "Unknown Farm",
       sourceFarmerName: item.sourceFarmerName || "Unknown Farmer",
       sourceFarmerId: item.sourceFarmerId || null,

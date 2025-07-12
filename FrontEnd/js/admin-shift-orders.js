@@ -49,43 +49,39 @@ async function loadOrdersAndSummary(user, shift, date) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Build summary
-    summaryContainer.innerHTML = "";
+    // Build farmer summary from item summary
+    const farmerSummaryMap = {};
     for (const itemName in data.summary) {
       const item = data.summary[itemName];
+      for (const farmKey in item.sources) {
+        const [farmerId, farmName] = farmKey.split("|");
+        const farmerKey = `${farmerId}|${farmName}`;
 
-      const itemDiv = document.createElement("div");
-      itemDiv.classList.add("summary-item");
-
-      const header = document.createElement("div");
-      header.classList.add("summary-header");
-      header.innerHTML = `
-        <span><strong>${itemName}</strong>: ${item.totalKg} kg</span>
-        <span class="arrow">&#9660;</span>
-      `;
-      itemDiv.appendChild(header);
-
-      const sourcesDiv = document.createElement("div");
-      sourcesDiv.classList.add("sources-list");
-      sourcesDiv.style.display = "none";
-
-      for (const farm in item.sources) {
-        const farmDiv = document.createElement("div");
-        farmDiv.innerHTML = `&bull; ${farm}: ${item.sources[farm]} kg`;
-        sourcesDiv.appendChild(farmDiv);
+        if (!farmerSummaryMap[farmerKey]) {
+          farmerSummaryMap[farmerKey] = { totalKg: 0, items: {} };
+        }
+        farmerSummaryMap[farmerKey].totalKg += item.sources[farmKey];
+        if (!farmerSummaryMap[farmerKey].items[itemName]) {
+          farmerSummaryMap[farmerKey].items[itemName] = 0;
+        }
+        farmerSummaryMap[farmerKey].items[itemName] += item.sources[farmKey];
       }
-      itemDiv.appendChild(sourcesDiv);
-
-      header.addEventListener("click", () => {
-        const isOpen = sourcesDiv.style.display === "block";
-        sourcesDiv.style.display = isOpen ? "none" : "block";
-        header.querySelector(".arrow").innerHTML = isOpen ? "&#9660;" : "&#9650;";
-      });
-
-      summaryContainer.appendChild(itemDiv);
     }
 
-    // Build orders
+    // Default render by item
+    renderSummaryByItem(data.summary, summaryContainer);
+
+    // Handle switching sort mode
+    document.getElementById("summary-sort").addEventListener("change", (e) => {
+      summaryContainer.innerHTML = "";
+      if (e.target.value === "farmer") {
+        renderSummaryByFarmer(farmerSummaryMap, summaryContainer);
+      } else {
+        renderSummaryByItem(data.summary, summaryContainer);
+      }
+    });
+
+    // Build orders table like before
     if (data.orders.length === 0) {
       tbody.innerHTML = "<tr><td colspan='4'>No orders for this shift.</td></tr>";
     } else {
@@ -125,5 +121,90 @@ async function loadOrdersAndSummary(user, shift, date) {
   } catch (err) {
     console.error("Error loading orders+summary:", err);
     tbody.innerHTML = "<tr><td colspan='4'>Error loading orders. Check console.</td></tr>";
+  }
+}
+
+
+function renderSummaryByItem(summary, container) {
+  for (const itemName in summary) {
+    const item = summary[itemName];
+    const itemDiv = document.createElement("div");
+    itemDiv.classList.add("summary-item");
+
+    const header = document.createElement("div");
+    header.classList.add("summary-header");
+    header.innerHTML = `<span><strong>${itemName}</strong>: ${item.totalKg} kg</span><span class="arrow">&#9660;</span>`;
+    itemDiv.appendChild(header);
+
+    const sourcesDiv = document.createElement("div");
+    sourcesDiv.classList.add("sources-list");
+    sourcesDiv.style.display = "none";
+
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead><tr><th>Farmer ID</th><th>Farm Name</th><th>Total Committed</th></tr></thead>
+      <tbody></tbody>`;
+    const tbodySources = table.querySelector("tbody");
+
+    for (const farmKey in item.sources) {
+      const [farmerId, farmName] = farmKey.split("|");
+      const qty = item.sources[farmKey];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${farmerId.slice(0,6)}...</td><td>${farmName}</td><td>${qty} kg</td>`;
+      tbodySources.appendChild(tr);
+    }
+
+    sourcesDiv.appendChild(table);
+    itemDiv.appendChild(sourcesDiv);
+
+    header.addEventListener("click", () => {
+      const isOpen = sourcesDiv.style.display === "block";
+      sourcesDiv.style.display = isOpen ? "none" : "block";
+      header.querySelector(".arrow").innerHTML = isOpen ? "&#9660;" : "&#9650;";
+    });
+
+    container.appendChild(itemDiv);
+  }
+}
+
+function renderSummaryByFarmer(farmerSummary, container) {
+  for (const farmerKey in farmerSummary) {
+    const [farmerId, farmName] = farmerKey.split("|");
+    const farmer = farmerSummary[farmerKey];
+
+    const itemDiv = document.createElement("div");
+    itemDiv.classList.add("summary-item");
+
+    const header = document.createElement("div");
+    header.classList.add("summary-header");
+    header.innerHTML = `<span><strong>${farmName}</strong> (${farmerId.slice(0,6)}...): ${farmer.totalKg} kg, ${Object.keys(farmer.items).length} items</span><span class="arrow">&#9660;</span>`;
+    itemDiv.appendChild(header);
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.classList.add("sources-list");
+    itemsDiv.style.display = "none";
+
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead><tr><th>Item</th><th>Total Ordered</th></tr></thead>
+      <tbody></tbody>`;
+    const tbodyItems = table.querySelector("tbody");
+
+    for (const itemName in farmer.items) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${itemName}</td><td>${farmer.items[itemName]} kg</td>`;
+      tbodyItems.appendChild(tr);
+    }
+
+    itemsDiv.appendChild(table);
+    itemDiv.appendChild(itemsDiv);
+
+    header.addEventListener("click", () => {
+      const isOpen = itemsDiv.style.display === "block";
+      itemsDiv.style.display = isOpen ? "none" : "block";
+      header.querySelector(".arrow").innerHTML = isOpen ? "&#9660;" : "&#9650;";
+    });
+
+    container.appendChild(itemDiv);
   }
 }
