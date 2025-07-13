@@ -16,17 +16,22 @@ const {
   addNewItem,
   updateItem,
   deleteItem,
+  getOrdersSummaryForShift,
 } = require("../controllers/farmerManagerController");
 
 router.get("/dashboardStatus", getDashboardStatus);
-router.get("/demandStatistics/:shift", getDemandStatistics);
+router.get("/demandStatistics", authenticate, requireRole("farmerManager"), getDemandStatistics);
 router.get("/farmerInventory", getFarmerInventory);
 router.post("/createStockItem", authenticate, createStockItem);
-router.get("/shipmentRequests/:shift", getShipmentRequestsForShift);
+router.get("/shipmentRequests", getShipmentRequestsForShift);
 router.post(
   "/shipmentRequestQuantitiesConfirmed",
   shipmentRequestQuantitiesConfirmed
 );
+
+router.get("/orders-summary-for-shift", authenticate, requireRole("farmerManager"),
+getOrdersSummaryForShift)
+
 
 router.put(
   "/updateApplication/:uid",
