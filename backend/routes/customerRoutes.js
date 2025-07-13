@@ -7,6 +7,7 @@ const {
   getSavedAddress,
   getCustomerOrders,
   addNewAddress,
+  getCustomerOrderById,
 } = require("../controllers/customerController");
 
 // existing route
@@ -14,7 +15,7 @@ router.get("/profile", getCustomerProfile);
 
 // new: get customer saved addresses
 router.get("/saved-address", authenticate,getSavedAddress);
-
+router.get("/order/:orderId", authenticate, getCustomerOrderById);
 router.get("/customer-orders", authenticate, getCustomerOrders);
 
 // new: save customer address

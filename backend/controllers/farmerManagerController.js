@@ -288,7 +288,7 @@ const createStockItem = async (req, res) => {
         itemDisplayName,
         sourceFarmerId,
         sourceFarmerName,
-        sourceFarmName: farmerData.farmName || "UNKNOWN FARM",
+        sourceFarmName: farmerData.farmName || sourceFarmName,
         pickupAddress,
         itemImageUrl,
         currentAvailableQuantityKg,
@@ -359,33 +359,7 @@ const createStockItem = async (req, res) => {
   }
 };
 
-// 🔁 Helper function to get the next date for a given weekday
-function getNextOrTodayWeekdayDate(dayName) {
-  const daysOfWeek = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const targetDay = daysOfWeek.indexOf(dayName.toLowerCase());
-  if (targetDay === -1) throw new Error("Invalid day name in shift");
-  const today = new Date();
-  console.log(`🔍 Today is: ${today.toISOString()}`);
-  const todayDay = today.getDay();
-  console.log(`🔍 Target day is: ${targetDay} (${dayName})`);
-  let diff = targetDay - todayDay; // 0 = today
-  if (diff < 0) {
-    diff += 7; // If the target day is in the past, move to next week
-  }
-  console.log(`🔍 Day difference: ${diff}`);
-  const result = today;
-  result.setDate(today.getDate() + diff);
-  console.log(`🔍 Resulting date: ${result.toISOString()}`);
-  return result;
-}
+
 
 // GET /api/farmerManager/shipmentRequests?date=2025_07_13&shift=morning
 const getShipmentRequestsForShift = async (req, res) => {

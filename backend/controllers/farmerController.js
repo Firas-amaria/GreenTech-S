@@ -265,24 +265,78 @@ async function getShipmentRequests(req, res) {
     const decodedToken = await admin.auth().verifyIdToken(token);
     const farmerUid = decodedToken.uid;
 
-    // Get shipments
+    // Step 1: Fetch all shift data
+    const shiftsSnapshot = await db.collection("shifts").get();
+    const shifts = {};
+    shiftsSnapshot.forEach((doc) => {
+      shifts[doc.id] = doc.data(); // { start: "07:00", end: "13:00" }
+    });
+
+    // Step 2: Determine current time and next shift
+    const now = DateTime.local(); // current time
+    const today = now.startOf("day");
+
+    const shiftEntries = Object.entries(shifts).map(([name, times]) => {
+      const start = DateTime.fromFormat(times.start, "HH:mm");
+      return { name, startTime: start };
+    });
+
+    // Sort shifts by start time
+    shiftEntries.sort(
+      (a, b) => a.startTime.toMillis() - b.startTime.toMillis()
+    );
+
+    // Determine next shift
+    let nextShift = null;
+    let referenceDate = today;
+
+    for (let shift of shiftEntries) {
+      const shiftStartToday = today.plus({
+        hours: shift.startTime.hour,
+        minutes: shift.startTime.minute,
+      });
+      if (now < shiftStartToday) {
+        nextShift = shift.name;
+        break;
+      }
+    }
+
+    // If current time is after all shift starts, move to tomorrow's first shift
+    if (!nextShift) {
+      nextShift = shiftEntries[0].name;
+      referenceDate = today.plus({ days: 1 });
+    }
+
+    // Step 3: Fetch all shipment requests for the farmer
     const shipmentsSnapshot = await db
       .collection("shipmentRequests")
       .where("farmerId", "==", farmerUid)
       .get();
 
-    // Filter and format approved shipments
-    const approvedShipments = shipmentsSnapshot.docs
+    // Step 4: Filter and format relevant shipments
+    const filtered = shipmentsSnapshot.docs
       .filter((doc) => {
-        const status = doc.data().status;
-        return status === "forecasted" || status === "finalized";
+        const data = doc.data();
+        const status = data.status;
+        if (status !== "forecasted" && status !== "finalized") return false;
+
+        const pickupDate = DateTime.fromISO(data.scheduledPickupDate).startOf(
+          "day"
+        );
+        const slot = data.scheduledPickupTimeSlot || "";
+        const shiftName = slot.split("-").pop(); // e.g., "afternoon" from "wednesday-afternoon"
+
+        return (
+          pickupDate > referenceDate ||
+          (pickupDate.equals(referenceDate) && shiftName === nextShift)
+        );
       })
       .map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-    res.json(approvedShipments);
+    res.json(filtered);
   } catch (err) {
     console.error("[getShipmentRequests] Error:", err);
     res.status(500).send({ error: err.message });

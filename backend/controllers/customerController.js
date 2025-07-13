@@ -63,6 +63,36 @@ async function getCustomerOrders(req, res) {
   }
 }
 
+async function getCustomerOrderById(req, res){
+  try {
+    const tokenUid = req.user.uid; // you got from auth middleware
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Missing orderId." });
+    }
+
+    const orderRef = db.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    const orderData = orderSnap.data();
+
+    // Make sure the order belongs to this customer
+    if (orderData.customerId !== tokenUid) {
+      return res.status(403).json({ error: "Not authorized to view this order." });
+    }
+
+    return res.status(200).json({ orderId, ...orderData });
+  } catch (err) {
+    console.error("Error fetching order:", err);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+};
+
 
 
 
@@ -148,4 +178,5 @@ module.exports = {
   getSavedAddress,
   getCustomerProfile,
   getCustomerOrders,
+  getCustomerOrderById,
 };

@@ -21,6 +21,7 @@ const farmerManagerRoutes = require("./routes/farmerManagerRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const marketRoutes = require("./routes/marketRoutes");  
 const mapsRoutes = require("./routes/mapsRouts");
+const ordersRoutes=require("./routes/ordersRoutes");
 //middlewares
 app.use(cors());
 app.use(express.json());
@@ -39,6 +40,7 @@ app.use("/api/farmerManager", farmerManagerRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/market", marketRoutes);
 app.use("/api/maps", mapsRoutes);
+app.use("/api/orders", ordersRoutes);
 
 const PORT = process.env.PORT || 4000;
 
