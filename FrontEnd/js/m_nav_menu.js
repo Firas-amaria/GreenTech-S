@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (role === "admin") {
     menuItems = [
       { href: "a_dashboard.html", text: "Dashboard" },
-      { href: "a-jobApplications.html", text: "Job Application Review" },
+      { href: "a_job_applications.html", text: "Job Application Review" },
       { href: "a_all_shipments.html", text: "All Shipments" },
       { href: "a_reports.html", text: "Reports" },
       { href: "a_manage_users.html", text: "Manage Users" },
