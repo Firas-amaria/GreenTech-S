@@ -286,8 +286,12 @@ window.login = async (event) => {
       case "farmerManager":
         window.location.href = "u-farmerManager/fm-dashboard.html";
         break;
+        case "transportationManager":
+        window.location.href = "u-trasportationManager/tm-dashboard.html";
+        break;
       default:
-        alert("Unknown role. Contact support.");
+        console.log(role)
+        alert("Unknown role. Contact support.  ");
         break;
     }
   } catch (Error) {
