@@ -122,5 +122,5 @@ async function shipmentNote(shipmentId) {
   }
 
   // Redirect to the delivery note page with shipmentId as a URL parameter
-  window.location.href = `farmer-delivery-note.html?shipmentId=${shipmentId}`;
+  window.location.href = `farmer-shipmentNote.html?shipmentId=${shipmentId}`;
 };
