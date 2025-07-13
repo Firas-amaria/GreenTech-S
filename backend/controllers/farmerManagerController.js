@@ -288,7 +288,7 @@ const createStockItem = async (req, res) => {
         itemDisplayName,
         sourceFarmerId,
         sourceFarmerName,
-        sourceFarmName: farmerData.farmName || sourceFarmName,
+        sourceFarmName: farmerData.extraFields?.farmName || sourceFarmName,
         pickupAddress,
         itemImageUrl,
         currentAvailableQuantityKg,
@@ -358,8 +358,6 @@ const createStockItem = async (req, res) => {
     });
   }
 };
-
-
 
 // GET /api/farmerManager/shipmentRequests?date=2025_07_13&shift=morning
 const getShipmentRequestsForShift = async (req, res) => {
