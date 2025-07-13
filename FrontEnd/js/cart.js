@@ -10,6 +10,7 @@ onAuthStateChanged(auth, (user) => {
 });
 
 
+
 // ==== LOAD CART ====
 document.addEventListener("DOMContentLoaded", loadCartItems);
 
