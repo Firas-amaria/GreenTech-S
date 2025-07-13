@@ -5,7 +5,6 @@ const API_BASE = "http://localhost:4000";
 // Get orderId from URL
 const params = new URLSearchParams(window.location.search);
 const orderId = params.get("orderId");
-
 if (!orderId) {
   alert("No order ID found in URL!");
   // optionally redirect back
@@ -38,14 +37,14 @@ async function loadNote(token, orderId) {
     const data = await res.json();
     console.log("Order data:", data);
 
-    renderNote(data);
+    renderDeliveryNote(data);
   } catch (err) {
     console.error(err);
     alert("Could not load order details.");
   }
 }
 
-function renderNote(order) {
+/*function renderNote(order) {
   const orderIdEl = document.getElementById("order-id");
   const statusEl = document.getElementById("order-status");
   const totalEl = document.getElementById("order-total");
@@ -66,29 +65,28 @@ function renderNote(order) {
     itemsDiv.appendChild(p);
   });
 }
+*/
+  
 
 
-/*
 
-const deliveryData = [
-  {
-    farmerName: "Levy Cohen",
-    products: [
-      { name: "Apple", barcode: "123456789012", weight: 2.5, price: 15, harvestDate: "2024-06-10T07:30:00Z" },
-      { name: "Banana", barcode: "123456789013", weight: 1.2, price: 8, harvestDate: "2024-06-11T08:15:00Z" }
-    ]
-  },
-  {
-    farmerName: "Sarah Blum",
-    products: [
-      { name: "Cucumber", barcode: "123456789014", weight: 3.1, price: 12, harvestDate: "2024-06-09T06:50:00Z" },
-      { name: "Tomato", barcode: "123456789015", weight: 2.0, price: 10, harvestDate: "2024-06-10T09:00:00Z" }
-    ]
-  }
-];
 
 function renderDeliveryNote(data) {
+  const userJson = localStorage.getItem("user");
+const user = JSON.parse(userJson);
+const userName = user?.name || "N/A";
   const container = document.getElementById("farmers-container");
+const infoDiv = document.getElementById("customer-info");
+infoDiv.innerHTML = `<p><strong>Order #:</strong> ${data.orderId}</p>
+  <p><strong>Customer Name:</strong> ${userName}</p>
+    <p><strong>Address:</strong> ${data.deliveryAddress|| "N/A"}</p>
+   <p><strong>Delivery Date:</strong> ${data.deliveryDate}</p>
+  <p><strong>Delivery Shift:</strong> ${data.deliveryShift || "N/A"}</p>
+  <p><strong>Order Status:</strong> ${data.status}</p>
+
+`;
+
+
   let totalKg = 0;
   let totalPrice = 0;
 
@@ -103,39 +101,52 @@ function renderDeliveryNote(data) {
     </tr>
   `;
 
-  data.forEach(group => {
-    group.products.forEach(p => {
-      totalKg += p.weight;
-      totalPrice += p.price;
 
-      const productLabel = `${p.name} by ${group.farmerName}`;
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${productLabel}</td>
-        <td><div id="qr-${p.barcode}"></div></td>
-        <td>${p.weight.toFixed(2)}</td>
-        <td>${p.price.toFixed(2)}</td>
-      `;
-      table.appendChild(row);
+   data.items.forEach(p => {
+  totalKg += p.quantity;
+  totalPrice += p.price;
 
-      const qrBtn = document.createElement("img");
-      qrBtn.className = "qr-code";
-      qrBtn.src = "https://api.qrserver.com/v1/create-qr-code/?data=" + encodeURIComponent(productLabel) + "&size=60x60";
-      qrBtn.onclick = () => openPopup(productLabel, p);
+  const productLabel = `${p.itemName} by ${p.sourceFarmName || "UNKNOWN FARM"}`;
+  const row = document.createElement("tr");
 
-      setTimeout(() => {
-        const qrDiv = document.getElementById("qr-" + p.barcode);
-        if (qrDiv) qrDiv.appendChild(qrBtn);
-      }, 0);
-    });
-  });
+  // === Column: Product Name ===
+  const tdProduct = document.createElement("td");
+  tdProduct.textContent = productLabel;
+
+  // === Column: QR Code ===
+  const tdQR = document.createElement("td");
+  const qrImg = document.createElement("img");
+  qrImg.className = "qr-code";
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(productLabel)}&size=60x60`;
+  qrImg.style.cursor = "pointer";
+  qrImg.onclick = () => openPopup(productLabel, p);
+  tdQR.appendChild(qrImg);
+
+  // === Column: Quantity ===
+  const tdQty = document.createElement("td");
+  tdQty.textContent = p.quantity;
+
+  // === Column: Price ===
+  const tdPrice = document.createElement("td");
+  tdPrice.textContent = p.price;
+
+  // === Build and append the row ===
+  row.appendChild(tdProduct);
+  row.appendChild(tdQR);
+  row.appendChild(tdQty);
+  row.appendChild(tdPrice);
+  table.appendChild(row);
+});
+
+ 
 
   container.appendChild(table);
-  document.getElementById("total-kg").textContent = totalKg.toFixed(2);
-  document.getElementById("total-price").textContent = totalPrice.toFixed(2);
+  document.getElementById("total-kg").textContent = totalKg;
+  document.getElementById("total-price").textContent = totalPrice;
 
   const noteUrl = "https://yourdomain.com/delivery-note/000294";
   const mainQR = document.createElement("img");
+
   mainQR.className = "qr-code";
   mainQR.src = "https://api.qrserver.com/v1/create-qr-code/?data=" + encodeURIComponent(noteUrl) + "&size=120x120";
   mainQR.title = "Scan to view this delivery note";
@@ -154,15 +165,15 @@ function openPopup(title, product) {
     <div class="popup-content">
       <span class="close-btn" onclick="this.parentElement.parentElement.remove()">×</span>
       <h3>${title}</h3>
-      <p><strong>Barcode:</strong> ${product.barcode}</p>
-      <p><strong>Weight:</strong> ${product.weight.toFixed(2)} kg</p>
-      <p><strong>Price:</strong> $${product.price.toFixed(2)}</p>
+      <p><center><img src="${product.itemImageUrl}" alt="${title} QR Code" style="max-width: 70%; height: auto;" /></center></p>
+      <p><strong>Weight:</strong> ${product.quantity} kg</p>
+      <p><strong>Price:</strong> $${product.price}</p>
       <p><strong>Harvested:</strong> ${harvestStr}</p>
     </div>
   `;
 
   document.body.appendChild(popup);
 }
-
-renderDeliveryNote(deliveryData);
-*/
+window.openPopup = openPopup;
+  
+//renderDeliveryNote(deliveryData);
