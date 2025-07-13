@@ -107,7 +107,8 @@ window.submitOrder = async function() {
       deliveryDate,
       deliveryShift,
       totalOrderValue: total,
-      totalOrderWeightKg: totalKg
+      totalOrderWeightKg: totalKg,
+      customerName: user.displayName ,
     };
 
     const res = await fetch("http://localhost:4000/api/market/submit-order", {

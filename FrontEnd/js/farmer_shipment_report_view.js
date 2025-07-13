@@ -7,7 +7,9 @@ function getQueryParam(param) {
 }
 
 const shipmentId = getQueryParam("shipmentId");
-
+document.getElementById("shipmentNoteButton").addEventListener("click", () => {
+  shipmentNote(shipmentId);
+});
 // Load shipment data
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -22,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!res.ok) throw new Error("Failed to fetch shipment report");
 
     const shipment = await res.json();
-
+console.log("shipment", shipment);
     populateShipmentDetails(shipment);
     populateContainers(shipment.fullReport?.farmerReports || []);
     populateHistory(shipment.fullReport?.history || []);
@@ -112,3 +114,13 @@ function populateHistory(history = []) {
       ul.appendChild(li);
     });
 }
+
+async function shipmentNote(shipmentId) {
+  if (!shipmentId) {
+    alert("Shipment ID not found!");
+    return;
+  }
+
+  // Redirect to the delivery note page with shipmentId as a URL parameter
+  window.location.href = `farmer-delivery-note.html?shipmentId=${shipmentId}`;
+};

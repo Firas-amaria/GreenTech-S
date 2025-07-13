@@ -58,7 +58,7 @@ orders.forEach(order => {
     case "evening": deliveryTime = "18:00-19:00"; break;
     case "night": deliveryTime = "23:00-00:00"; break;
   }
-
+console.log(order.id);
   const div = document.createElement("div");
   div.className = "order-item";
   div.innerHTML = `

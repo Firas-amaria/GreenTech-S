@@ -56,7 +56,7 @@ document.getElementById("add-new-address-btn").addEventListener("click", () => {
 
     const data = await res.json();
     console.log("💾 Saved to customer collection:", data);
-    alert(data.message || `New address saved: ${location.address}`);
+    showToast(data.message || `New address saved: ${location.address} successfully!`, "success");
 
     await loadCustomerAddress(token, location.address);
   });
@@ -111,7 +111,7 @@ async function loadCustomerAddress(token, forceSelectAddress = null) {
 
   } catch (err) {
     console.error("Error loading addresses:", err);
-    alert("Could not load your delivery addresses.");
+showToast("Could not load your delivery addresses.");
   }
 }
 
@@ -164,14 +164,15 @@ async function loadAvailableShifts(token) {
     });
   } catch (err) {
     console.error("Error loading shifts:", err);
-    alert("Could not load available shifts.");
+    showToast("Could not load available shifts.", "error");
+    
   }
 }
 
 window.handleShiftSelect = async function () {
   const stockId = document.getElementById("shift-select").value;
   if (!stockId) {
-    alert("Please select a valid shift.");
+    showToast("Please select a valid shift.", "warning");
     return;
   }
 
@@ -183,7 +184,7 @@ window.handleShiftSelect = async function () {
       cart = [];
       localStorage.removeItem("cart");
       updateCartCount();
-      alert("Cart has been cleared. Please select items for the new shift.");
+      showToast("Cart has been cleared. Please select items for the new shift.", "info");
     }
   }
 
@@ -223,7 +224,7 @@ async function loadStockItems(token, stockId) {
     return await res.json();
   } catch (err) {
     console.error("Error loading stock items:", err);
-    alert("Could not load items for this shift.");
+    showToast("Could not load items for this shift.", "error");
     return [];
   }
 }
@@ -330,7 +331,7 @@ function renderItemCard(item, container) {
       input.value = (parseFloat(input.value) + 0.5).toFixed(1);
       validateQuantity();
     } else {
-      alert(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`);
+      showToast(`Cannot add more than ${item.currentAvailableQuantityKg} kg to cart.`, "warning");
       inc.disabled = true;
     }
   };
@@ -346,7 +347,7 @@ function renderItemCard(item, container) {
   addToCart.onclick = async () => {
     const qty = parseFloat(input.value);
     if (qty > item.currentAvailableQuantityKg) {
-      alert("Not enough stock available.");
+      showToast("Not enough stock available.", "error");
       return;
     }
 
@@ -367,7 +368,7 @@ function renderItemCard(item, container) {
 
     if (!res.ok) {
       const data = await res.json();
-      alert(`Failed to add to cart: ${data.error || "Unknown error"}`);
+      showToast(`Failed to add to cart: ${data.error || "Unknown error"}`, "error");
       return;
     }
 
@@ -399,7 +400,7 @@ function renderItemCard(item, container) {
 
     updateCartCount();
     renderMarketPreview();
-    alert(`${item.itemDisplayName} added to cart (${qty} kg)`);
+    showToast(`${item.itemDisplayName} added to cart (${qty} kg)`, "success");
 
     setTimeout(async () => {
       let cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -451,9 +452,9 @@ window.handleChangeDelivery = function () {
       document.getElementById("category-selection").style.display = "none";
       document.getElementById("search-section").style.display = "none";
       document.getElementById("market-container").innerHTML = "<p>Please select a new delivery shift and address.</p>";
-      alert("Cart cleared. You can now select a new delivery.");
+      showToast("Cart cleared. You can now select a new delivery.", "info");
     } else {
-      alert("Keep your existing cart to finish checkout first.");
+      showToast("Keep your existing cart to finish checkout first.", "warning");
     }
   } else {
     shiftLocked = false;
@@ -462,7 +463,35 @@ window.handleChangeDelivery = function () {
     document.getElementById("category-selection").style.display = "none";
     document.getElementById("search-section").style.display = "none";
     document.getElementById("market-container").innerHTML = "<p>Please select a new delivery shift and address.</p>";
-    alert("You can now choose a different delivery shift.");
+    showToast("You can now choose a different delivery shift.", "info");
   }
 };
 
+// message to show toast notifications
+// 🔥 TOAST NOTIFICATIONS
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  const colors = {
+    success: "#4CAF50",
+    error: "#F44336",
+    warning: "#FF9800",
+    info: "#2196F3",
+  };
+
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 1001;
+    padding: 12px 20px; border-radius: 4px; color: white;
+    background: ${colors[type] || colors.info};
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-width: 300px; word-wrap: break-word;
+  `;
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      document.body.removeChild(toast);
+    }
+  }, 4000);
+}
