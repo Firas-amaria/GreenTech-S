@@ -1,14 +1,16 @@
 :root {
-  --primary-color: #2c3e50; /* dark blue-gray */
-  --secondary-color: #34495e; /* slightly lighter blue-gray */
-  --accent-color: #1abc9c; /* teal accent for highlights */
+  --primary-color: #2c3e50;
+  --secondary-color: #34495e;
+  --accent-color: #1abc9c;
   --text-color: #333;
   --background-color: #f8f9fa;
   --card-bg: #ffffff;
   --border-color: #bdc3c7;
   --hover-bg: #eaeaea;
+  --highlight-bg: #eef5fa;
 }
 
+/* Global */
 body {
   font-family: 'Segoe UI', sans-serif;
   background-color: var(--background-color);
@@ -16,7 +18,7 @@ body {
   margin: 0;
 }
 
-/* === NAVIGATION === */
+/* Navs */
 #main-nav, #sub-nav {
   background-color: var(--primary-color);
   color: #ecf0f1;
@@ -34,41 +36,28 @@ body {
   color: var(--accent-color);
 }
 
-/* === SIDEBAR === */
-#sidebar-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 220px;
-  height: 100%;
+/* Sub nav active link */
+#sub-nav a.sub-active {
   background-color: var(--secondary-color);
-  color: #ecf0f1;
-  padding: 20px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-}
-
-#sidebar-container a {
-  color: #ecf0f1;
-  display: block;
-  margin: 15px 0;
-  text-decoration: none;
-  transition: background-color 0.2s, padding-left 0.2s;
-}
-
-#sidebar-container a:hover {
-  background-color: var(--hover-bg);
-  color: var(--primary-color);
-  padding-left: 8px;
+  padding: 6px 12px;
   border-radius: 4px;
 }
 
-/* === MAIN SECTION === */
-main {
-  margin-left: 240px;
-  padding: 20px;
+#sub-nav ul {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-/* === STATS CARDS === */
+
+
+/* Main */
+main {
+ padding: 20px;
+}
+
+/* Stats cards */
 .stats-cards {
   display: flex;
   flex-wrap: wrap;
@@ -96,7 +85,7 @@ main {
 }
 
 .stat-card h3 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
   font-size: 1.2rem;
 }
 
@@ -106,7 +95,7 @@ main {
   color: var(--primary-color);
 }
 
-/* === ORDER SUMMARIES === */
+/* Order summaries */
 #order-summaries-list {
   margin-top: 30px;
 }
@@ -133,7 +122,7 @@ main {
   color: var(--secondary-color);
 }
 
-/* === BUTTONS (optional for interactive) === */
+/* Buttons */
 .button-primary {
   background-color: var(--accent-color);
   border: none;
@@ -148,4 +137,84 @@ main {
 .button-primary:hover {
   background-color: #16a085;
   transform: translateY(-2px);
+}
+
+/* Orders table */
+#orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+#orders-table th,
+#orders-table td {
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+#orders-table th {
+  background-color: var(--primary-color);
+  color: #ecf0f1;
+}
+
+#orders-table tbody tr:hover {
+  background-color: var(--hover-bg);
+  cursor: pointer;
+}
+
+/* Arrow toggle with rotation */
+#orders-table td.arrow-toggle {
+  text-align: center;
+  font-size: 1.2rem;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+
+#orders-table td.arrow-toggle.open {
+  transform: rotate(180deg);
+}
+
+/* Expanded row style */
+#orders-table tbody tr td[colspan] {
+  background-color: var(--highlight-bg);
+  font-size: 0.95rem;
+}
+
+/* Sources list tables (for summaries) */
+.sources-list table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.sources-list th,
+.sources-list td {
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  text-align: left;
+}
+
+.sources-list th {
+  background-color: var(--secondary-color);
+  color: #ecf0f1;
+}
+
+/* Ensure titles inside main have slight left offset */
+main h1 {
+  margin-left: 2px;
+}
+
+#summary-sort {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  font-size: 1rem;
+}
+#summary-sort:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 4px rgba(26, 188, 156, 0.5);
 }
