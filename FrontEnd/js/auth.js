@@ -234,6 +234,8 @@ window.login = async (event) => {
   }
   try {
     const token = await getCurrentUserToken();
+    localStorage.setItem("token", token);
+
     const res = await fetch("http://localhost:4000/api/auth/login", {
       method: "POST",
       headers: {
@@ -277,14 +279,13 @@ window.login = async (event) => {
       case "customer":
         window.location.href = "market.html";
         break;
-      case "deliverer":
-        window.location.href = "transporter.html";
-        break;
       case "farmerManager":
         window.location.href = "u-farmerManager/fm-dashboard.html";
         break;
+      case "deliverer":
+        window.location.href = "transporter.html";
+        break;
       case "industrialDriver":
-        // alert("navigating to transporter.html");
         window.location.href = "transporter.html";
         break;
       case "transportationManager":
