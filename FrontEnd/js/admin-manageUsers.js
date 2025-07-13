@@ -47,7 +47,7 @@ const allRoles = [
   "customerServiceManager",
   "customer",
   "warehouseWorker",
-  "industrial-driver",
+  "industrialDriver",
   "operationManager",
 ];
 

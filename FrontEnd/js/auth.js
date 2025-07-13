@@ -2,20 +2,18 @@ import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/1
 import { auth, getCurrentUserToken } from "./firebase-init.js";
 import { openMapPicker, initMapPicker } from "./mapPicker.js";
 
-
-
 // ✅ Load Google Maps dynamically only if registration address field exists
 if (document.getElementById("register-address")) {
   fetch("http://localhost:4000/api/maps/google-maps-script")
-    .then(res => res.json())
-    .then(data => {
+    .then((res) => res.json())
+    .then((data) => {
       const script = document.createElement("script");
       script.src = data.scriptUrl + "&language=en&callback=initMap";
       script.async = true;
       document.head.appendChild(script);
       console.log("✅ Google Maps script appended on registration");
     })
-    .catch(err => console.error("Failed to load Google Maps script", err));
+    .catch((err) => console.error("Failed to load Google Maps script", err));
 
   // Expose callback to global scope for Google Maps
   window.initMap = () => {
@@ -23,7 +21,6 @@ if (document.getElementById("register-address")) {
     initMapPicker();
   };
 }
-
 
 // ✅ SAFE MAP PICKER INIT FOR REGISTRATION
 const addrInput = document.getElementById("register-address");
@@ -49,7 +46,7 @@ window.register = async (event) => {
   const address = {
     address: form["register-address"].value,
     latitude: form["register-lat"].value,
-    longitude: form["register-lng"].value
+    longitude: form["register-lng"].value,
   };
   const birthDate = form["register-birthdate"].value;
   const password = form["register-password"].value;
@@ -285,6 +282,13 @@ window.login = async (event) => {
         break;
       case "farmerManager":
         window.location.href = "u-farmerManager/fm-dashboard.html";
+        break;
+      case "industrialDriver":
+        // alert("navigating to transporter.html");
+        window.location.href = "transporter.html";
+        break;
+      case "transportationManager":
+        window.location.href = "trasportationManeger-dashboard.html";
         break;
       default:
         alert("Unknown role. Contact support.");

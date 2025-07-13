@@ -26,14 +26,14 @@ export const mockApplications = [
       vehicleInsurance: "on",
       schedule: JSON.parse(
         '{"Sunday":["Morning"],"Monday":["Afternoon"],"Tuesday":["Morning"],"Wednesday":["Afternoon"],"Thursday":["Afternoon"],"Friday":["Morning"],"Saturday":["Morning"]}'
-      )
-    }
+      ),
+    },
   },
 
   // Industrial Driver Application
   {
     id: "APP-ID-002",
-    role: "industrial-driver",
+    role: "industrialDriver",
     submittedAt: "2025-06-12T16:42:48.122Z",
     status: "pending",
     details: {
@@ -55,8 +55,8 @@ export const mockApplications = [
       refrigerated: "on",
       schedule: JSON.parse(
         '{"Sunday":["Afternoon"],"Monday":["Afternoon"],"Tuesday":["Evening"],"Wednesday":["Afternoon","Evening"],"Thursday":["Morning"],"Friday":["Morning"],"Saturday":["Afternoon"]}'
-      )
-    }
+      ),
+    },
   },
 
   // Farmer Application
@@ -75,9 +75,9 @@ export const mockApplications = [
       agreement: "on",
       lands: JSON.parse(
         '[{"id":"LAND-001","name":"ss","ownership":"owner","acres":"22","pickupAddress":{"address":"hggh uf gj  hjh","latitude":0,"longitude":0},"location":{"address":"","latitude":0,"longitude":0}}]'
-      )
-    }
-  }
+      ),
+    },
+  },
 ];
 
 // Additional mock item list
@@ -87,20 +87,20 @@ export const mockItemList = [
   { itemId: "VEG-003", itemName: "Cucumber", variety: "Slicing" },
   { itemId: "VEG-004", itemName: "Cucumber", variety: "Pickling" },
   { itemId: "VEG-005", itemName: "Lettuce", variety: "Romaine" },
-  { itemId: "VEG-006", itemName: "Lettuce", variety: "Iceberg" }
+  { itemId: "VEG-006", itemName: "Lettuce", variety: "Iceberg" },
 ];
 
 export const mockStock = {
   morning: [
     {
-      stockid:1 ,
+      stockid: 1,
       itemId: "FRT-001",
       itemDisplayName: "Apple Fuji",
       itemPictureUrl: "https://via.placeholder.com/100?text=Apple",
       category: "Fruits",
       sourceFarmerName: "Farmer John",
       currentAvailableQuantityKg: 100,
-      pricePerUnit: 2.99
+      pricePerUnit: 2.99,
     },
     {
       itemId: "VEG-001",
@@ -108,8 +108,8 @@ export const mockStock = {
       itemPictureUrl: "https://via.placeholder.com/100?text=Cucumber",
       category: "Vegetables",
       sourceFarmerName: "Farmer Jane",
-      currentAvailableQuantityKg:10,
-      pricePerUnit: 1.8
+      currentAvailableQuantityKg: 10,
+      pricePerUnit: 1.8,
     },
     {
       itemId: "VEG-002",
@@ -118,7 +118,7 @@ export const mockStock = {
       category: "Vegetables",
       sourceFarmerName: "Farmer Amir",
       currentAvailableQuantityKg: 10,
-      pricePerUnit: 2.2
+      pricePerUnit: 2.2,
     },
     {
       itemId: "VEG-004",
@@ -127,8 +127,8 @@ export const mockStock = {
       category: "Vegetables",
       sourceFarmerName: "Farmer Dana",
       currentAvailableQuantityKg: 25,
-      pricePerUnit: 1.5
-    }
+      pricePerUnit: 1.5,
+    },
   ],
   afternoon: [],
   night: [
@@ -139,14 +139,13 @@ export const mockStock = {
       category: "Vegetables",
       sourceFarmerName: "Farmer Ezra",
       currentAvailableQuantityKg: 55,
-      pricePerUnit: 2.3
-    }
-  ]
+      pricePerUnit: 2.3,
+    },
+  ],
 };
 
 export const mockAddresses = [
   "123 Green Rd",
   "45 Market St",
-  "678 Orchard Lane"
+  "678 Orchard Lane",
 ];
-

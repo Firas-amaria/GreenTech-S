@@ -8,11 +8,7 @@ import {
   signOut,
 } from "./firebase-init.js";
 
-  import { initMapPicker, openMapPicker } from "./mapPicker.js";
-
-
-
-
+import { initMapPicker, openMapPicker } from "./mapPicker.js";
 
 window.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, (user) => {
@@ -44,7 +40,7 @@ const RolesTable = [
     ],
   },
   {
-    name: "industrial-driver",
+    name: "industrialDriver",
     description: "Delivers goods from farms to the logistics center.",
     includeSchedule: true,
     includeLand: false,
@@ -118,36 +114,31 @@ async function renderApplicationForm() {
     return;
   }
 
-
-
-
   container.innerHTML = "";
   container.innerHTML += `
     <h2>Employment Application for ${role.name}</h2>
     <p>Ensure your personal details are up to date. If not, sign up again with correct information.</p>
     <p>We will contact you using the details below.</p>
   `;
-// Load Google Maps only if farmer
-if (role.name === "farmer") {
-  fetch("http://localhost:4000/api/maps/google-maps-script")
-    .then(res => res.json())
-    .then(data => {
-      const script = document.createElement("script");
-      script.src = data.scriptUrl + "&language=en&callback=initMap";
-      script.async = true;
-      document.head.appendChild(script);
-      console.log("✅ Google Maps script appended for farmer");
-    })
-    .catch(err => console.error("Failed to load Google Maps script", err));
+  // Load Google Maps only if farmer
+  if (role.name === "farmer") {
+    fetch("http://localhost:4000/api/maps/google-maps-script")
+      .then((res) => res.json())
+      .then((data) => {
+        const script = document.createElement("script");
+        script.src = data.scriptUrl + "&language=en&callback=initMap";
+        script.async = true;
+        document.head.appendChild(script);
+        console.log("✅ Google Maps script appended for farmer");
+      })
+      .catch((err) => console.error("Failed to load Google Maps script", err));
 
-  // Make window callback for Google Maps to call
-  window.initMap = () => {
-    console.log("✅ Google Maps callback fired on farmer application");
-    initMapPicker(); // safely initializes your mapPicker.js
-  };
-}
-
-
+    // Make window callback for Google Maps to call
+    window.initMap = () => {
+      console.log("✅ Google Maps callback fired on farmer application");
+      initMapPicker(); // safely initializes your mapPicker.js
+    };
+  }
 
   const form = document.createElement("form");
   form.id = "application-form";
@@ -184,7 +175,7 @@ if (role.name === "farmer") {
     addBtn.type = "button";
     addBtn.id = "add-land-btn";
     addBtn.textContent = "Add Land";
-    addBtn.style.cssText= "background-color : #28a745;";
+    addBtn.style.cssText = "background-color : #28a745;";
 
     // Create section first
     const landsSection = document.createElement("div");
@@ -254,17 +245,16 @@ if (role.name === "farmer") {
         const get = (name) =>
           block.querySelector(`[name="land[${i}][${name}]"]`)?.value;
         lands.push({
-  landName: get("customName") || `Land ${i + 1}`,
-  ownership: get("ownership"),
-  acres: get("acres"),
-  pickupAddress: get("pickupAddress"),
-  pickupLat: get("pickupLat"),
-  pickupLng: get("pickupLng"),
-  location: get("location"),
-  locLat: get("locLat"),
-  locLng: get("locLng"),
-});
-
+          landName: get("customName") || `Land ${i + 1}`,
+          ownership: get("ownership"),
+          acres: get("acres"),
+          pickupAddress: get("pickupAddress"),
+          pickupLat: get("pickupLat"),
+          pickupLng: get("pickupLng"),
+          location: get("location"),
+          locLat: get("locLat"),
+          locLng: get("locLng"),
+        });
       });
       ReqBody.extraFields.lands = lands;
       ReqBody.extraFields.agreementPercentage = 60;
@@ -361,7 +351,9 @@ window.addLand = function (landsSection) {
 
     <!-- Custom Name -->
     <label>Custom Name:
-      <input type="text" name="land[${index}][customName]" placeholder="Land ${index + 1}" />
+      <input type="text" name="land[${index}][customName]" placeholder="Land ${
+    index + 1
+  }" />
     </label><br/>
 
     <!-- Ownership Dropdown -->
@@ -405,9 +397,15 @@ window.addLand = function (landsSection) {
 
   // === MAP BINDINGS ===
   // Pickup address click
-  const pickupInput = block.querySelector(`[name="land[${index}][pickupAddress]"]`);
-  const pickupLatInput = block.querySelector(`[name="land[${index}][pickupLat]"]`);
-  const pickupLngInput = block.querySelector(`[name="land[${index}][pickupLng]"]`);
+  const pickupInput = block.querySelector(
+    `[name="land[${index}][pickupAddress]"]`
+  );
+  const pickupLatInput = block.querySelector(
+    `[name="land[${index}][pickupLat]"]`
+  );
+  const pickupLngInput = block.querySelector(
+    `[name="land[${index}][pickupLng]"]`
+  );
 
   pickupInput.addEventListener("click", () => {
     openMapPicker((location) => {
@@ -430,6 +428,5 @@ window.addLand = function (landsSection) {
     });
   });
 };
-
 
 const capitalize = (w) => w && w[0].toUpperCase() + w.slice(1);
