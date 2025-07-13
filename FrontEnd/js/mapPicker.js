@@ -5,17 +5,17 @@ export function initMapPicker() {
   geocoder = new google.maps.Geocoder();
 
   // 🌍 Initialize Map centered on Tel Aviv
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 32.0853, lng: 34.7818 },
-    zoom: 13
-  });
+ map = new google.maps.Map(document.getElementById("map"), {
+  center: { lat: 32.7335, lng: 35.2188 },
+  zoom: 13
+});
 
-  // 📍 Draggable Marker
-  marker = new google.maps.Marker({
-    map,
-    draggable: true,
-    position: { lat: 32.0853, lng: 34.7818 }
-  });
+marker = new google.maps.Marker({
+  map,
+  draggable: true,
+  position: { lat: 32.7335, lng: 35.2188 }
+});
+
 
   // 🖱 Click sets marker
   map.addListener("click", (e) => marker.setPosition(e.latLng));
