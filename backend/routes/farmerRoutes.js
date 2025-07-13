@@ -12,8 +12,11 @@ const {
   updateCropByLandId,
   deleteCropByLandId,
   getApprovedShipmentsByID,
+  getCustomerOrderById,
 } = require("../controllers/farmerController");
 router.use(authenticate);
+
+router.get("/order/:orderId", authenticate, getCustomerOrderById);
 
 router.post(
   "/submitShipmentReport",
