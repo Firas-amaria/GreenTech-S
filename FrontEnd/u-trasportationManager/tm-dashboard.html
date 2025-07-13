@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transportation Manager Dashboard</title>
+  
+  <link rel="stylesheet" href="../css/trasportaionManager.css" />
+</head>
+<body>
+  <header>
+    <nav id="main-nav"></nav>
+  </header>
+
+
+
+  <main style="padding:20px; margin-left:220px;">
+    <h1>Transportation Manager Dashboard</h1>
+
+    <div class="stats-cards">
+      <div class="stat-card orders">
+        <div class="card-icon">📦</div>
+        <h3>Total Orders</h3>
+        <div class="stat-value" id="total-orders">0</div>
+      </div>
+      <div class="stat-card shipments">
+        <div class="card-icon">🚚</div>
+        <h3>Upcoming Shipments</h3>
+        <div class="stat-value" id="upcoming-shipments">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="card-icon">📊</div>
+        <h3>Performance</h3>
+        <div class="stat-value">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="card-icon">⚙️</div>
+        <h3>Settings</h3>
+        <div class="stat-value">-</div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:40px;">Order Summaries by Shift</h2>
+    <div id="order-summaries-list">
+      <!-- Populated by JS -->
+    </div>
+  </main>
+
+  <script type="module" src="js/m_nav_menu.js"></script>
+  <script type="module" src="js/transportationManager.js"></script>
+</body>
+</html>
