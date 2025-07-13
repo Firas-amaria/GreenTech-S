@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Delivery Note</title>
+  <link rel="stylesheet" href="css/farmer-delivery.css" />
+</head>
+<body>
+  <div class="delivery-note">
+    <div id="document-barcode" style="text-align:center; margin-bottom: 20px;"></div>
+
+    <h1>Shipment Id <span style="font-size: 16px; font-weight: normal;">(#001283)</span></h1>
+
+    <div class="farmer-info">
+      <!-- Farmer info will be populated by JS -->
+    </div>
+
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>List of Containers</th>
+          <th>Quality</th>
+          <th>Price/kg ($)</th>
+          <th>Weight (kg)</th>
+          <th>Total Price ($)</th>
+          <th>Total Volume (kg)</th>
+        </tr>
+      </thead>
+      <tbody id="product-body"></tbody>
+    </table>
+
+    <div class="summary">
+      <p><strong>Total Weight:</strong> <span id="total-kg">0</span> kg</p>
+      <p><strong>Total Volume:</strong> <span id="total-vol">0</span> kg</p>
+      <p><strong>Total Price:</strong> $<span id="total-price">0</span></p>
+    </div>
+  </div>
+
+  <script src="js/farmer-delivery.js"></script>
+</body>
+</html>

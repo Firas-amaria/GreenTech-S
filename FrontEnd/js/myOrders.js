@@ -4,10 +4,7 @@ const API_BASE = "http://localhost:4000";
 const container = document.getElementById("orders-container");
 let allOrders = [];
 
-document.getElementById("logout-link")?.addEventListener("click", async () => {
-  await signOut(auth);
-  window.location.href = "login.html";
-});
+
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
