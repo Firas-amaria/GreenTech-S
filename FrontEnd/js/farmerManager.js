@@ -9,44 +9,40 @@ async function renderDashboard() {
   reqContainer.innerHTML = "";
 
   try {
-    const res = await fetch(
-      "http://localhost:4000/api/farmerManager/dashboardStatus"
-    );
-    const { createdShifts, notCreatedShifts } = await res.json();
+  const res = await fetch("http://localhost:4000/api/farmerManager/dashboardStatus");
+  const { shipmentSummary, createStock } = await res.json();
 
-    // Show up to 4 not-created shifts
-    notCreatedShifts.slice(0, 4).forEach((shift) => {
-      const div = document.createElement("div");
-      div.className = "shift-line";
-      div.innerHTML = `
-        <span>${shift}</span>
-        <button onclick="window.location.href='fm-createStock.html?shift=${encodeURIComponent(
-          shift
-        )}'">
-          Create Stock
-        </button>
-      `;
-      createContainer.appendChild(div);
-    });
+  // Show up to 4 not-created shifts
+  createStock.slice(0, 4).forEach(({ date, shift }) => {
+    const div = document.createElement("div");
+    div.className = "shift-line";
+    div.innerHTML = `
+      <span><strong>${date}</strong> - ${shift}</span>
+      <button onclick="window.location.href='fm-createStock.html?date=${encodeURIComponent(date)}&shift=${encodeURIComponent(shift)}'">
+        Create Stock
+      </button>
+    `;
+    createContainer.appendChild(div);
+  });
 
-    // Show all created shifts
-    createdShifts.forEach(({ shift, count }) => {
-      const div = document.createElement("div");
-      div.className = "shift-line";
-      div.innerHTML = `
-        <span>${shift}</span>
-        <span>${count} requests created</span>
-        <button onclick="window.location.href='fm-shipmentRequests.html?shift=${encodeURIComponent(
-          shift
-        )}'">
-          View Requests
-        </button>
-      `;
-      reqContainer.appendChild(div);
-    });
-  } catch (err) {
-    console.error("Failed to load dashboard shifts", err);
-    createContainer.innerHTML = "<p>Error loading shift data.</p>";
-    reqContainer.innerHTML = "";
-  }
+  // Show all created shifts with counts
+  shipmentSummary.forEach(({ date, shift, count }) => {
+    const div = document.createElement("div");
+    div.className = "shift-line";
+    div.innerHTML = `
+      <span><strong>${date}</strong> - ${shift}</span>
+      <span>${count} shipment requests</span>
+      <button onclick="window.location.href='fm-shipmentRequests.html?date=${encodeURIComponent(date)}&shift=${encodeURIComponent(shift)}'">
+        View Requests
+      </button>
+    `;
+    reqContainer.appendChild(div);
+  });
+
+} catch (err) {
+  console.error("Failed to load dashboard shifts", err);
+  createContainer.innerHTML = "<p>Error loading shift data.</p>";
+  reqContainer.innerHTML = "";
+}
+
 }

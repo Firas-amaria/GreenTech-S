@@ -1,15 +1,30 @@
+import { getCurrentUserToken } from "./firebase-init.js";
+
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
   const shift = params.get("shift");
+  const displayDate = params.get("date"); // e.g. "13/07/2025"
+
+  // ✅ compute date in yyyy_mm_dd for backend
+  const [day, month, year] = displayDate.split("/");
+  const backendDate = `${year}_${month}_${day}`;
+
   const container = document.getElementById("shipment-section");
   document.getElementById(
     "header"
-  ).textContent = `Shipment Requests for ${shift}`;
+  ).textContent = `Shipment Requests for ${displayDate} - ${shift}`;
 
   try {
+    const token = await getCurrentUserToken();
+
+    // ✅ call the backend using ?date=yyyy_mm_dd&shift=morning
     const res = await fetch(
-      `http://localhost:4000/api/farmerManager/shipmentRequests/${shift}`
+      `http://localhost:4000/api/farmerManager/shipmentRequests?date=${backendDate}&shift=${shift}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
     );
+
     const requests = await res.json();
 
     if (!requests || requests.length === 0) {
@@ -17,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    // ✅ Group by itemId
     const grouped = {};
     requests.forEach((req) => {
       if (!grouped[req.itemId]) grouped[req.itemId] = [];
@@ -34,7 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               <th>Farmer</th>
               <th>Pickup Address</th>
               <th>Forecasted</th>
-              <th>Commited Orders</th>
+              <th>Committed Orders</th>
               <th>Final Amount</th>
               <th>Action</th>
             </tr>
@@ -56,7 +72,6 @@ function renderShipmentTable(requests, itemId, shift) {
   tbody.innerHTML = "";
 
   requests.forEach((req) => {
-    // console.log(req.committedOrders);
     const tr = document.createElement("tr");
     const inputId = `final-${itemId}-${req.farmerId}`;
 
@@ -64,7 +79,7 @@ function renderShipmentTable(requests, itemId, shift) {
       <td>${req.farmerName}</td>
       <td>${req.pickupAddress || "UNKNOWN"}</td>
       <td>${req.forecastedQuantityKg} kg</td>
-      <td>${req.committedOrders} kg</td>
+      <td>${req.committedOrders || 0} kg</td>
       <td><input type="number" min="0" value="${
         req.committedOrders
       }" id="${inputId}"></td>
@@ -84,11 +99,16 @@ async function finalizeShipmentRequest(req, inputId, btnEl) {
   const finalAmount = parseFloat(document.getElementById(inputId).value) || 0;
 
   try {
+    const token = await getCurrentUserToken();
+
     const res = await fetch(
       `http://localhost:4000/api/farmerManager/shipmentRequestQuantitiesConfirmed`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           shipmentRequestId: req.id,
           finalConfirmedQuantityKg: finalAmount,
