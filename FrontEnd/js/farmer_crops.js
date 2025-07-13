@@ -254,7 +254,7 @@ async function updateCrops(newStatus, statusPercentage, landId) {
         land.crop.updatedAt = new Date().toISOString();
       }
     }
-
+showToast("Crop status updated successfully!", "success");
     renderCropTable();
   } catch (error) {
     console.error("Failed to update crop status:", error);
@@ -294,19 +294,20 @@ async function handleAddCrop() {
     return;
   }
   if (isNaN(plantedAmount)) {
-    alert("Please fill all fields with valid values. plantedAmount");
+    showToast("Please fill all fields with valid values. plantedAmount");   
+    //alert("Please fill all fields with valid values. plantedAmount");
     return;
   }
   if (isNaN(avgRate)) {
-    alert("Please fill all fields with valid values. avgRate");
+    showToast("Please fill all fields with valid values. avgRate");
     return;
   }
   if (isNaN(fruiting)) {
-    alert("Please fill all fields with valid values. fruiting");
+    showToast("Please fill all fields with valid values. fruiting");
     return;
   }
   if (!plantedOn || !expectedHarvestDate) {
-    alert("Please fill all fields with valid values.");
+    showToast("Please fill all fields with valid values.");
     return;
   }
 
@@ -348,7 +349,7 @@ async function handleAddCrop() {
     });
 
     if (!response.ok) throw new Error("Failed to add crop");
-
+showToast("Crop added successfully!", "success");
     const land = parsedLands.find((l) => l.id === selectedLand.id);
     if (land) {
       land.crop = {
@@ -412,6 +413,7 @@ function renderCropTable() {
       selectStatus.value = crop.status;
       selectStatus.addEventListener("change", (e) => {
         updateCrops(e.target.value, crop.statusPercentage, land.id);
+        showToast("Crop status updated successfully!", "success");
       });
       tdStatus.appendChild(selectStatus);
       tr.appendChild(tdStatus);
@@ -432,6 +434,7 @@ function renderCropTable() {
       inputPercentage.value = crop.statusPercentage;
       inputPercentage.addEventListener("change", (e) => {
         updateCrops(crop.status, e.target.value, land.id);
+        showToast("Crop percentage updated successfully!", "success");
       });
       tdPercentage.appendChild(inputPercentage);
       tr.appendChild(tdPercentage);
@@ -456,6 +459,7 @@ function renderCropTable() {
     }
 
     tableBody.appendChild(tr);
+  
   });
 
   // Hide Add Crop form by default
