@@ -46,13 +46,20 @@ async function loadNote(token, orderId) {
 }
 
 function renderNote(order) {
-  // Example: put into HTML
-  document.getElementById("order-id").textContent = order.orderId;
-  document.getElementById("order-status").textContent = order.status;
-  document.getElementById("order-total").textContent = `${order.totalPrice}₪`;
-
-  // You can also loop through items
+  const orderIdEl = document.getElementById("order-id");
+  const statusEl = document.getElementById("order-status");
+  const totalEl = document.getElementById("order-total");
   const itemsDiv = document.getElementById("order-items");
+
+  if (!orderIdEl || !statusEl || !totalEl || !itemsDiv) {
+    console.error("Some HTML elements are missing!");
+    return;
+  }
+
+  orderIdEl.textContent = order.orderId;
+  statusEl.textContent = order.status;
+  totalEl.textContent = `${order.totalPrice}₪`;
+
   order.items.forEach(item => {
     const p = document.createElement("p");
     p.textContent = `${item.name} - ${item.quantity} ${item.unit}`;
@@ -61,7 +68,7 @@ function renderNote(order) {
 }
 
 
-
+/*
 
 const deliveryData = [
   {
@@ -158,3 +165,4 @@ function openPopup(title, product) {
 }
 
 renderDeliveryNote(deliveryData);
+*/
