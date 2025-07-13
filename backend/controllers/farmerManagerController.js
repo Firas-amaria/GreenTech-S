@@ -1,93 +1,150 @@
 const { admin, db } = require("../firebaseConfig");
+const { DateTime } = require("luxon");
+const { getUpcomingShiftsList } = require("../utils/shiftHelper");
+
+// orders summary for shift -orders+ summarry by items, by farmer
+async function getOrdersSummaryForShift(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token." });
+
+    await admin.auth().verifyIdToken(token);
+
+    const { shift, date } = req.query;
+    if (!shift || !date) return res.status(400).json({ error: "Missing shift or date." });
+
+    const prefix = `LC-1_ORD_${date}_${shift}`;
+    console.log(`Fetching orders+summary for docId prefix: ${prefix}`);
+
+    const ordersSnap = await db.collection("orders")
+      .where(FieldPath.documentId(), ">=", prefix)
+      .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+      .get();
+
+    const orders = [];
+    const summaryMap = {};
+
+    ordersSnap.forEach(doc => {
+      const data = doc.data();
+      const docParts = doc.id.split("_");
+      const randomNumber = docParts[docParts.length - 1];
+
+      orders.push({
+        orderNumber: randomNumber,
+        ...data
+      });
+
+      (data.items || []).forEach(item => {
+        if (!summaryMap[item.itemName]) {
+          summaryMap[item.itemName] = { totalKg: 0, sources: {} };
+        }
+        summaryMap[item.itemName].totalKg += item.quantity;
+
+        const farmerId = item.sourceFarmerId || "UNKNOWN_ID";
+        const farmName = item.sourceFarmName || "UNKNOWN FARM";
+        const farmerKey = `${farmerId}|${farmName}`;
+
+        if (!summaryMap[item.itemName].sources[farmerKey]) {
+          summaryMap[item.itemName].sources[farmerKey] = 0;
+        }
+        summaryMap[item.itemName].sources[farmerKey] += item.quantity;
+      });
+    });
+
+    return res.json({ orders, summary: summaryMap });
+
+  } catch (error) {
+    console.error("Error loading orders+summary for shift:", error.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
 
 const getDashboardStatus = async (req, res) => {
   try {
     const logisticCenterId = "LC-1";
+    const upcomingShifts = await getUpcomingShiftsList(db, 8);
 
-    const shiftsSnap = await db.collection("shifts").get();
-    const allShifts = shiftsSnap.docs.map((doc) => doc.id); // e.g., ["morning", "afternoon", "night"]
+    const allShipReqsSnap = await db.collection("shipmentRequests").get();
+    const allShipReqsIds = allShipReqsSnap.docs.map(doc => doc.id);
 
-    const createdShifts = [];
-    const notCreatedShifts = [];
+    const shipmentSummary = [];
+    const createStock = [];
 
-    const today = new Date();
+    for (const { date, shift } of upcomingShifts) {
+      const idPrefix = `${logisticCenterId}_SReq_${date}_${shift}`;
 
-    // Loop from past 1 days to 3 days ahead
-    for (let offset = -1; offset <= 3; offset++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + offset);
+      // count how many shipment requests start with this prefix
+      const matchingCount = allShipReqsIds.filter(id => id.startsWith(idPrefix)).length;
 
-      const dateStr = date.toISOString().split("T")[0];
-      const dateForId = dateStr.replace(/-/g, "_");
-
-      const dayName = date
-        .toLocaleDateString("en-US", { weekday: "long" })
-        .toLowerCase();
-
-      for (const shift of allShifts) {
-        const shiftId = `${dayName}-${shift}`;
-        const docId = `${logisticCenterId}_AS_${dateForId}_${shift}`;
-        // console.log("Checking stock for:", docId);
-
-        const stockSnap = await db
-          .collection("availableMarketStock")
-          .doc(docId)
-          .get();
-
-        const hasItems = stockSnap.exists && stockSnap.data().items?.length > 0;
-
-        if (hasItems) {
-          createdShifts.push({
-            shift: shiftId,
-            count: stockSnap.data().items.length,
-            date: dateStr,
-          });
-        } else if (offset === 1) {
-          // Only mark as missing if it's TOMORROW and not created
-          notCreatedShifts.push(shiftId);
-        }
+      if (matchingCount > 0) {
+        shipmentSummary.push({
+          date: DateTime.fromISO(date.replace(/_/g, "-")).toFormat("dd/MM/yyyy"),
+          shift,
+          count: matchingCount
+        });
+      } else {
+        createStock.push({
+          date: DateTime.fromISO(date.replace(/_/g, "-")).toFormat("dd/MM/yyyy"),
+          shift
+        });
       }
     }
 
-    return res.json({ createdShifts, notCreatedShifts });
+    return res.json({
+      shipmentSummary,
+      createStock
+    });
+
   } catch (err) {
-    console.error("Error fetching dashboard status:", err);
-    return res.status(500).json({ error: "Failed to load dashboard data" });
+    console.error("Error building shipment request summary:", err);
+    return res.status(500).json({ error: "Failed to load data" });
   }
 };
 
 // GET demand statistics for a given shift
 const getDemandStatistics = async (req, res) => {
   try {
-    const { shift } = req.params; // e.g., "sunday-morning"
-    //console.log("🔍 Received request for demand statistics with shift:", shift);
+    let { date, shift } = req.query; // e.g., date="2025/07/13" or "2025-07-13"
 
-    if (!shift) {
-      console.warn("⚠️ Missing shift parameter in request.");
-      return res.status(400).json({ error: "Missing shift param" });
+    if (!date || !shift) {
+      console.warn("⚠️ Missing date or shift parameter in request.");
+      return res.status(400).json({ error: "Missing date or shift param" });
     }
 
-    const docRef = db.collection("demandStatistics").doc(shift);
-    // console.log("📄 Firestore doc path:", docRef.path);
+    // ✅ Normalize date to ISO format
+    date = date.replace(/\//g, "-");
 
+    console.log("🔍 Demand stats API called with date:", date, "shift:", shift);
+
+    // Compute day of the week: e.g. "sunday"
+    const dayOfWeek = DateTime.fromISO(date).toFormat("cccc").toLowerCase();
+
+    // Create Firestore document ID: e.g. "sunday-morning"
+    const docId = `${dayOfWeek}-${shift}`;
+    console.log(`📄 Looking up demandStatistics/${docId}`);
+
+    // Fetch from Firestore
+    const docRef = db.collection("demandStatistics").doc(docId);
     const doc = await docRef.get();
 
     if (!doc.exists) {
-      console.warn(
-        `❌ No document found for shift '${shift}' in demandStatistics.`
-      );
+      console.warn(`❌ No document found for shift '${docId}' in demandStatistics.`);
       return res.status(404).json({ error: "No stats for this shift" });
     }
 
     const data = doc.data();
-    // console.log("📦 Document data:", data);
+    console.log("✅ Found demand statistics:", data);
 
     return res.json({ items: data.items || [] });
+
   } catch (err) {
     console.error("❗ Error getting demand statistics:", err);
     return res.status(500).json({ error: "Server error" });
   }
 };
+
 
 // GET all farmer inventory for a specific itemId
 // GET all farmer inventory entries for a specific itemId
@@ -127,14 +184,17 @@ const createStockItem = async (req, res) => {
 
   const token = authHeader.split(" ")[1];
 
-  const today = new Date();
-
   try {
     const {
       logisticCenterId,
-      shift, // e.g., "monday-morning"
-      items = [], // Array of stock items
+      date, // e.g. "2025_07_13"
+      shift, // e.g. "morning"
+      items = [],
     } = req.body;
+
+    if (!date || !date.match(/^\d{4}_\d{2}_\d{2}$/)) {
+      throw new Error("Invalid or missing date format. Expected yyyy_mm_dd.");
+    }
 
     const decodedToken = await admin.auth().verifyIdToken(token);
     const createdbyID = decodedToken.uid;
@@ -142,25 +202,21 @@ const createStockItem = async (req, res) => {
     const userDoc = await db.collection("users").doc(createdbyID).get();
     if (!userDoc.exists) {
       console.warn(`User profile not found for UID: ${createdbyID}`);
-      return null; // <- return null so we can filter it out
+      return res.status(400).json({ error: "User profile not found" });
     }
+
     const userData = userDoc.data();
-    const createdByName = userData.firstName + " " + userData.lastName;
+    const createdByName = `${userData.firstName} ${userData.lastName}`;
 
-    const [dayName, shiftType] = shift.toLowerCase().split("-");
-    const targetDate = getNextOrTodayWeekdayDate(dayName);
-    console.log(
-      `� Next or today date for ${dayName}: ${targetDate.toISOString()}`
-    );
+    console.log(`📅 Using provided date for IDs: ${date}`);
 
-    const dateStr = targetDate.toISOString().split("T")[0];
-    const dateForId = dateStr.replace(/-/g, "_");
-    console.log(`📅 Formatted date for ID: ${dateForId}`);
-
-    const stockDocId = `${logisticCenterId}_AS_${dateForId}_${shiftType}`;
+    const stockDocId = `${logisticCenterId}_AS_${date}_${shift}`;
     const stockDocRef = db.collection("availableMarketStock").doc(stockDocId);
     const stockDoc = await stockDocRef.get();
 
+    // Init stock data
+    const today = new Date();
+    const dateStr = date.replace(/_/g, "-");
     const stockData = stockDoc.exists
       ? stockDoc.data()
       : {
@@ -189,7 +245,7 @@ const createStockItem = async (req, res) => {
       const itemDoc = await db.collection("items").doc(itemId).get();
       if (!itemDoc.exists) {
         console.warn(`⚠️ Item not found in catalog: ${itemId}`);
-        continue; // Skip this item
+        continue;
       }
 
       const itemData = itemDoc.data();
@@ -197,39 +253,35 @@ const createStockItem = async (req, res) => {
       const finalPrice = parseFloat((basePrice * 1.2).toFixed(2));
       const itemImageUrl = itemData.imageUrl || 'https://via.placeholder.com/100?text=No+Image';
       const category = itemData.category || "Unknown Category";
-      const sourceFarmerDoc = await db
-        .collection("users")
-        .doc(sourceFarmerId)
-        .get();
+
+      const sourceFarmerDoc = await db.collection("users").doc(sourceFarmerId).get();
       if (!sourceFarmerDoc.exists) {
         console.warn(`User profile not found for UID: ${sourceFarmerId}`);
-        return null; // <- return null so we can filter it out
+        continue;
       }
       const sourceFarmerData = sourceFarmerDoc.data();
-      const sourceFarmerName =
-        sourceFarmerData.firstName + " " + sourceFarmerData.lastName;
-      const farmerDoc = await db
-        .collection("farmers")
-        .doc(sourceFarmerId)
-        .get();
+      const sourceFarmerName = `${sourceFarmerData.firstName} ${sourceFarmerData.lastName}`;
+
+      const farmerDoc = await db.collection("farmers").doc(sourceFarmerId).get();
       if (!farmerDoc.exists) {
-        console.warn(`User profile not found for UID: ${sourceFarmerId}`);
-        return null; // <- return null so we can filter it out
+        console.warn(`Farmer profile not found for UID: ${sourceFarmerId}`);
+        continue;
       }
       const farmerData = farmerDoc.data();
+
       const stockItemId = `${itemId}_${sourceFarmerId}`;
-      //shimReq unique ID
-      const sreqId = `${logisticCenterId}_SReq_${dateForId}_${shiftType}_${sourceFarmerId}_${itemId}`;
+      const sreqId = `${logisticCenterId}_SReq_${date}_${shift}_${sourceFarmerId}_${itemId}`;
+
       // Add stock item
       stockData.items.push({
         id: stockItemId,
         itemId,
         itemDisplayName,
         sourceFarmerId,
-        sourceFarmerName: sourceFarmerName,
+        sourceFarmerName,
         sourceFarmName: farmerData.farmName || "UNKNOWN FARM",
         pickupAddress,
-        itemImageUrl: itemImageUrl,
+        itemImageUrl,
         currentAvailableQuantityKg,
         originalCommittedQuantityKg,
         pricePerUnit: finalPrice,
@@ -238,10 +290,7 @@ const createStockItem = async (req, res) => {
         category,
       });
 
-      const shiftTimeData = db.collection("shifts").doc(shiftType);
-
       // 🔥 Create shipmentRequest
-
       const shipmentRequest = {
         logisticCenterId,
         farmerManagerId: createdbyID,
@@ -257,7 +306,6 @@ const createStockItem = async (req, res) => {
         itemDisplayName,
         forecastedQuantityKg: originalCommittedQuantityKg,
         finalConfirmedQuantityKg: null,
-        //Future Purposes: container can handle 20KG Created avg rate per unit in gr and get it from item  data
         expectedContainerCount: Math.ceil(originalCommittedQuantityKg / 20),
         exactAmountConfirmedAt: null,
         farmerLastNotifiedAt: null,
@@ -267,24 +315,18 @@ const createStockItem = async (req, res) => {
         correspondingShipmentId: null,
       };
 
-      const farmerInventoryId = `${sourceFarmerId}_${itemId}`;
-      const inventoryRef = db
-        .collection("farmerInventory")
-        .doc(farmerInventoryId);
-      await inventoryRef.update({
-        maxOrder: admin.firestore.FieldValue.increment(
-          -originalCommittedQuantityKg
-        ),
-        currentAvailableForProcurementKg: admin.firestore.FieldValue.increment(
-          -originalCommittedQuantityKg
-        ),
-      });
+      await db.collection("farmerInventory")
+        .doc(`${sourceFarmerId}_${itemId}`)
+        .update({
+          maxOrder: admin.firestore.FieldValue.increment(-originalCommittedQuantityKg),
+          currentAvailableForProcurementKg: admin.firestore.FieldValue.increment(-originalCommittedQuantityKg),
+        });
 
       await db.collection("shipmentRequests").doc(sreqId).set(shipmentRequest);
       createdShipmentIds.push(sreqId);
     }
 
-    // Save stock data
+    // Save final stock data
     stockData.lastUpdatedAt = today.toISOString();
     stockData.createdbyID = createdbyID;
     stockData.createdByName = createdByName;
@@ -296,15 +338,15 @@ const createStockItem = async (req, res) => {
       stockId: stockDocId,
       shipmentRequestIds: createdShipmentIds,
     });
+
   } catch (err) {
     console.error("❌ Error creating stock items:", err);
     res.status(500).json({
       error: err.message || "failed to create stock items",
     });
   }
-
-  //Update maxOrder in farmer inventory
 };
+
 
 // 🔁 Helper function to get the next date for a given weekday
 function getNextOrTodayWeekdayDate(dayName) {
@@ -334,73 +376,60 @@ function getNextOrTodayWeekdayDate(dayName) {
   return result;
 }
 
-// GET /api/farmerManager/shipmentRequests/:shift
+// GET /api/farmerManager/shipmentRequests?date=2025_07_13&shift=morning
 const getShipmentRequestsForShift = async (req, res) => {
   try {
-    const { shift } = req.params; // e.g. "sunday-afternoon"
-    const [dayName, shiftType] = shift.split("-");
+    const { date, shift } = req.query;
 
-    if (!dayName || !shiftType) {
-      return res
-        .status(400)
-        .json({ error: "Invalid shift format. Use 'sunday-morning'" });
+    if (!date || !shift) {
+      return res.status(400).json({ error: "Missing date or shift parameter." });
     }
 
-    // 🔁 Calculate target date
-    const targetDate = getNextOrTodayWeekdayDate(dayName.toLowerCase());
-    const yyyy = targetDate.getFullYear();
-    const mm = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(targetDate.getDate()).padStart(2, "0");
-    const formattedDate = `${yyyy}_${mm}_${dd}`;
+    if (!date.match(/^\d{4}_\d{2}_\d{2}$/)) {
+      return res.status(400).json({ error: "Invalid date format. Use yyyy_mm_dd." });
+    }
 
-    // 🔥 Load matching availableMarketStock
-    const stockDocId = `LC-1_AS_${formattedDate}_${shiftType}`;
+    console.log(`📦 Loading shipment requests for date=${date} shift=${shift}`);
+
+    // 🔥 Build stock document ID
+    const stockDocId = `LC-1_AS_${date}_${shift}`;
     console.log(`Looking up stock document: ${stockDocId}`);
 
-    const stockDoc = await db
-      .collection("availableMarketStock")
-      .doc(stockDocId)
-      .get();
+    const stockDoc = await db.collection("availableMarketStock").doc(stockDocId).get();
     const stockItems = stockDoc.exists && stockDoc.data().items
       ? stockDoc.data().items
       : [];
 
-    console.log("Loaded stock items:", stockItems);
-
-    // 🔍 Query all shipmentRequests with status != finalized
+    // 🔍 Load all shipmentRequests with status != finalized
     const snapshot = await db
       .collection("shipmentRequests")
       .where("status", "!=", "finalized")
       .get();
 
-    console.log("Found shipment requests:", snapshot.size);
+    console.log(`Loaded ${snapshot.size} shipment requests.`);
 
-    // 🔍 Filter by ID structure and enrich
+    // 🔍 Filter by ID parts
+    const [yyyy, mm, dd] = date.split("_");
+
     const filtered = snapshot.docs
-      .filter((doc) => {
+      .filter(doc => {
         const parts = doc.id.split("_");
         return (
           parts[0] === "LC-1" &&
           parts[1] === "SReq" &&
-          parts[2] === yyyy.toString() &&
+          parts[2] === yyyy &&
           parts[3] === mm &&
           parts[4] === dd &&
-          parts[5] === shiftType
+          parts[5] === shift
         );
       })
-      .map((doc) => {
+      .map(doc => {
         const data = doc.data();
-        console.log("Processing shipment request:", doc.id, data);
+        console.log(`Found shipmentRequest ${doc.id}`);
 
-        const matchingItem = stockItems.find(
-          (item) =>
-            item.itemId=== data.itemId &&
-            item.sourceFarmerId === data.farmerId
+        const matchingItem = stockItems.find(item =>
+          item.itemId === data.itemId && item.sourceFarmerId === data.farmerId
         );
-
-        if (!matchingItem) {
-          console.log(`No stock match for itemId=${data.itemId}, farmerId=${data.farmerId}`);
-        }
 
         const committedOrders = matchingItem
           ? matchingItem.originalCommittedQuantityKg - matchingItem.currentAvailableQuantityKg
@@ -413,14 +442,15 @@ const getShipmentRequestsForShift = async (req, res) => {
         };
       });
 
-    console.log("Prepared shipment requests:", filtered);
+    console.log(`Prepared ${filtered.length} shipment requests.`);
 
     res.status(200).json(filtered);
-  } catch (error) {
-    console.error("Error in getShipmentRequestsForShift:", error);
+  } catch (err) {
+    console.error("Error in getShipmentRequestsForShift:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // POST /api/farmerManager/finalizeShipmentRequest
 const shipmentRequestQuantitiesConfirmed = async (req, res) => {
@@ -735,5 +765,6 @@ module.exports = {
    getAllItems,
   addNewItem,
   updateItem,
-  deleteItem
+  deleteItem,
+  getOrdersSummaryForShift,
 };
