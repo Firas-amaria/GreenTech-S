@@ -225,7 +225,7 @@ async function getOrdersWithSummaryForShift(req, res) {
 const roleCollectionMap = {
   farmer: "farmers",
   deliverer: "deliverers",
-  "industrial-driver": "industrialDrivers",
+  industrialDriver: "industrialDrivers",
   sorting: "sorters",
   picker: "pickers",
   "warehouse-worker": "warehouseWorkers",

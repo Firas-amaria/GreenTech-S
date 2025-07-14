@@ -1,32 +1,24 @@
 const { admin, db } = require("../firebaseConfig");
 const { emailDocuments } = require("../info/contactInfo");
 
-
-
-
-
-
-
 // At top of your authController.js (or wherever getProfile lives):
 const roleCollectionMap = {
   customer: "users",
   farmer: "farmers",
   deliverer: "deliverers",
-  "industrial-driver": "industrialDrivers",
+  industrialDriver: "industrialDrivers",
   sorting: "sorters",
   picker: "pickers",
-  "warehouse-worker": "warehouseWorkers"
+  "warehouse-worker": "warehouseWorkers",
 };
 
 // GET /profile
 const getProfile = async (req, res) => {
   const uid = req.user.uid;
-  const role = req.user.role;               // assume authMiddleware sets req.user.role
+  const role = req.user.role; // assume authMiddleware sets req.user.role
 
   // choose collection: role-specific if known, otherwise fallback to 'users'
   const collection = roleCollectionMap[role] || "users";
-
-  
 
   try {
     const doc = await db.collection(collection).doc(uid).get();
@@ -51,11 +43,9 @@ const getProfile = async (req, res) => {
 
 // Helper to remove unwanted fields from a document (e.g., createdAt, uid)
 const filterFields = (data) => {
-  const { createdAt, uid,approvedAt, ...rest } = data; // ???? -createdAt
+  const { createdAt, uid, approvedAt, ...rest } = data; // ???? -createdAt
   return rest;
 };
-
-
 
 const getEmailDocumnets = async (req, res) => {
   try {
@@ -64,8 +54,6 @@ const getEmailDocumnets = async (req, res) => {
     return res.status(500).send({ error: error.message });
   }
 };
-
-
 
 // Get employment application from 'employmentApplications/{uid}' for user itself
 // Returns only status
@@ -88,10 +76,10 @@ const getApplication = async (req, res) => {
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
-}
+};
 
 module.exports = {
   getProfile,
   getEmailDocumnets,
-  getApplication
+  getApplication,
 };

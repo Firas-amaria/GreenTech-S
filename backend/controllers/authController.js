@@ -6,7 +6,7 @@ const roleCollectionMap = {
   customer: "customers",
   farmer: "farmers",
   deliverer: "deliverers",
-  "industrial-driver": "industrialDrivers",
+  industrialDriver: "industrialDrivers",
   sorting: "sorters",
   picker: "pickers",
   "warehouse-worker": "warehouseWorkers",
@@ -115,7 +115,7 @@ const validateExtraFields = (position, fields) => {
         scheduleValid
       );
 
-    case "industrial-driver":
+    case "industrialDriver":
       return (
         isString(fields.licenseType) &&
         isString(fields.vehicleMake) &&
