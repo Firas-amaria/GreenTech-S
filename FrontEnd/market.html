@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market</title>
+  <link rel="stylesheet" href="css/market.css" />
+  <link rel="stylesheet" href="css/maps.css" />
+</head>
+<body>
+  <script src="js/marketNavBar.js" type="module"></script>
+<main>
+
+  <!-- DELIVERY ADDRESS BOX -->
+  <section class="section delivery-address-section">
+    <h3>Select Delivery Address&shift</h3>
+    <div class="delivery-select">
+      <select id="address-select" onchange="handleAddressChange()">
+        <option value="">-- Choose saved address --</option>
+      </select>
+      <button id="add-new-address-btn">Add New Address</button>
+   
+   
+      <select id="shift-select" onchange="handleShiftSelect()"></select>
+      <button onclick="handleChangeDelivery()">Change</button>
+     </div>
+  </section>
+
+ 
+
+  <!-- MARKET ITEMS BOX -->
+  <section class="section market-section">
+    <!-- STICKY SEARCH + CATEGORIES -->
+<div class="sticky-controls">
+  <div id="search-section">
+    <input type="text" id="search-input" placeholder="e.g., Lettuce" />
+    <button id="search-button" onclick="handleSearch()">Search</button>
+  </div>
+
+  <div id="category-selection">
+    <nav class="category-navbar">
+      <button onclick="filterCategory('All')" id="cat-All" class="active">All</button>
+      <button onclick="filterCategory('Fruits')" id="cat-Fruits">Fruits</button>
+      <button onclick="filterCategory('Vegetables')" id="cat-Vegetables">Vegetables</button>
+    </nav>
+  </div>
+</div>
+
+
+    <div id="market-container" class="market-container"></div>
+  </section>
+
+</main>
+
+
+
+  <!-- === FOOTER === -->
+  <footer class="footer">
+    <a href="jobs.html">Job Opportunities</a>
+  </footer>
+
+<div id="map-modal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.95); z-index:9999; flex-direction: column; align-items: center; justify-content: center;">
+  <input id="map-search" type="text" placeholder="Search location..." style="width:300px; margin:10px;">
+  <div id="map" style="width:90%; height:80%; border: 2px solid #ccc;"></div>
+  <div style="margin-top:10px;">
+    <button id="confirm-location">Use This Location</button>
+    <button id="cancel-location">Cancel</button>
+  </div>
+</div>
+
+
+  <!-- === JS === -->
+  <script type="module" src="js/market.js"></script>
+  
+
+</body>
+</html>

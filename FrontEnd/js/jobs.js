@@ -36,8 +36,8 @@ const mockRoles = [
     ],
   },
   {
-    name: "Industrial-driver",
-    description: "Oversees operations and staff.",
+    name: "industrial-driver",
+    description: "delivering goods from farms to logistic center",
     fields: [
       { label: "Full Name", type: "text" },
       { label: "Email", type: "email" },
@@ -64,6 +64,24 @@ const mockRoles = [
       { label: "Bank Statement", type: "file" },
     ],
   },
+  {
+    name: "sorting",
+    description: "general worker in the logistics center , sorting employee.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
+  },
+  {
+    name: "warehouse-worker",
+    description: "Operates heavy-duty vehicles and equipment.",
+    fields: [
+      { label: "Full Name", type: "text" },
+      { label: "Email", type: "email" },
+      { label: "Phone", type: "tel" },
+    ],
+  },
 ];
 // jobs.js
 
@@ -77,19 +95,18 @@ console.log("jobs.js loaded"); // <-- add this line temporarily
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    console.log("User is logged in:", user);
+    console.log("User is logged in:", user.email);
     // You can store user details in localStorage/sessionStorage if needed
   } else {
     console.log("No user logged in, redirecting...");
+    alert("You must be logged in to view this page.");
     window.location.href = "login.html"; // Redirect to login page
   }
 });
 
-document.getElementById("logout-link").addEventListener("click", () => {
-  signOut(auth);
-  alert("loged out");
-});
 
+
+ 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("DOM fully loaded"); // <-- another check
 

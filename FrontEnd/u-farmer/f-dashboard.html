@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard | Farmer App</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/farmer-dashboard.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+
+</head>
+
+<body>
+  <!-- ===== Sidebar ===== -->
+  <nav class="sidebar"></nav>
+
+  <!-- ===== Main Content ===== -->
+  <div class="main">
+
+    <h1>Dashboard Overview</h1>
+
+    <!-- ===== Approved Shipments ===== -->
+    <div class="section">
+      <h2>Approved Shipments (Next Pickup First)</h2>
+      <table id="tblApprovedDash">
+        <thead>
+          <tr>
+            <th>Item Name</th>
+            <th>Amount</th>
+            <th>Pickup Time</th>
+            <th>Location</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='f-shipments.html'">View All Shipments</button>
+    </div>
+
+    <!-- ===== Shipment Requests ===== -->
+    <div class="section">
+      <h2>Pending Shipment Requests</h2>
+      <table id="tblRequestsDash">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Amount (kg)</th>
+            <th>Pickup Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='f-shipments.html'">View All Shipments</button>
+    </div>
+
+    <!-- ===== Crops Status Summary ===== -->
+    <div class="section">
+      <h2>My Crops Status</h2>
+      <table id="tblCropsDash">
+        <thead>
+          <tr>
+            <th>Land</th>
+            <th>Crop Item</th>
+            <th>Planted Amount (kg)</th>
+            <th>Planted On</th>
+            <th>Status</th>
+            <th>Last Updated On</th>
+
+            <th>Percentage</th>
+            <th>Image</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn-primary" onclick="location.href='f-crops.html'">Manage Crops</button>
+    </div>
+  </div>
+
+  <script type="module" src="../js/w_sidebar_menu.js"></script>
+  <script type="module" src="../js/farmer-dashboard.js"></script>
+
+
+</body>
+
+</html>

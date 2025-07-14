@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Route on Button Click</title>
+
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  background: #f8f9fa;
+  padding: 20px;
+}
+
+button {
+  padding: 10px 15px;
+  background: #007bff;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+/* Modal styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  width: 90%;
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+#route-map {
+  flex: 1;
+}
+
+  </style>
+</head>
+<body>
+  <button id="show-route-btn">Show Route</button>
+
+  <div id="route-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div id="route-map"></div>
+      <div id="route-info" style="margin-top:10px; font-size:16px;"></div>
+      <button onclick="closeRouteMap()">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/mapsRoute.js"></script>
+</body>
+</html>

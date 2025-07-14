@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Farmer Manager - Manage Items</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="../css/farmerManager.css" />
+</head>
+<body>
+  <header>
+    <nav id="main-nav"></nav>
+  </header>
+
+  <main class="container">
+    <h1>Manage Items</h1>
+    <div class="controls">
+      <button onclick="showAddForm()">+ Add New Item</button>
+      <input type="text" id="searchInput" placeholder="Search items..." oninput="filterItems()">
+    </div>
+    <div id="itemsList"></div>
+  </main>
+
+  <div id="itemFormModal" class="modal hidden">
+    <div class="modal-content"></div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="../js/fm-manageItems.js"></script>
+  <script type="module" src="../js/m_nav_menu.js"></script>
+</body>
+</html>

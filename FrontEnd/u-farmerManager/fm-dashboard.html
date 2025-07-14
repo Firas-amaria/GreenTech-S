@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Farmer Manager Dashboard</title>
+  <link rel="stylesheet" href="../css/farmerManager.css">
+  <link rel="stylesheet" href="../css/styles.css" />
+
+</head>
+
+<body>
+  <header>
+    <nav id="main-nav"></nav>
+
+  </header>
+
+  <h1>Farmer Manager Dashboard</h1>
+
+  <div class="dashboard-grid">
+    <div class="section">
+      <h2>Upcoming Shifts</h2>
+      <div id="next-shifts"></div>
+    </div>
+
+    <div class="section">
+      <h2>Shipment Requests</h2>
+      <div id="shipment-req-list"></div>
+    </div>
+
+    <div class="section">
+  <h2>Upcoming Orders by Shift</h2>
+  <div id="orders-summary-cards" class="stats-cards">
+    <p>Loading orders summary...</p>
+  </div>
+</div>
+
+    <div class="section">
+      <h2>Quick Actions</h2>
+      <ul>
+        <li><a href="fm-jobApplications.html">Review Job Applicants</a></li>
+        <li><a href="fm-activeShipments.html">Active Shipments</a></li>
+        <li><a href="fm-farmersList.html">Farmers List</a></li>
+        <li><a href="market.html">View Market as Customer</a></li>
+        <li><a href="logout.html">Log out</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module" src="../js/farmerManager.js"></script>
+  <script type="module" src="../js/m_nav_menu.js"></script>
+
+</body>
+
+</html>

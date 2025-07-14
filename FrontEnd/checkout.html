@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Checkout Summary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/checkout.css" />
+</head>
+<body>
+  <h1>Checkout Summary</h1>
+
+  <div id="checkout-container">
+
+    
+  </div>
+  <div class="total" id="checkout-total"></div>
+  <div class="address" id="checkout-address"></div>
+
+  <div class="visa-payment">
+    <h3>Visa Payment Details</h3>
+    <label for="card-name">Cardholder Name:</label>
+    <input type="text" id="card-name" placeholder="Full Name on Card" />
+
+    <label for="visa-card">Card Number:</label>
+    <input type="text" id="visa-card" placeholder="1234 5678 9012 3456" />
+
+    <label for="exp-date">Expiration Date (MM/YY):</label>
+    <input type="text" id="exp-date" placeholder="MM/YY" />
+
+    <label for="cvv">CVV:</label>
+    <input type="text" id="cvv" placeholder="123" />
+  </div>
+
+  <div class="buttons">
+    <button onclick="goBack()">Back to Cart</button>
+    <button onclick="submitOrder()">Submit Order</button>
+  </div>
+
+  <script type="module" src="js/checkout.js"></script>
+</body>
+</html>

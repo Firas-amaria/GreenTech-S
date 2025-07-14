@@ -2,17 +2,25 @@
 // Handles rendering a weekly availability schedule and extracting the selected values
 
 // Days of the week for the schedule
-const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+export const days = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 // Simulate fetching shift definitions from a database or API
-async function fetchShifts() {
+export async function fetchShifts() {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([
-        { name: "Morning",    start: "06:00", end: "12:00" },
-        { name: "Afternoon",  start: "12:00", end: "18:00" },
-        { name: "Evening",    start: "18:00", end: "00:00" },
-        { name: "Late Night", start: "00:00", end: "06:00" },
+        { name: "Morning", start: "07:00", end: "09:00" },
+        { name: "Afternoon", start: "12:00", end: "13:00" },
+        { name: "Evening", start: "18:00", end: "19:00" },
+        { name: "Night", start: "21:00", end: "23:00" },
       ]);
     }, 50);
   });
@@ -23,34 +31,42 @@ function formatTime(timeStr) {
   const [h, m] = timeStr.split(":").map((x) => parseInt(x, 10));
   const suffix = h >= 12 && h < 24 ? "PM" : "AM";
   const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12} ${suffix}`;
+  return `${hour12}:${m.toString().padStart(2, "0")} ${suffix}`;
 }
 
 /**
- * Initialize the schedule table inside the given container.
- * Expects the container to have a <tbody> where rows will be injected.
+ * Initialize the schedule table inside the given container (form or section).
+ * Expects the container to have a <table> with <tbody> where rows will be injected.
  */
 export async function initSchedule(container) {
   const shifts = await fetchShifts();
-  const tbody = container.querySelector('tbody');
-  tbody.innerHTML = '';
+  // The <tbody> of #scheduleTable or within the form
+  const tbody = container.querySelector("tbody");
+  tbody.innerHTML = "";
 
   shifts.forEach((shift) => {
-    const row = document.createElement('tr');
+    const row = document.createElement("tr");
 
-    // Shift label cell
-    const labelCell = document.createElement('td');
-    labelCell.innerHTML = `${shift.name} <br>(${formatTime(shift.start)} - ${formatTime(shift.end)})`;
+    // Shift label cell with name and times
+    const labelCell = document.createElement("td");
+    labelCell.innerHTML = `
+      <strong>${shift.name}</strong><br>
+      <small>(${formatTime(shift.start)} - ${formatTime(shift.end)})</small>
+    `;
     row.appendChild(labelCell);
 
     // One checkbox cell per day
     days.forEach((day) => {
-      const cell = document.createElement('td');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
+      const cell = document.createElement("td");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
       checkbox.name = day;
       checkbox.value = shift.name;
-      cell.appendChild(checkbox);
+      checkbox.id = `chk-${day}-${shift.name}`;
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.appendChild(checkbox);
+      cell.appendChild(label);
       row.appendChild(cell);
     });
 
@@ -76,4 +92,79 @@ export function getScheduleData(container) {
     }
   });
   return schedule;
+}
+
+export async function getScheduleBitmaskArray(container) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Reverse index: Morning is 3
+    return acc;
+  }, {});
+
+  const result = [];
+
+  days.forEach((day) => {
+    let bitmask = 0;
+    const checkboxes = container.querySelectorAll(
+      `input[name="${day}"]:checked`
+    );
+    checkboxes.forEach((cb) => {
+      const shiftBit = shiftIndices[cb.value];
+      bitmask |= 1 << shiftBit;
+    });
+    result.push(bitmask);
+  });
+
+  return result;
+}
+
+export async function applyScheduleBitmaskArray(container, bitmaskArray) {
+  const shifts = await fetchShifts();
+  const shiftIndices = shifts.reduce((acc, shift, index) => {
+    acc[shift.name] = shifts.length - 1 - index; // Morning is bit 3
+    return acc;
+  }, {});
+
+  days.forEach((day, dayIndex) => {
+    const dayMask = bitmaskArray[dayIndex];
+    Object.entries(shiftIndices).forEach(([shiftName, bit]) => {
+      const checkbox = container.querySelector(
+        `input[name="${day}"][value="${shiftName}"]`
+      );
+      if (checkbox) {
+        checkbox.checked = (dayMask & (1 << bit)) !== 0;
+      }
+    });
+  });
+}
+
+export async function renderScheduleTable(bitmaskArray) {
+  if (!Array.isArray(bitmaskArray)) return "<em>Invalid schedule</em>";
+
+  const shifts = await fetchShifts(); // Morning → Night
+  const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const shiftOrder = shifts.map((s) => s.name); // ["Morning", ...]
+
+  let html = `<table class="schedule-table"><thead><tr><th>Shift/Day</th>`;
+  daysShort.forEach((day) => (html += `<th>${day}</th>`));
+  html += `</tr></thead><tbody>`;
+
+  for (let shiftIndex = 0; shiftIndex < 4; shiftIndex++) {
+    const shift = shiftOrder[shiftIndex];
+    const shiftTimes = shifts.find((s) => s.name === shift);
+    html += `<tr><td><strong>${shift}</strong><br><small>(${formatTime(
+      shiftTimes.start
+    )} - ${formatTime(shiftTimes.end)})</small></td>`;
+
+    for (let day = 0; day < 7; day++) {
+      const bitmask = bitmaskArray[day] || 0;
+      const active = (bitmask & (1 << (3 - shiftIndex))) !== 0;
+      html += `<td>${active ? "✅" : ""}</td>`;
+    }
+
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table>`;
+  return html;
 }
