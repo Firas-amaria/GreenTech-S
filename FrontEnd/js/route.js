@@ -8,7 +8,8 @@ export function initRouteMap() {
 
   routeMap = new google.maps.Map(document.getElementById("route-map"), {
     zoom: 7,
-    center: { lat: 32.0853, lng: 34.7818 },
+    center: { lat: 32.7335, lng: 35.2188 },
+  
   });
 
   directionsRenderer.setMap(routeMap);
