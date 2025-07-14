@@ -430,11 +430,48 @@ const deleteUser = async (req, res) => {
     // Delete from Firebase Auth
     await admin.auth().deleteUser(uid);
 
-    // Delete from Firestore
-    await db.collection("users").doc(uid).delete();
+    // Fetch user role
+    const userRef = await db.collection("users").doc(uid).get();
+    if (!userRef.exists) {
+      return res.status(404).send({ error: "User not found." });
+    }
+
+    const role = userRef.data().role;
+
+    // Delete from employmentApplications (if exists)
     await db.collection("employmentApplications").doc(uid).delete();
 
-    res.send({ message: `User ${uid} deleted.` });
+    // If not a customer, delete from role-specific collection
+    if (role !== "customer") {
+      const targetCol = roleCollectionMap[role];
+      if (!targetCol) {
+        return res.status(400).send({ error: `Unknown role: ${role}` });
+      }
+
+      await db.collection(targetCol).doc(uid).delete();
+    }
+
+    // If role is farmer, delete all inventory documents belonging to them
+    if (role === "farmer") {
+      const inventorySnapshot = await db
+        .collection("farmerInventory")
+        .where("farmerId", "==", uid)
+        .get();
+
+      const batch = db.batch();
+      inventorySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      if (!inventorySnapshot.empty) {
+        await batch.commit();
+      }
+    }
+
+    // Delete user document
+    await db.collection("users").doc(uid).delete();
+
+    res.send({ message: `User ${uid} and associated data deleted.` });
   } catch (error) {
     res.status(500).send({ error: error.message });
   }

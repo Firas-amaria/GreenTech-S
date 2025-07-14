@@ -266,6 +266,9 @@ async function getShipmentRequests(req, res) {
     const decodedToken = await admin.auth().verifyIdToken(token);
     const farmerUid = decodedToken.uid;
 
+    console.log(
+      `[getShipmentRequests] Fetching requests for farmer: ${farmerUid}`
+    );
     // Step 1: Fetch all shift data
     const shiftsSnapshot = await db.collection("shifts").get();
     const shifts = {};
@@ -305,7 +308,7 @@ async function getShipmentRequests(req, res) {
     // If current time is after all shift starts, move to tomorrow's first shift
     if (!nextShift) {
       nextShift = shiftEntries[0].name;
-      referenceDate = today.plus({ days: 1 });
+      referenceDate = today;
     }
 
     // Step 3: Fetch all shipment requests for the farmer
@@ -321,14 +324,15 @@ async function getShipmentRequests(req, res) {
         const status = data.status;
         if (status !== "forecasted" && status !== "finalized") return false;
 
+        console.log(`[getShipmentRequests] Request status: ${status}`);
+        // Check if the scheduled pickup date
         const pickupDate = DateTime.fromISO(data.scheduledPickupDate).startOf(
           "day"
         );
-        const slot = data.scheduledPickupTimeSlot || "";
-        const shiftName = slot.split("-").pop(); // e.g., "afternoon" from "wednesday-afternoon"
+        const shiftName = data.scheduledPickupTimeSlot; // e.g., "afternoon" from "wednesday-afternoon"
 
         return (
-          pickupDate > referenceDate ||
+          pickupDate >= referenceDate ||
           (pickupDate.equals(referenceDate) && shiftName === nextShift)
         );
       })
