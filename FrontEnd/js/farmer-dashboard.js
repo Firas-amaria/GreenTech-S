@@ -325,6 +325,10 @@ async function approveDash(requestId) {
     // Restore button
     button.textContent = originalText;
     button.disabled = false;
+    await loadDashboardData();
+
+    populateApprovedTable();
+    populateRequestsTable();
   } catch (error) {
     console.error("Failed to approve request:", error);
     showToast("Failed to approve request. Please try again.", "error");
