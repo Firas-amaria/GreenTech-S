@@ -145,12 +145,25 @@ infoDiv.innerHTML = `<p><strong>Order #:</strong> ${data.orderId}</p>
   document.getElementById("total-price").textContent = totalPrice;
 
   const noteUrl = "https://yourdomain.com/delivery-note/000294";
-  const mainQR = document.createElement("img");
 
-  mainQR.className = "qr-code";
-  mainQR.src = "https://api.qrserver.com/v1/create-qr-code/?data=" + encodeURIComponent(noteUrl) + "&size=120x120";
-  mainQR.title = "Scan to view this delivery note";
-  document.getElementById("main-qr").appendChild(mainQR);
+// Create the QR code image element
+const mainQR = document.createElement("img");
+mainQR.className = "qr-code";
+mainQR.src = "https://api.qrserver.com/v1/create-qr-code/?data=" + encodeURIComponent(noteUrl) + "&size=120x120";
+mainQR.title = "Scan to view this delivery note";
+mainQR.style.cursor = "pointer";
+
+// Get the container div and append the QR code
+const divMainQr = document.getElementById("main-qr");
+divMainQr.appendChild(mainQR);
+
+// Add click effect: background turns green temporarily
+mainQR.onclick = () => {
+  divMainQr.style.backgroundColor = "#d4edda"; // Light green background
+
+};
+
+
 }
 
 function openPopup(title, product) {
