@@ -1,6 +1,7 @@
-import { getCurrentUserToken } from "../js/firebase-init.js";
 
-// Utility: get URL param
+import { getCurrentUserToken } from "./firebase-init.js";
+
+// 🔹 Utility to get query param
 function getQueryParam(param) {
   const params = new URLSearchParams(window.location.search);
   return params.get(param);
@@ -8,17 +9,23 @@ function getQueryParam(param) {
 
 const shipmentId = getQueryParam("shipmentId");
 
-// 🔘 Popup controls (same as before)
-window.showContainers = function(item, quality, index) {
+if (!shipmentId) {
+  alert("❌ Missing shipmentId in URL.");
+  throw new Error("Missing shipmentId");
+}
+
+// 🔘 Popup controls
+window.showContainers = function (index) {
   document.getElementById(`popup-${index}`).style.display = "block";
 };
-window.closePopup = function(index) {
+window.closePopup = function (index) {
   document.getElementById(`popup-${index}`).style.display = "none";
 };
 
+// 🔄 Load data
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    console.log("🚀 Loading shipment details...");
+    console.log("🔍 Loading shipment for ID:", shipmentId);
     const token = await getCurrentUserToken();
 
     const res = await fetch(
@@ -28,131 +35,76 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     );
 
-    if (!res.ok) throw new Error("Failed to fetch shipment report");
+    if (!res.ok) throw new Error(`❌ Failed to fetch: ${res.status}`);
 
     const shipment = await res.json();
     console.log("✅ Shipment loaded:", shipment);
 
-    renderProducts(shipment);
-  } catch (error) {
-    console.error("Error loading shipment view:", error);
+    renderShipmentHeader(shipment);
+  } catch (err) {
+    console.error("❌ Error loading shipment:", err);
     alert("Error loading shipment report. Try again.");
   }
 });
-// Example shipment data you provided
-const shipment = {
-  logisticCenterId: "LC-1",
-  farmerManagerId: "J2sKTGHje2R2XsXeS9Qmrnwq3vE3",
-  farmerManagerName: "fmanager test",
-  farmerId: "WBNUqNcVqpXelBIGhjboNFWk3z62",
-  farmerName: "farmer FF",
-  finalConfirmedQuantityKg: 30,
-  itemDisplayName: "Banana Cavendish",
-  itemId: "FRT-002",
-  pickupAddress: "13",
-  scheduledPickupDate: "2025-07-10T00:00:00Z",
-  scheduledPickupTimeSlot: "thursday-afternoon",
-  overallStatus: "ready-for-pickup",
-  shipmentRequestId: "LC-1_SReq_2025_07_10_afternoon_WBNUqNcVqpXelBIGhjboNFWk3z62_FRT-002"
-};
 
-function renderShipmentNote() {
-  // Fill shipment / farmer info
+function renderShipmentHeader(shipment) {
   document.querySelector(".farmer-info").innerHTML = `
     <p><strong>Farmer:</strong> ${shipment.farmerName}</p>
     <p><strong>Managed By:</strong> ${shipment.farmerManagerName}</p>
     <p><strong>Pickup Address:</strong> ${shipment.pickupAddress}</p>
-    <p><strong>Scheduled:</strong> ${shipment.scheduledPickupDate.split('T')[0]} (${shipment.scheduledPickupTimeSlot})</p>
+    <p><strong>Scheduled:</strong> ${shipment.scheduledPickupDate?.split("T")[0]} (${shipment.scheduledPickupTimeSlot})</p>
     <p><strong>Status:</strong> ${shipment.overallStatus}</p>
   `;
 
-  // Create table row for the product
-  const body = document.getElementById("product-body");
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${shipment.itemDisplayName}</td>
-    <td>-</td> <!-- container list placeholder -->
-    <td>-</td> <!-- quality -->
-    <td>-</td> <!-- price per kg -->
-    <td>${shipment.finalConfirmedQuantityKg.toFixed(2)}</td>
-    <td>-</td> <!-- total price -->
-    <td>-</td> <!-- total volume -->
-  `;
-  body.appendChild(tr);
-
-  // Totals
-  document.getElementById("total-kg").textContent = shipment.finalConfirmedQuantityKg.toFixed(2);
+  document.getElementById("total-kg").textContent =
+    shipment.finalConfirmedQuantityKg?.toFixed(2) || "0.00";
   document.getElementById("total-vol").textContent = "-";
   document.getElementById("total-price").textContent = "-";
-}
 
-// auto-run on load
-window.onload = renderShipmentNote;
-
-function renderProducts(shipment) {
-  // Extract your data
-  const farmerInfo = {
-    orderId: shipment.orderId,
-    name: shipment.farmerName,
-    address: shipment.farmerAddress,
-    phone: shipment.farmerPhone
-  };
-
-  const products = shipment.products || [];
-  const containers = shipment.containers || [];
-
-  // Fill farmer info
-  document.querySelector(".farmer-info").innerHTML = `
-    <p><strong>Delivery Note #:</strong> ${farmerInfo.orderId}</p>
-    <p><strong>Farmer:</strong> ${farmerInfo.name}</p>
-    <p><strong>Address:</strong> ${farmerInfo.address}</p>
-    <p><strong>Phone:</strong> ${farmerInfo.phone}</p>
-  `;
-
-  const body = document.getElementById("product-body");
-  body.innerHTML = ""; // clear any existing rows
-  let totalWeight = 0;
-  let totalVolumeAll = 0;
-  let totalPrice = 0;
-
-  products.forEach((p, index) => {
-    const name = p.item.name;
-    const quality = p.item.quality;
-    const total = p.pricePerKg * p.weightKg;
-    
-    totalWeight += p.weightKg;
-    totalPrice += total;
-
-    const relatedContainers = containers.filter(c => c.item === name && c.quality === quality);
-    const totalVolume = relatedContainers.reduce((sum, c) => sum + c.volumeKg, 0);
-    totalVolumeAll += totalVolume;
-    const containerIds = relatedContainers.map(c => `<li>${c.id} - ${c.volumeKg} kg</li>`).join("");
-
-    const tr = document.createElement("tr");
-    const containerButton = `<button onclick="showContainers('${name}', '${quality}', ${index})">List</button>`;
-    const popup = `
-      <div id="popup-${index}" class="popup-container" style="display:none;">
-        <div class="popup-content">
-          <span class="close-btn" onclick="closePopup(${index})">&times;</span>
-          <h3>${name} (${quality}) - Containers</h3>
-          <ul>${containerIds}</ul>
-        </div>
-      </div>
+  if (!shipment.products && shipment.fullReport?.farmerReports?.length) {
+    const table = document.getElementById("product-table");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td colspan="6" style="text-align: center;">${shipment.itemDisplayName}</td>
     `;
+    table.appendChild(row);
 
-    tr.innerHTML = `
-      <td>${name}</td>
-      <td>${containerButton}${popup}</td>
-      <td>${quality}</td>
-      <td>${p.pricePerKg.toFixed(2)}</td>
-      <td>${p.weightKg.toFixed(2)}</td>
-      <td>${total.toFixed(2)}</td>
-      <td>${totalVolume.toFixed(2)} kg</td>
-    `;
-    body.appendChild(tr);
-  });
+    const containerArr = shipment.fullReport.farmerReports[0].containers || [];
+    for (let i = 0; i < containerArr.length; i++) {
+      const qrImg = document.createElement("img");
+      qrImg.className = "qr-code";
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(containerArr[i])}&size=60x60`;
+      const containerRow = document.createElement("tr");
+      const tdContainer = document.createElement("td");
 
-  document.getElementById("total-kg").textContent = totalWeight.toFixed(2);
-  document.getElementById("total-vol").textContent = totalVolumeAll.toFixed(2);
-  document.getElementById("total-price").textContent = totalPrice.toFixed(2);
+
+      tdContainer.appendChild(qrImg);
+      tdContainer.style.textAlign = "center";
+
+      containerRow.appendChild(tdContainer);
+const tdQuality = document.createElement("td");
+      tdQuality.textContent = containerArr[i].grade || "-";
+      containerRow.appendChild(tdQuality);
+      const tdPrice = document.createElement("td");
+      tdPrice.textContent = "--";
+      containerRow.appendChild(tdPrice);
+      const weightKg = document.createElement("td");
+      weightKg.textContent = containerArr[i].weightKg?.toFixed(2) || "0.00";
+      containerRow.appendChild(weightKg);
+
+      const tdTotalPrice = document.createElement("td");
+      const TotalPrice = containerArr[i].totalPrice || 0;
+      tdTotalPrice.textContent = TotalPrice.toFixed(2) || "0.00";
+      containerRow.appendChild(tdTotalPrice);
+      
+
+      const tdVol = document.createElement("td");
+      tdVol.textContent = "-";
+      containerRow.appendChild(tdVol);
+      
+
+
+      table.appendChild(containerRow);
+    }
+  }
 }
