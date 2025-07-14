@@ -195,7 +195,7 @@ async function submitOrder(req, res) {
       assignedDelivererId: null,
       delivererAssignedAt: null,
       readyForPickupAt: null,
-      delivererPickupLocation: null,
+      delivererPickupLocation: "self 4c",
       pickedUpByDelivererAt: null,
       deliveredAt: null,
       delivererTaskRef: null,

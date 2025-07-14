@@ -74,7 +74,7 @@ window.goBack = function () {
 window.submitOrder = async function() {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const stockId = localStorage.getItem("selectedShift");
-  const address = localStorage.getItem("selectedAddress");
+  let address = localStorage.getItem("selectedAddress");
 
   const total = parseFloat(document.getElementById("checkout-total").textContent.replace("Total: $", ""));
 
@@ -107,7 +107,7 @@ window.submitOrder = async function() {
 
     const orderPayload = {
       items: cart,
-      deliveryAddress: selectedAddress,
+      deliveryAddress: address,
       deliveryDate,
       deliveryShift,
       totalOrderValue: total,
