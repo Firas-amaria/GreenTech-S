@@ -1,4 +1,7 @@
 import { auth, onAuthStateChanged, signOut } from "./firebase-init.js";
+// STATUS CHANGE API ----  `${API_BASE}/api/customer/:orderId/mark-delivered`
+
+
 
 const API_BASE = "http://localhost:4000";
 
@@ -112,7 +115,6 @@ infoDiv.innerHTML = `<p><strong>Order #:</strong> ${data.orderId}</p>
   // === Column: Product Name ===
   const tdProduct = document.createElement("td");
   tdProduct.textContent = productLabel;
-
   // === Column: QR Code ===
   const tdQR = document.createElement("td");
   const qrImg = document.createElement("img");
@@ -155,15 +157,41 @@ mainQR.style.cursor = "pointer";
 
 // Get the container div and append the QR code
 const divMainQr = document.getElementById("main-qr");
+// if the status is "DELIVERED" then div color will be green and wont be clickable
+if (data.status === "delivered") {
+  divMainQr.style.backgroundColor = "#d4edda"; // Light green background
+  mainQR.style.pointerEvents = "none"; // Disable click
+}
+
 divMainQr.appendChild(mainQR);
 
 // Add click effect: background turns green temporarily
-mainQR.onclick = () => {
-  divMainQr.style.backgroundColor = "#d4edda"; // Light green background
+mainQR.onclick = async (e) => {
+  e.preventDefault();
 
+  try {
+    const token = await auth.currentUser.getIdToken();
+
+    const res = await fetch(`${API_BASE}/api/customer/${data.orderId}/mark-delivered`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to mark order as delivered");
+    }
+
+    await res.json();
+// refresh the page to show updated status
+    window.location.reload();
+  } catch (error) {
+    console.error("❌ Error marking as delivered:", error);
+    alert("Could not mark the order as delivered.");
+  }
 };
-
-
 }
 
 function openPopup(title, product) {
