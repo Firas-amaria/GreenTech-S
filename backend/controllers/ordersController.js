@@ -17,7 +17,7 @@ async function getAllOrdersForShifts(req, res) {
     await admin.auth().verifyIdToken(token);
 
     const upcomingShifts = await getUpcomingShiftsList(db, 6);
-    //console.log(upcomingShifts);
+    console.log(upcomingShifts);
 
     const results = [];
     for (const entry of upcomingShifts) {
@@ -36,7 +36,7 @@ async function getAllOrdersForShifts(req, res) {
       });
     }
 
-    //console.log("Returning shifts summary:", results);
+    console.log("Returning shifts summary:", results);
     return res.json(results);
 
   } catch (err) {

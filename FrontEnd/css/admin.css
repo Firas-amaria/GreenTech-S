@@ -1,12 +1,16 @@
-
 :root {
-  --primary-color: #2c3e50; /* dark blue-gray */
-  --secondary-color: #34495e; /* lighter variant */
-  --text-color: #333;
-  --background-color: #f8f9fa;
+  --primary-color: #2c3e50;     /* dark blue-gray */
+  --secondary-color: #3d566e;   /* slightly warmer darker blue */
+  --accent-color: #3498db;       /* bright blue accent */
+  --success-color: #2ecc71;      /* bright green */
+  --warning-color: #f39c12;      /* orange */
+  --danger-color: #e74c3c;       /* strong red */
+
+  --text-color: #2f2f2f;
+  --background-color: #f4f6f8;
   --card-bg: #ffffff;
-  --border-color: #bdc3c7;
-  --hover-bg: #eaeaea;
+  --border-color: #dfe4ea;
+  --hover-bg: #ecf0f1;
 }
 
 /*==subnav==*/
@@ -23,7 +27,6 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  
 }
 
 #sub-nav a {
@@ -37,7 +40,6 @@
   background-color: var(--primary-color);
 }
 
-
 /* ====== STATS CARDS ====== */
 .stats-cards {
   display: flex;
@@ -47,86 +49,58 @@
 }
 
 .stat-card {
-  background: #ecf0f1;
-  padding: 15px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, var(--card-bg), #f9fafb);
+  padding: 20px;
+  border-radius: 10px;
   flex: 1 1 calc(25% - 20px);
   min-width: 220px;
   box-sizing: border-box;
-  transition: transform 0.2s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--border-color);
 }
 
 .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
 .stat-card h3 {
   margin-bottom: 8px;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  color: var(--primary-color);
 }
 
 .stat-value {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: bold;
   margin-bottom: 10px;
+  color: var(--text-color);
 }
 
-.stat-card button {
-  display: inline-block;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: #2c3e50;
-  color: white;
-  font-size: 0.9rem;
-  transition: opacity 0.2s;
-}
-
-.stat-card button:hover {
-  opacity: 0.9;
-}
-
-/* Differentiated cards */
-.stat-card.orders {
-  background: #e8f5e9; /* light green */
-}
-
-.stat-card.shipments {
-  background: #e3f2fd; /* light blue */
-}
-
-
-
-/* Differentiated cards */
-.stat-card.orders {
-  background: #e8f5e9; /* light green */
-}
-
-.stat-card.shipments {
-  background: #e3f2fd; /* light blue */
-}
-
-/* Slightly different hover for them */
-.stat-card.orders:hover {
-  transform: translateY(-3px);
-  background: #d0ebd4;
-}
-
-.stat-card.shipments:hover {
-  transform: translateY(-3px);
-  background: #cfe3f8;
-}
-
-/* icon styling inside card */
+/* Icon upgrade */
 .stat-card .card-icon {
-  font-size: 2rem;
+  font-size: 2.4rem;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
+/* Category styles */
+.stat-card.orders {
+  background: #eafaf1;
+  border-left: 5px solid var(--success-color);
+}
 
+.stat-card.shipments {
+  background: #ebf5fb;
+  border-left: 5px solid var(--accent-color);
+}
 
+.stat-card.pending-applications {
+  background: #fef5e7;
+  border-left: 5px solid var(--warning-color);
+}
 
 /* ====orders summary===== */
 .summary-item {
@@ -135,11 +109,12 @@
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 15px;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .summary-item:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  transform: scale(1.01);
 }
 
 .summary-header {
@@ -148,45 +123,32 @@
   align-items: center;
   cursor: pointer;
   font-weight: bold;
+  color: var(--primary-color);
 }
 
-.sources-list table {
+/* Tables */
+.sources-list table, #orders-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
 }
 
 .sources-list th,
-.sources-list td {
+.sources-list td,
+#orders-table th,
+#orders-table td {
   border: 1px solid var(--border-color);
   padding: 8px;
   text-align: left;
-}
-
-.sources-list th {
-  background-color: var(--secondary-color);
-  color: #ecf0f1; /* light text on header */
-}
-
-
-.sources-list table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
 }
 
 .sources-list th,
-.sources-list td {
-  border: 1px solid var(--border-color);
-  padding: 8px;
-  text-align: left;
+#orders-table th {
+  background-color: var(--primary-color);
+  color: #ecf0f1;
 }
 
-.sources-list th {
-  background-color: var(--secondary-color);
-  color: #ecf0f1; /* light text on header */
-}
-
+/* Sorting select */
 #summary-sort {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
@@ -196,21 +158,77 @@
   color: var(--text-color);
 }
 
-
-#orders-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-#orders-table th,
-#orders-table td {
-  border: 1px solid var(--border-color);
-  padding: 8px;
-  text-align: left;
-}
-
-#orders-table th {
+/* Buttons inside cards */
+.stat-card button {
+  display: inline-block;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
   background-color: var(--primary-color);
-  color: #ecf0f1;
+  color: white;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
 }
+
+.stat-card button:hover {
+  background-color: var(--secondary-color);
+}
+
+.stat-card.ai-usage {
+  background: #f3eaf7; /* light purple */
+  border-left: 5px solid #9b59b6; /* purple accent */
+}
+.stat-card.ai-usage:hover {
+  background: #ebdff0;
+}
+
+.stat-subtext {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.stat-card.total-applications {
+  background: #fef9e7; /* light yellow */
+  border-left: 5px solid #f1c40f; /* bright yellow accent */
+}
+.stat-card.total-applications:hover {
+  background: #fcf3cf;
+}
+
+.stat-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.stat-card-link:hover .stat-card {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  transform: translateY(-6px) scale(1.03);
+}
+
+
+/* ===job application review== */
+.stat-card.approved-farmers {
+  background: #eafaf1;
+  border-left: 5px solid var(--success-color);
+}
+.stat-card.approved-deliverers {
+  background: #ebf5fb;
+  border-left: 5px solid var(--accent-color);
+}
+.stat-card.approved-drivers {
+  background: #fef5e7;
+  border-left: 5px solid var(--warning-color);
+}
+.stat-card.approved-packers {
+  background: #fceeee;
+  border-left: 5px solid var(--danger-color);
+}
+
+
+.stat-card.ai-total-queries { background: #ebf5fb; border-left: 5px solid var(--accent-color); }
+.stat-card.ai-response-time { background: #fef9e7; border-left: 5px solid #f1c40f; }
+.stat-card.ai-success-rate { background: #eafaf1; border-left: 5px solid var(--success-color); }
+.stat-card.ai-errors { background: #fceeee; border-left: 5px solid var(--danger-color); }
+

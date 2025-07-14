@@ -22,28 +22,44 @@
 
   <!-- ===== Main Content ===== -->
   <main id="dashboard-content">
-    <h1>Dashboard</h1>
+  
 
     <!-- Statistics / KPIs Section -->
+ 
+
     <section id="stats-section">
-      <h2>Key Statistics</h2>
+    
     <div class="stats-cards">
-      <div class="stat-card" id="total-shipments-today">
-        <h3>Shipments Today</h3>
-        <p class="stat-value">--</p>
+      <div class="stat-card orders">
+        <div class="card-icon">📦</div>
+        <h3>Costumer Orders</h3>
+        <div class="stat-value" id="total-orders">0</div>
+         <div class="stat-subtext">This month</div>
       </div>
-      <div class="stat-card" id="pending-applications">
-        <h3>Pending Job Applications</h3>
-        <p class="stat-value">--</p>
+      <div class="stat-card shipments">
+        <div class="card-icon">🚚</div>
+        <h3>Farmer Orders</h3>
+        <div class="stat-value" id="upcoming-shipments">0</div>
+        <div class="stat-subtext">This month</div>
       </div>
-      <div class="stat-card" id="upcoming-schedule">
-        <h3>Events This Week</h3>
-        <p class="stat-value">--</p>
-      </div>
-      <div class="stat-card" id="open-reports">
-        <h3>Open Reports</h3>
-        <p class="stat-value">--</p>
-      </div>
+ <div class="stat-card total-applications">
+  <div class="card-icon">👤</div>
+  <h3>Applications This Month</h3>
+  <p class="stat-value" id="applications-this-month">0</p>
+  <div class="stat-subtext">Submitted</div>
+</div>
+
+   <a href="a_ai_Analatics.html" class="stat-card-link">
+  <div class="stat-card ai-usage">
+    <div class="card-icon">🤖</div>
+    <h3>AI Stats</h3>
+    <p class="stat-value" id="ai-queries">0</p>
+    <div class="stat-subtext">Queries this week</div>
+  </div>
+</a>
+
+
+     
     </div>
   </section>
 
@@ -52,60 +68,38 @@
     <div id="committed-orders-cards" class="stats-cards"></div>
   </section>
 
-  <section id="shipments-by-shift-section">
-    <h2>Shipments by Shift</h2>
-    <div id="shipments-cards" class="stats-cards"></div>
-  </section>
+ 
 
-    <!-- Latest Notifications Section -->
-    <section id="notifications-section">
-      <h2>Latest Notifications</h2>
-      <ul id="notifications-list">
-        <!-- JS will inject fake notifications here -->
-      </ul>
-    </section>
 
-    <!-- Shipments for Today Section -->
-    <section id="today-shipments-section">
-      <h2>Shipments Scheduled for Today</h2>
-      <table id="today-shipments-table">
-        <thead>
-          <tr>
-            <th>Shipment ID</th>
-            <th>Origin</th>
-            <th>Destination</th>
-            <th>Status</th>
-            <th>ETA</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- JS will inject mock rows here -->
-        </tbody>
-      </table>
-    </section>
 
-    <!-- Recent Job Applications Section -->
-    <section id="recent-applications-section">
-      <h2>Recent Job Applications</h2>
-      <table id="recent-applications-table">
-        <thead>
-          <tr>
-            <th>Applicant Name</th>
-            <th>Position</th>
-            <th>Date Applied</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- JS will inject mock rows here -->
-        </tbody>
-      </table>
-    </section>
   </main>
 
   <script type="module" src="../js/admin-dashboard.js"></script>
   <script type="module" src="../js/m_nav_menu.js"></script>
+<script>
+  function animateCount(element, end, duration = 1000) {
+  let start = 0;
+  const stepTime = Math.abs(Math.floor(duration / end));
+  const counter = setInterval(() => {
+    start += 1;
+    element.textContent = start;
+    if (start >= end) clearInterval(counter);
+  }, stepTime);
+}
 
+// Call it on DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  animateCount(document.getElementById("total-orders"), 1243, 2000);
+  animateCount(document.getElementById("upcoming-shipments"), 158, 1500);
+  
+  animateCount(document.getElementById("ai-queries"), 427, 2000);
+  
+  animateCount(document.getElementById("applications-this-month"), 29, 1500);
+});
+
+
+
+</script>
 </body>
 
 </html>

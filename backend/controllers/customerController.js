@@ -102,9 +102,9 @@ async function getCustomerOrders(req, res) {
   }
 }
 
-async function getCustomerOrderById(req, res){
+async function getCustomerOrderById(req, res) {
   try {
-    const tokenUid = req.user.uid; // you got from auth middleware
+    const tokenUid = req.user.uid; // from auth middleware
     const { orderId } = req.params;
 
     if (!orderId) {
@@ -118,19 +118,26 @@ async function getCustomerOrderById(req, res){
       return res.status(404).json({ error: "Order not found." });
     }
 
-    const orderData = orderSnap.data();
+    const data = orderSnap.data();
 
-    // Make sure the order belongs to this customer
-    if (orderData.customerId !== tokenUid) {
+    if (data.customerId !== tokenUid) {
       return res.status(403).json({ error: "Not authorized to view this order." });
     }
 
-    return res.status(200).json({ orderId, ...orderData });
+    return res.status(200).json({
+      orderId,
+      ...data,
+      deliveryAddress: data.deliveryAddress || null,
+      deliveryDate: data.deliveryDate ? data.deliveryDate.toDate().toISOString().split("T")[0] : null
+    });
+
   } catch (err) {
     console.error("Error fetching order:", err);
     return res.status(500).json({ error: "Internal server error." });
   }
-};
+}
+
+
 
 
 

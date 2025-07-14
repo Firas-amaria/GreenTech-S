@@ -1,4 +1,20 @@
+
+  const itemList = {
+  "Apple Fuji": "🍎",
+  "Banana Cavendish": "🍌",
+  "Orange Navel": "🍊",
+  "Grapes Red Globe": "🍇",
+  "Strawberry Albion": "🍓",
+  "Tomato Cherry": "🍅",
+  "Lettuce Romaine": "🥬",
+  "Cucumber Persian": "🥒",
+  "Carrot Nantes": "🥕",
+  "Spinach Baby": "🌿"
+};
+
 import { auth, onAuthStateChanged } from "./firebase-init.js";
+
+
 
 const API_BASE = "http://localhost:4000";
 
@@ -8,6 +24,7 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
+
 
   const params = new URLSearchParams(window.location.search);
   const shift = params.get("shift");
@@ -70,7 +87,7 @@ async function loadOrdersAndSummary(user, shift, date) {
 
     // Default render by item
     renderSummaryByItem(data.summary, summaryContainer);
-
+buildPieChart(data.summary);
     // Handle switching sort mode
     document.getElementById("summary-sort").addEventListener("change", (e) => {
       summaryContainer.innerHTML = "";
@@ -164,8 +181,63 @@ function renderSummaryByItem(summary, container) {
     });
 
     container.appendChild(itemDiv);
+
+    //call here the function for chart
   }
 }
+
+function buildPieChart(summary) {
+  const pieData = [];
+  let totalAllItems = 0;
+
+  for (const itemName in summary) {
+    const item = summary[itemName];
+    totalAllItems += item.totalKg;
+  }
+
+  for (const itemName in summary) {
+    const item = summary[itemName];
+    const percent = ((item.totalKg / totalAllItems) * 100).toFixed(1);
+    pieData.push({
+      name: itemName,
+      icon: itemList[itemName] || "",
+      totalKg: item.totalKg,
+      percent: percent
+    });
+  }
+
+  const labels = pieData.map(item => `${item.icon} ${item.name}`);
+  const data = pieData.map(item => item.totalKg);
+
+  const ctx = document.getElementById('itemPieChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: [
+          '#f39c12','#27ae60','#2980b9','#8e44ad','#e74c3c',
+          '#16a085','#d35400','#2c3e50','#c0392b','#7f8c8d'
+        ],
+        hoverOffset: 20
+      }]
+    },
+    options: {
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let i = context.dataIndex;
+              return `${labels[i]}: ${pieData[i].totalKg} kg (${pieData[i].percent}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 
 function renderSummaryByFarmer(farmerSummary, container) {
   for (const farmerKey in farmerSummary) {

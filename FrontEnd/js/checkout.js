@@ -22,6 +22,7 @@ async function loadCheckout() {
 
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const shift = localStorage.getItem("selectedShift");
+  console.log(localStorage.getItem("selectedAddress"));
   const selectedAddress = JSON.parse(localStorage.getItem("selectedAddress"));
   console.log(selectedAddress);
 let address=selectedAddress.address;
@@ -92,7 +93,7 @@ window.submitOrder = async function() {
   const deliveryShift = parts[5];
 
   // Build proper ISO date for start of day
-  const deliveryDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`).toISOString();
+  const deliveryDate = new Date(`${year}-${month}-${day}`).toISOString();
 
   // Calculate total KG
   const totalKg = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -107,12 +108,15 @@ window.submitOrder = async function() {
 
     const orderPayload = {
       items: cart,
-      deliveryAddress: address,
-      deliveryDate,
+      deliveryAddress: {address:address.address, lat: address.lat ,lng: address.lng
+      },      deliveryDate,
       deliveryShift,
+      deliveryDate,
       totalOrderValue: total,
       totalOrderWeightKg: totalKg,
       customerName: user.displayName ,
+      stockId: stockId,
+
     };
 
     const res = await fetch("http://localhost:4000/api/market/submit-order", {

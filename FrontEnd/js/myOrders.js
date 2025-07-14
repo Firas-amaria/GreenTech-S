@@ -92,12 +92,20 @@ function renderOrders(orders) {
     `;
 
     const emojiSpan = div.querySelector(".order-emoji");
-    switch(order.status) {
-      case "farm": emojiSpan.textContent = "👨‍🌾"; break;
-      case "in transit": emojiSpan.textContent = "🚚"; break;
-      case "delivering": emojiSpan.textContent = "🧑🛵"; break;
-      case "delivered": emojiSpan.textContent = "🏠"; break;
-    }
+   switch(order.status) {
+  case "farm":
+    emojiSpan.innerHTML = "<img src='images/farmerIcon.png' alt='Farm' style='width: 30px; height: 30px;' />";
+    break;
+  case "in transit":
+    emojiSpan.innerHTML = "<img src='images/delivery-truck.png' alt='Truck' style='width: 30px; height: 30px;' />";
+    break;
+  case "delivering":
+    emojiSpan.innerHTML = "<img src='images/motor-scooter.png' alt='Scooter' style='width: 30px; height: 30px;' />";
+    break;
+  case "delivered":
+    emojiSpan.innerHTML = "<img src='images/home.png' alt='Home' style='width: 30px; height: 30px;' />";
+    break;
+}
 
     // === Map button handler ===
     const mapBtn = div.querySelector(".mapbtn");

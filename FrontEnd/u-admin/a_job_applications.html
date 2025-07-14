@@ -5,8 +5,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Dashboard - Job Applications</title>
-  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
   <link rel="stylesheet" href="../css/jobApplications.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+   .stats-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+  justify-content: space-between;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, var(--card-bg), #f9fafb);
+  padding: 14px;
+  border-radius: 8px;
+  flex: 1 1 calc(23% - 15px);
+  min-width: 180px;
+  box-sizing: border-box;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--border-color);
+}
+
+.stat-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+
+  </style>
 </head>
 
 <body>
@@ -25,6 +59,41 @@
   <main>
     <section id="review-section">
       <h1>Application Review</h1>
+
+      <div class="stats-cards">
+  <div class="stat-card approved-farmers">
+    <div class="card-icon">👩‍🌾</div>
+    <h3>Approved Farmers</h3>
+    <p class="stat-value" id="approved-farmers">0</p>
+    <div class="stat-subtext">This month</div>
+  </div>
+
+  <div class="stat-card approved-deliverers">
+    <div class="card-icon">🚚</div>
+    <h3>Approved Deliverers</h3>
+    <p class="stat-value" id="approved-deliverers">0</p>
+    <div class="stat-subtext">This month</div>
+  </div>
+
+  <div class="stat-card approved-drivers">
+    <div class="card-icon">🚗</div>
+    <h3>Approved Drivers</h3>
+    <p class="stat-value" id="approved-drivers">0</p>
+    <div class="stat-subtext">This month</div>
+  </div>
+
+  <div class="stat-card approved-packers">
+    <div class="card-icon">📦</div>
+    <h3>Approved Packers</h3>
+    <p class="stat-value" id="approved-packers">0</p>
+    <div class="stat-subtext">This month</div>
+  </div>
+</div>
+
+
+
+
+
       <div id="application-filters">
         <label for="filter-role">Filter by Role:</label>
         <select id="filter-role"></select>
@@ -71,6 +140,25 @@
   <!-- Load as ES module so imports work -->
   <script type="module" src="../js/admin-jobApplications.js"></script>
   <script type="module" src="../js/m_nav_menu.js"></script>
+  <script>
+function animateCount(element, end, duration = 1000) {
+  let start = 0;
+  const stepTime = Math.max(Math.floor(duration / end), 20);
+  const counter = setInterval(() => {
+    start += 1;
+    element.textContent = start;
+    if (start >= end) clearInterval(counter);
+  }, stepTime);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  animateCount(document.getElementById("approved-farmers"), 14, 1200);
+  animateCount(document.getElementById("approved-deliverers"), 7, 1000);
+  animateCount(document.getElementById("approved-drivers"), 5, 900);
+  animateCount(document.getElementById("approved-packers"), 3, 800);
+});
+
+  </script>
 </body>
 
 </html>

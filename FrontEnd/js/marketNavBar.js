@@ -23,7 +23,14 @@ document.addEventListener("DOMContentLoaded", () => {
     leftLinks.appendChild(createLink("login.html", "Log In", "nav-login"));
   } else {
     // Logged in (customer or not)
-    leftLinks.appendChild(createLink("cart.html", "Cart (<span id='cart-count'>0</span>)", "nav-cart", true));
+leftLinks.appendChild(
+  createLink(
+    "cart.html",
+    "<img src='images/cart.png' alt='Cart Icon' style='width: 24px; height: 24px; vertical-align: middle;' /> <span id='cart-count'>0</span>",
+    "nav-cart",
+    true
+  )
+);
     leftLinks.appendChild(createLink("profile.html", "Profile", "nav-profile"));
     leftLinks.appendChild(createLink("myOrders.html", "My Orders", "nav-orders"));
 

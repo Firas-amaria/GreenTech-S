@@ -162,7 +162,8 @@ async function submitOrder(req, res) {
       deliveryDate,        // string (ISO) e.g. "2025-07-15T00:00:00Z"
       deliveryShift,       // "morning", etc
       totalOrderValue,     // monetary value
-      totalOrderWeightKg   // total weight
+      totalOrderWeightKg,   // total weight
+      stockId,
     } = req.body;
 
     if (!items || !items.length) {
@@ -170,15 +171,18 @@ async function submitOrder(req, res) {
     }
 
     // === Generate unique order ID ===
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const rand = Math.floor(Math.random() * 100000);
-    const orderId = `LC-1_ORD_${yyyy}_${mm}_${dd}_${deliveryShift}_${uid}_${rand}`;
+  
+   const originalString = stockId;
+const parts = originalString.split("_");
+const date = `${parts[2]}_${parts[3]}_${parts[4]}`;
+const shift = parts[5]; // "morning"
+const rand = Math.floor(Math.random() * 10000);
+const orderId = `LC-1_ORD_${date}_${deliveryShift}_${uid}_${rand}`;
+//console.log(orderId);
 
     // === Prepare clean delivery timestamp ===
     const deliveryDateObj = deliveryDate ? new Date(deliveryDate) : new Date();
+
     const deliveryDateTimestamp = admin.firestore.Timestamp.fromDate(deliveryDateObj);
 
     // === Build order data ===
@@ -201,6 +205,7 @@ async function submitOrder(req, res) {
       delivererTaskRef: null,
       items
     };
+   // console.log(orderData);
 
     // === Save order to orders collection ===
     await db.collection("orders").doc(orderId).set(orderData);
