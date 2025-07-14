@@ -3,6 +3,31 @@ body {
   padding: 20px;
   background-color: #f5f5f5;
 }
+.back-button {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #dc3545;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+}
+
+.back-button:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+.back-button:active {
+  background-color: #bd2130;
+  transform: scale(0.98);
+}
+
 
 .delivery-note {
   background: white;
