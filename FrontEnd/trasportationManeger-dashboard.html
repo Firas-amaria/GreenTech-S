@@ -1,0 +1,2655 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Transportation Manager Dashboard</title>
+    <link rel="stylesheet" href="css/transporter.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <style>
+        /* Enhanced Overview Section Styling */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Individual metric card themes */
+        .metric-card:nth-child(1) {
+            border-color: #e3f2fd;
+            background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+        }
+
+        .metric-card:nth-child(1)::before {
+            background: linear-gradient(90deg, #2196f3, #42a5f5);
+        }
+
+        .metric-card:nth-child(1):hover {
+            border-color: #2196f3;
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15);
+        }
+
+        .metric-card:nth-child(2) {
+            border-color: #e8f5e8;
+            background: linear-gradient(135deg, #f8fdf8 0%, #ffffff 100%);
+        }
+
+        .metric-card:nth-child(2)::before {
+            background: linear-gradient(90deg, #4caf50, #66bb6a);
+        }
+
+        .metric-card:nth-child(2):hover {
+            border-color: #4caf50;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.15);
+        }
+
+        .metric-card:nth-child(3) {
+            border-color: #fff3e0;
+            background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+        }
+
+        .metric-card:nth-child(3)::before {
+            background: linear-gradient(90deg, #ff9800, #ffb74d);
+        }
+
+        .metric-card:nth-child(3):hover {
+            border-color: #ff9800;
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.15);
+        }
+
+        .metric-card:nth-child(4) {
+            border-color: #ffebee;
+            background: linear-gradient(135deg, #fef8f8 0%, #ffffff 100%);
+        }
+
+        .metric-card:nth-child(4)::before {
+            background: linear-gradient(90deg, #f44336, #ef5350);
+        }
+
+        .metric-card:nth-child(4):hover {
+            border-color: #f44336;
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.15);
+        }
+
+        .metric-number {
+            font-size: 3em;
+            font-weight: 800;
+            margin-bottom: 12px;
+            position: relative;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-card:nth-child(1) .metric-number {
+            color: #1976d2;
+        }
+
+        .metric-card:nth-child(2) .metric-number {
+            color: #388e3c;
+        }
+
+        .metric-card:nth-child(3) .metric-number {
+            color: #f57c00;
+        }
+
+        .metric-card:nth-child(4) .metric-number {
+            color: #d32f2f;
+        }
+
+        .metric-label {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+        }
+
+        /* Add icons to metric cards */
+        .metric-card:nth-child(1) .metric-number::before {
+            content: "👥";
+            position: absolute;
+            top: -40px;
+            right: -10px;
+            font-size: 0.6em;
+            opacity: 0.3;
+        }
+
+        .metric-card:nth-child(2) .metric-number::before {
+            content: "🚛";
+            position: absolute;
+            top: -40px;
+            right: -10px;
+            font-size: 0.6em;
+            opacity: 0.3;
+        }
+
+        .metric-card:nth-child(3) .metric-number::before {
+            content: "⏳";
+            position: absolute;
+            top: -40px;
+            right: -10px;
+            font-size: 0.6em;
+            opacity: 0.3;
+        }
+
+        .metric-card:nth-child(4) .metric-number::before {
+            content: "⚠️";
+            position: absolute;
+            top: -40px;
+            right: -10px;
+            font-size: 0.6em;
+            opacity: 0.3;
+        }
+
+        /* Enhanced Main Container and Tab Navigation */
+        main {
+            background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .tab-container {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .tab-nav {
+            display: flex;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-bottom: 2px solid #e2e8f0;
+            gap: 0;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 18px 28px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            flex: 1;
+        }
+
+        .tab-btn::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            background: rgba(99, 102, 241, 0.05);
+            color: #6366f1;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .tab-btn.active::before {
+            background: linear-gradient(90deg, #ec4899, #f59e0b);
+        }
+
+        /* Tab Content Enhancement */
+        .tab-content {
+            display: none;
+            padding: 30px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-content::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899, #f59e0b);
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeInUp 0.4s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Enhanced Activity Cards */
+        #recent-activity {
+            background: rgba(248, 250, 252, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #recent-activity.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-style: italic;
+            font-size: 1.1em;
+        }
+
+        #recent-activity.empty::before {
+            content: "📈 Recent activity will appear here...";
+        }
+
+        /* Activity Item Styling */
+        .activity-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .activity-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);
+        }
+
+        .activity-item:hover::before {
+            width: 6px;
+            background: linear-gradient(135deg, #ec4899, #f59e0b);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .activity-type {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            gap: 4px;
+        }
+
+        .activity-type.shipment {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .activity-type.driver {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .activity-type.problem {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .activity-type.schedule {
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            color: #6d28d9;
+            border: 1px solid #8b5cf6;
+        }
+
+        .activity-time {
+            font-size: 0.8em;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .activity-description {
+            color: #374151;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .activity-details {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8em;
+            color: #64748b;
+        }
+
+        .activity-details span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Activity Status Indicators */
+        .activity-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .activity-status.completed {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .activity-status.in-progress {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .activity-status.pending {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .activity-status.problem {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        /* No Activity Results */
+        .no-activity-results {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+            font-style: italic;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .no-activity-results::before {
+            content: "🔍";
+            display: block;
+            font-size: 2em;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        /* Quick Actions Section */
+        .quick-actions-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-actions-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #06d6a0, #34d399);
+        }
+
+        .quick-actions-section h3 {
+            color: #1e293b;
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-align: left;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .action-btn.primary {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        .action-btn.primary:hover {
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+        }
+
+        .action-btn.secondary {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+        }
+
+        .action-btn.secondary:hover {
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+        }
+
+        .action-btn.warning {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+
+        .action-btn.warning:hover {
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.2);
+        }
+
+        .action-btn.info {
+            border-color: #06b6d4;
+            background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+        }
+
+        .action-btn.info:hover {
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.2);
+        }
+
+        .action-icon {
+            font-size: 2em;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .action-text {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .action-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .action-desc {
+            font-size: 0.85em;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* Enhanced Section Styling for Tables */
+        .section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 2px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #10b981, #06d6a0, #34d399);
+        }
+
+        .section h3 {
+            color: #1e293b;
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section h3::before {
+            content: "📊";
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Drivers Section Specific */
+        #drivers-section .section::before {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #1e40af);
+        }
+
+        #drivers-section .section h3::before {
+            content: "👥";
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        /* Shipments Section Specific */
+        #shipments-section .section::before {
+            background: linear-gradient(90deg, #10b981, #059669, #047857);
+        }
+
+        #shipments-section .section h3::before {
+            content: "🚛";
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        /* Problems Section Specific */
+        #problems-section .section::before {
+            background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c);
+        }
+
+        #problems-section .section h3::before {
+            content: "⚠️";
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        /* Schedule Section Specific */
+        #schedule-section .section::before {
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed, #6d28d9);
+        }
+
+        #schedule-section .section h3::before {
+            content: "📅";
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        /* Enhanced Filter Section for Each Tab */
+        #drivers-section .filter-section,
+        #shipments-section .filter-section,
+        #problems-section .filter-section,
+        #schedule-section .filter-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #drivers-section .filter-section::before {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8, #1e40af);
+        }
+
+        #shipments-section .filter-section::before {
+            background: linear-gradient(90deg, #10b981, #059669, #047857);
+        }
+
+        #problems-section .filter-section::before {
+            background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c);
+        }
+
+        #schedule-section .filter-section::before {
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed, #6d28d9);
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        #drivers-section .filter-section::before,
+        #shipments-section .filter-section::before,
+        #problems-section .filter-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        /* Enhanced Filter Section Content */
+        .filter-section h4 {
+            color: #1e293b;
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #drivers-section .filter-section h4::before {
+            content: "🔍";
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #shipments-section .filter-section h4::before {
+            content: "🔍";
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #problems-section .filter-section h4::before {
+            content: "🔍";
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #schedule-section .filter-section h4::before {
+            content: "🔍";
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Filter Row Layout */
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: end;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-row::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, #cbd5e1, #e2e8f0);
+            opacity: 0.6;
+        }
+
+        /* Filter Group Styling */
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-group label::after {
+            content: "⚡";
+            font-size: 0.8em;
+            opacity: 0.6;
+        }
+
+        /* Enhanced Input Styling */
+        .filter-group input,
+        .filter-group select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            font-size: 1em;
+            color: #374151;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .filter-group input::placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        /* Filter Button Styling */
+        .filter-row .btn-secondary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .filter-row .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+        }
+
+        .filter-row .btn-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .filter-row .btn-secondary:last-child {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+        }
+
+        .filter-row .btn-secondary:last-child:hover {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: 0 6px 16px rgba(100, 116, 139, 0.4);
+        }
+
+        /* Filter Section Responsive Design */
+        @media (max-width: 768px) {
+            .filter-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .filter-section {
+                padding: 20px;
+            }
+
+            .filter-section h4 {
+                font-size: 1.1em;
+            }
+        }
+
+        /* Tab-specific Filter Styling */
+        #drivers-section .filter-row .btn-secondary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        #drivers-section .filter-row .btn-secondary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        #shipments-section .filter-row .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        #shipments-section .filter-row .btn-secondary:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        #problems-section .filter-row .btn-secondary {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        #problems-section .filter-row .btn-secondary:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        #schedule-section .filter-row .btn-secondary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        #schedule-section .filter-row .btn-secondary:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        /* Enhanced Table Container */
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+        }
+
+        /* Table Loading State */
+        .table-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .table-loading::before {
+            content: "";
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Enhanced Data Row Styling */
+        .data-table tbody tr {
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        /* Driver Rows */
+        #drivers-section .data-table tbody tr:hover {
+            border-left-color: #3b82f6;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+
+        /* Shipment Rows */
+        #shipments-section .data-table tbody tr:hover {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        }
+
+        /* Problem Rows */
+        #problems-section .data-table tbody tr:hover {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+
+        /* Schedule Rows */
+        #schedule-section .data-table tbody tr:hover {
+            border-left-color: #8b5cf6;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+        }
+
+        /* Additional Professional Table Enhancements */
+
+        /* Column-specific styling for better data visualization */
+        .data-table td:first-child {
+            font-weight: 600;
+            color: #1e293b;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-right: 2px solid #e2e8f0;
+        }
+
+        /* Priority indicators for problem table */
+        #problems-section .data-table tbody tr td:nth-child(2) {
+            position: relative;
+        }
+
+        .priority-high::before {
+            content: "🔴";
+            margin-right: 8px;
+        }
+
+        .priority-medium::before {
+            content: "🟡";
+            margin-right: 8px;
+        }
+
+        .priority-low::before {
+            content: "🟢";
+            margin-right: 8px;
+        }
+
+        /* Time-based indicators */
+        .time-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .time-recent {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .time-today {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .time-overdue {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+            border: 1px solid #ef4444;
+            animation: pulse-warning 2s infinite;
+        }
+
+        @keyframes pulse-warning {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.2);
+            }
+        }
+
+        /* Driver role indicators */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .role-deliverer {
+            background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+            color: #01579b;
+            border: 1px solid #03a9f4;
+        }
+
+        .role-industrial {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            color: #4a148c;
+            border: 1px solid #9c27b0;
+        }
+
+        /* Vehicle type indicators */
+        .vehicle-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 500;
+            gap: 4px;
+        }
+
+        .vehicle-truck::before {
+            content: "🚛";
+        }
+
+        .vehicle-van::before {
+            content: "🚐";
+        }
+
+        .vehicle-car::before {
+            content: "🚗";
+        }
+
+        .vehicle-truck {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .vehicle-van {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            color: #3730a3;
+            border: 1px solid #6366f1;
+        }
+
+        .vehicle-car {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        /* Schedule status indicators */
+        .schedule-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 14px;
+            font-size: 0.75em;
+            font-weight: 600;
+            gap: 6px;
+        }
+
+        .schedule-active::before {
+            content: "✅";
+        }
+
+        .schedule-pending::before {
+            content: "⏳";
+        }
+
+        .schedule-break::before {
+            content: "☕";
+        }
+
+        .schedule-active {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .schedule-pending {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .schedule-break {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            color: #374151;
+            border: 1px solid #9ca3af;
+        }
+
+        /* Enhanced table headers with icons */
+        .data-table th {
+            position: relative;
+        }
+
+        /* Drivers table headers */
+        #drivers-section .data-table th:nth-child(1)::before {
+            content: "👤 ";
+        }
+
+        #drivers-section .data-table th:nth-child(2)::before {
+            content: "🏷️ ";
+        }
+
+        #drivers-section .data-table th:nth-child(3)::before {
+            content: "📊 ";
+        }
+
+        #drivers-section .data-table th:nth-child(4)::before {
+            content: "📋 ";
+        }
+
+        #drivers-section .data-table th:nth-child(5)::before {
+            content: "📞 ";
+        }
+
+        #drivers-section .data-table th:nth-child(6)::before {
+            content: "🚗 ";
+        }
+
+        #drivers-section .data-table th:nth-child(7)::before {
+            content: "⚙️ ";
+        }
+
+        /* Shipments table headers */
+        #shipments-section .data-table th:nth-child(1)::before {
+            content: "🆔 ";
+        }
+
+        #shipments-section .data-table th:nth-child(2)::before {
+            content: "📦 ";
+        }
+
+        #shipments-section .data-table th:nth-child(3)::before {
+            content: "📊 ";
+        }
+
+        #shipments-section .data-table th:nth-child(4)::before {
+            content: "👤 ";
+        }
+
+        #shipments-section .data-table th:nth-child(5)::before {
+            content: "📍 ";
+        }
+
+        #shipments-section .data-table th:nth-child(6)::before {
+            content: "⏰ ";
+        }
+
+        #shipments-section .data-table th:nth-child(7)::before {
+            content: "⚙️ ";
+        }
+
+        /* Problems table headers */
+        #problems-section .data-table th:nth-child(1)::before {
+            content: "🆔 ";
+        }
+
+        #problems-section .data-table th:nth-child(2)::before {
+            content: "⚠️ ";
+        }
+
+        #problems-section .data-table th:nth-child(3)::before {
+            content: "👤 ";
+        }
+
+        #problems-section .data-table th:nth-child(4)::before {
+            content: "📅 ";
+        }
+
+        #problems-section .data-table th:nth-child(5)::before {
+            content: "📦 ";
+        }
+
+        #problems-section .data-table th:nth-child(6)::before {
+            content: "📊 ";
+        }
+
+        #problems-section .data-table th:nth-child(7)::before {
+            content: "⚙️ ";
+        }
+
+        /* Schedule table headers */
+        #schedule-section .data-table th:nth-child(1)::before {
+            content: "👤 ";
+        }
+
+        #schedule-section .data-table th:nth-child(2)::before {
+            content: "🏷️ ";
+        }
+
+        #schedule-section .data-table th:nth-child(3)::before {
+            content: "📅 ";
+        }
+
+        #schedule-section .data-table th:nth-child(4)::before {
+            content: "⏰ ";
+        }
+
+        #schedule-section .data-table th:nth-child(5)::before {
+            content: "🔄 ";
+        }
+
+        #schedule-section .data-table th:nth-child(6)::before {
+            content: "⚙️ ";
+        }
+
+        /* Table hover effects enhancement */
+        .data-table tbody tr {
+            cursor: pointer;
+        }
+
+        .data-table tbody tr:hover td {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .data-table tbody tr:hover .btn-small {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Enhanced Professional Table Styling */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 2px solid #e2e8f0;
+            position: relative;
+        }
+
+        .data-table::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899, #f59e0b);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            font-weight: 700;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85em;
+            border-bottom: 2px solid #cbd5e1;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th:first-child {
+            border-top-left-radius: 16px;
+        }
+
+        .data-table th:last-child {
+            border-top-right-radius: 16px;
+        }
+
+        .data-table tr {
+            transition: all 0.3s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
+        }
+
+        .data-table tbody tr:nth-child(odd) {
+            background: white;
+        }
+
+        .data-table td {
+            font-size: 0.9em;
+            color: #374151;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* Enhanced Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 2px solid;
+            position: relative;
+            overflow: hidden;
+            min-width: 80px;
+            justify-content: center;
+        }
+
+        .status-badge::before {
+            content: "";
+            position: absolute;
+            left: -100%;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
+            transition: left 0.5s ease;
+        }
+
+        .status-badge:hover::before {
+            left: 100%;
+        }
+
+        .status-available {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .status-busy {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border-color: #ffc107;
+        }
+
+        .status-offline {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border-color: #dc3545;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            color: #0c5460;
+            border-color: #17a2b8;
+        }
+
+        .status-at_pickup {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+            border-color: #ffc107;
+        }
+
+        .status-in_transportation {
+            background: linear-gradient(135deg, #cce7ff, #b3d7ff);
+            color: #004085;
+            border-color: #007bff;
+        }
+
+        .status-arrived {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .status-problem {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border-color: #dc3545;
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0% {
+                box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 4px 16px rgba(220, 53, 69, 0.4);
+            }
+
+            100% {
+                box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+            }
+        }
+
+        /* Enhanced Type Badges */
+        .shipment-type-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-right: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid;
+        }
+
+        .type-farmer {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: #1565c0;
+            border-color: #2196f3;
+        }
+
+        .type-customer {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            color: #7b1fa2;
+            border-color: #9c27b0;
+        }
+
+        /* Enhanced Action Buttons */
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.8em;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-small::before {
+            font-size: 1em;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #20c997);
+            color: white;
+            border: 1px solid #17a2b8;
+        }
+
+        .btn-info::before {
+            content: "👁️";
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496, #1ea97c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+        }
+
+        /* No Data State Enhancement */
+        .no-data {
+            text-align: center;
+            padding: 60px 40px;
+            color: #64748b;
+            font-style: italic;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+            margin: 20px 0;
+        }
+
+        .no-data::before {
+            content: "📋";
+            display: block;
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* Table Section Headers Enhancement */
+        #drivers-section h2,
+        #shipments-section h2,
+        #problems-section h2,
+        #schedule-section h2 {
+            color: #1e293b;
+            font-size: 2.2em;
+            font-weight: 800;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        #drivers-section h2::after,
+        #shipments-section h2::after,
+        #problems-section h2::after,
+        #schedule-section h2::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 2px;
+        }
+
+        /* Problems Table Specific Responsive Fixes */
+        #problems-section .data-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        #problems-section .data-table th:nth-child(1) {
+            width: 10%;
+        }
+
+        /* Shipment ID */
+        #problems-section .data-table th:nth-child(2) {
+            width: 28%;
+        }
+
+        /* Problem Description */
+        #problems-section .data-table th:nth-child(3) {
+            width: 14%;
+        }
+
+        /* Reported By */
+        #problems-section .data-table th:nth-child(4) {
+            width: 11%;
+        }
+
+        /* Date Reported */
+        #problems-section .data-table th:nth-child(5) {
+            width: 12%;
+        }
+
+        /* Shipment Type */
+        #problems-section .data-table th:nth-child(6) {
+            width: 10%;
+        }
+
+        /* Status */
+        #problems-section .data-table th:nth-child(7) {
+            width: 15%;
+        }
+
+        /* Actions - Increased */
+
+        #problems-section .data-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 0;
+        }
+
+        /* Problem Description Column - Allow text wrapping */
+        #problems-section .data-table td:nth-child(2) {
+            white-space: normal;
+            line-height: 1.4;
+            padding: 12px 8px;
+        }
+
+        /* Actions Column - Specific styling */
+        #problems-section .data-table td:nth-child(7) {
+            padding: 6px 2px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 0;
+        }
+
+        /* Ultra-compact button styling for problems table actions */
+        #problems-section .btn-small {
+            padding: 3px 6px;
+            font-size: 0.65em;
+            border-radius: 3px;
+            min-width: auto;
+            gap: 1px;
+            margin: 0;
+            display: inline-block;
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #problems-section .btn-small::before {
+            font-size: 0.8em;
+            margin-right: 1px;
+        }
+
+        /* Simplified button text for problems table */
+        #problems-section .btn-info {
+            padding: 2px 4px;
+            font-size: 0.6em;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        #problems-section .btn-info::before {
+            content: "👁";
+            margin-right: 1px;
+        }
+
+        /* Hide button text on very small screens, show only icon */
+        @media (max-width: 1200px) {
+            #problems-section .btn-small {
+                padding: 2px 3px;
+                font-size: 0.6em;
+                width: auto;
+                max-width: 40px;
+            }
+
+            #problems-section .btn-info {
+                padding: 2px 3px;
+                font-size: 0;
+            }
+
+            #problems-section .btn-info::before {
+                font-size: 12px;
+                margin: 0;
+            }
+        }
+
+        /* Compact styling for problems table */
+        #problems-section .data-table th,
+        #problems-section .data-table td {
+            padding: 10px 6px;
+            font-size: 0.82em;
+        }
+
+        /* Enhanced Section Container for Problems */
+        #problems-section .section {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        #problems-section .data-table {
+            min-width: 850px;
+            /* Reduced minimum width */
+        }
+
+        /* Status badges - more compact for problems table */
+        #problems-section .status-badge {
+            padding: 4px 8px;
+            font-size: 0.65em;
+            min-width: 60px;
+            border-width: 1px;
+        }
+
+        /* Type badges - more compact for problems table */
+        #problems-section .shipment-type-badge {
+            padding: 3px 6px;
+            font-size: 0.6em;
+            margin-right: 4px;
+        }
+
+        /* Responsive Table Enhancements */
+        @media (max-width: 1200px) {
+
+            #problems-section .data-table th,
+            #problems-section .data-table td {
+                padding: 8px 4px;
+                font-size: 0.78em;
+            }
+
+            #problems-section .data-table th:nth-child(2) {
+                width: 25%;
+            }
+
+            #problems-section .data-table th:nth-child(3) {
+                width: 16%;
+            }
+
+            #problems-section .data-table th:nth-child(7) {
+                width: 18%;
+            }
+
+            #problems-section .btn-small {
+                padding: 3px 6px;
+                font-size: 0.65em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .data-table {
+                font-size: 0.8em;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 12px 8px;
+            }
+
+            .status-badge {
+                padding: 6px 10px;
+                font-size: 0.7em;
+            }
+
+            /* Problems table mobile adjustments */
+            #problems-section .data-table {
+                min-width: 650px;
+            }
+
+            #problems-section .data-table th,
+            #problems-section .data-table td {
+                padding: 6px 3px;
+                font-size: 0.72em;
+            }
+
+            #problems-section .data-table th:nth-child(1) {
+                width: 8%;
+            }
+
+            #problems-section .data-table th:nth-child(2) {
+                width: 22%;
+            }
+
+            #problems-section .data-table th:nth-child(7) {
+                width: 20%;
+            }
+
+            #problems-section .btn-small {
+                padding: 2px 4px;
+                font-size: 0.6em;
+                gap: 1px;
+            }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+            /* Hidden by default */
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 123, 255, 0.3);
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #007bff;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Message Toast */
+        .message-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #343a40;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+            /* Hidden by default */
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #495057;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <nav id="main-nav">
+            <ul>
+                <li id="user-info">
+                    Welcome, <span id="user-name">Transportation Manager</span>
+                </li>
+                <li id="role-badge"><span id="user-role">Manager</span></li>
+                <li class="logOut">
+                    <a href="index.html" id="logout-link">Logout</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="overview">Overview</button>
+                <button class="tab-btn" data-tab="drivers">Drivers</button>
+                <button class="tab-btn" data-tab="shipments">Shipments</button>
+                <button class="tab-btn" data-tab="problems">Problems</button>
+                <button class="tab-btn" data-tab="schedule">Schedule</button>
+            </div>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overview-section" class="tab-content active">
+            <h2>Transportation Overview</h2>
+
+            <!-- Metrics Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-number" id="metric-drivers">0</div>
+                    <div class="metric-label">Active Drivers</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="metric-shipments">0</div>
+                    <div class="metric-label">Active Shipments</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="metric-pending">0</div>
+                    <div class="metric-label">Pending Assignments</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="metric-problems">0</div>
+                    <div class="metric-label">Problem Reports</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="quick-actions-section">
+                <h3>⚡ Quick Actions</h3>
+                <div class="actions-grid">
+                    <button class="action-btn primary" onclick="switchToTab('shipments')">
+                        <div class="action-icon">🚛</div>
+                        <div class="action-text">
+                            <span class="action-title">View Shipments</span>
+                            <span class="action-desc">Manage all shipments and assignments</span>
+                        </div>
+                    </button>
+                    <button class="action-btn secondary" onclick="switchToTab('drivers')">
+                        <div class="action-icon">👥</div>
+                        <div class="action-text">
+                            <span class="action-title">Driver Management</span>
+                            <span class="action-desc">View driver status and assignments</span>
+                        </div>
+                    </button>
+                    <button class="action-btn warning" onclick="switchToTab('problems')">
+                        <div class="action-icon">⚠️</div>
+                        <div class="action-text">
+                            <span class="action-title">Problem Reports</span>
+                            <span class="action-desc">Handle emergency issues and problems</span>
+                        </div>
+                    </button>
+                    <button class="action-btn info" onclick="switchToTab('schedule')">
+                        <div class="action-icon">📅</div>
+                        <div class="action-text">
+                            <span class="action-title">Driver Schedules</span>
+                            <span class="action-desc">Manage driver schedules and shifts</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="section">
+                <h3>Recent Activity</h3>
+                <div id="recent-activity">
+                    <!-- Recent activity will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Drivers Section -->
+        <div id="drivers-section" class="tab-content">
+            <h2>Driver Management</h2>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h4>Search & Filter Drivers</h4>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Search by Name:</label>
+                        <input type="text" id="driver-search" placeholder="Enter driver name..." />
+                    </div>
+                    <div class="filter-group">
+                        <label>Role:</label>
+                        <select id="driver-role-filter">
+                            <option value="">All Roles</option>
+                            <option value="deliverer">Deliverer</option>
+                            <option value="industrialDriver">Industrial Driver</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select id="driver-status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="available">Available</option>
+                            <option value="busy">Busy</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                    </div>
+                    <button class="btn-secondary" onclick="applyDriverFilters()">
+                        Apply Filters
+                    </button>
+                    <button class="btn-secondary" onclick="clearDriverFilters()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drivers Table -->
+            <div class="section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Driver Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Current Assignment</th>
+                            <th>Phone</th>
+                            <th>Vehicle Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drivers-table-body">
+                        <!-- Driver data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Shipments Section -->
+        <div id="shipments-section" class="tab-content">
+            <h2>Shipment Management</h2>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h4>Search & Filter Shipments</h4>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Search by ID:</label>
+                        <input type="text" id="shipment-search" placeholder="Enter shipment ID..." />
+                    </div>
+                    <div class="filter-group">
+                        <label>Type:</label>
+                        <select id="shipment-type-filter">
+                            <option value="">All Types</option>
+                            <option value="farmer_shipment">Farm → Logistics</option>
+                            <option value="customer_shipment">Logistics → Customer</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select id="shipment-status-filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="at_pickup">At Pickup</option>
+                            <option value="in_transportation">In Transportation</option>
+                            <option value="arrived">Arrived</option>
+                            <option value="problem">Problem</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Date:</label>
+                        <input type="date" id="shipment-date-filter" />
+                    </div>
+                    <button class="btn-secondary" onclick="applyShipmentFilters()">
+                        Apply Filters
+                    </button>
+                    <button class="btn-secondary" onclick="clearShipmentFilters()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shipments Table -->
+            <div class="section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Shipment ID</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Driver</th>
+                            <th>Destination</th>
+                            <th>Pickup Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shipments-table-body">
+                        <!-- Shipment data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Problems Section -->
+        <div id="problems-section" class="tab-content">
+            <h2>Problem Reports</h2>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h4>Search & Filter Problems</h4>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Search by Shipment ID:</label>
+                        <input type="text" id="problem-search" placeholder="Enter shipment ID..." />
+                    </div>
+                    <div class="filter-group">
+                        <label>Date Reported:</label>
+                        <input type="date" id="problem-date-filter" />
+                    </div>
+                    <div class="filter-group">
+                        <label>Reporter:</label>
+                        <input type="text" id="problem-reporter-filter" placeholder="Driver name..." />
+                    </div>
+                    <button class="btn-secondary" onclick="applyProblemFilters()">
+                        Apply Filters
+                    </button>
+                    <button class="btn-secondary" onclick="clearProblemFilters()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Problems Table -->
+            <div class="section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Shipment ID</th>
+                            <th>Problem Description</th>
+                            <th>Reported By</th>
+                            <th>Date Reported</th>
+                            <th>Shipment Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="problems-table-body">
+                        <!-- Problem data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Schedule Section -->
+        <div id="schedule-section" class="tab-content">
+            <h2>Driver Schedules</h2>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h4>Search & Filter Schedules</h4>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label>Search by Driver:</label>
+                        <input type="text" id="schedule-search" placeholder="Enter driver name..." />
+                    </div>
+                    <div class="filter-group">
+                        <label>Date Range From:</label>
+                        <input type="date" id="schedule-date-from" />
+                    </div>
+                    <div class="filter-group">
+                        <label>To:</label>
+                        <input type="date" id="schedule-date-to" />
+                    </div>
+                    <button class="btn-secondary" onclick="applyScheduleFilters()">
+                        Apply Filters
+                    </button>
+                    <button class="btn-secondary" onclick="clearScheduleFilters()">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Schedule Table -->
+            <div class="section">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Driver Name</th>
+                            <th>Role</th>
+                            <th>Weekly Schedule</th>
+                            <th>Standby Shifts</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedule-table-body">
+                        <!-- Schedule data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Schedule Details Modal -->
+    <div id="schedule-details-modal" class="modal" style="display: none">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h3>Schedule Details</h3>
+            <div id="schedule-details-content">
+                <!-- Schedule details will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Message toast -->
+    <div id="message-toast" class="message-toast"></div>
+
+    <script>
+        // Real Transportation Manager Dashboard State
+        const dashboardState = {
+            drivers: [],
+            shipments: [],
+            problems: [],
+            schedules: [],
+            metrics: {
+                activeDrivers: 0,
+                activeShipments: 0,
+                pendingAssignments: 0,
+                problemReports: 0,
+            },
+        };
+
+        // API Configuration
+        const API_BASE_URL = "http://localhost:4000/api";
+
+        // API Helper Function
+        async function apiCall(endpoint, options = {}) {
+            const token = localStorage.getItem("token");
+
+            const defaultOptions = {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            };
+
+            const finalOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...options.headers,
+                },
+            };
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}${endpoint}`,
+                    finalOptions
+                );
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                throw error;
+            }
+        }
+
+        // Load Real Dashboard Data
+        async function loadDashboardData() {
+            try {
+                // Load overview data from API
+                const response = await apiCall("/manager/overview");
+
+                if (response.success) {
+                    // Update metrics from backend
+                    dashboardState.metrics = {
+                        activeDrivers: response.overview.activeDrivers || 0,
+                        activeShipments: response.overview.totalShipments || 0,
+                        pendingAssignments:
+                            response.overview.shipmentStatusBreakdown?.pending || 0,
+                        problemReports: response.overview.totalProblems || 0,
+                    };
+
+                    // Store recent data for activity rendering
+                    dashboardState.recentShipments =
+                        response.overview.recentShipments || [];
+                } else {
+                    // Fallback: Load all data for metrics calculation
+                    await loadFallbackData();
+                }
+
+                renderMetrics();
+                renderRecentActivity();
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+                // Show fallback data
+                await loadFallbackData();
+                renderMetrics();
+                renderRecentActivity();
+            }
+        }
+
+        // Load individual data as fallback
+        async function loadFallbackData() {
+            try {
+                const [driversResponse, shipmentsResponse, problemsResponse] =
+                    await Promise.all([
+                        apiCall("/manager/drivers"),
+                        apiCall("/manager/shipments"),
+                        apiCall("/manager/problems"),
+                    ]);
+
+                if (driversResponse.success) {
+                    dashboardState.drivers = driversResponse.drivers;
+                }
+
+                if (shipmentsResponse.success) {
+                    dashboardState.shipments = shipmentsResponse.shipments;
+                }
+
+                if (problemsResponse.success) {
+                    dashboardState.problems = problemsResponse.problems;
+                }
+
+                calculateMetricsFromData();
+            } catch (error) {
+                console.error("Fallback data loading failed:", error);
+                // Use sample data as last resort
+                useSampleData();
+            }
+        }
+
+        // Calculate metrics from loaded data
+        function calculateMetricsFromData() {
+            // Active drivers (available or busy)
+            dashboardState.metrics.activeDrivers = dashboardState.drivers.filter(
+                (driver) => driver.status === "available" || driver.status === "busy"
+            ).length;
+
+            // Active shipments (not pending or arrived)
+            dashboardState.metrics.activeShipments =
+                dashboardState.shipments.filter((shipment) => {
+                    const status = shipment.status || "pending";
+                    return status !== "pending" && status !== "arrived";
+                }).length;
+
+            // Pending assignments (shipments without drivers)
+            dashboardState.metrics.pendingAssignments =
+                dashboardState.shipments.filter(
+                    (shipment) => !shipment.driver
+                ).length;
+
+            // Problem reports
+            dashboardState.metrics.problemReports = dashboardState.problems.length;
+        }
+
+        // Use sample data as last resort
+        function useSampleData() {
+            dashboardState.metrics = {
+                activeDrivers: 12,
+                activeShipments: 25,
+                pendingAssignments: 8,
+                problemReports: 3,
+            };
+        }
+
+        // Render functions
+        function renderMetrics() {
+            document.getElementById("metric-drivers").textContent =
+                dashboardState.metrics.activeDrivers;
+            document.getElementById("metric-shipments").textContent =
+                dashboardState.metrics.activeShipments;
+            document.getElementById("metric-pending").textContent =
+                dashboardState.metrics.pendingAssignments;
+            document.getElementById("metric-problems").textContent =
+                dashboardState.metrics.problemReports;
+        }
+
+        function renderRecentActivity() {
+            const container = document.getElementById("recent-activity");
+
+            // Use real shipments data
+            let recentShipments = [];
+            if (
+                dashboardState.recentShipments &&
+                dashboardState.recentShipments.length > 0
+            ) {
+                recentShipments = dashboardState.recentShipments.slice(0, 5);
+            } else {
+                // Fallback to local shipments data
+                recentShipments = dashboardState.shipments
+                    .sort((a, b) => {
+                        const aTime = new Date(
+                            a.statusUpdatedAt || a.updatedAt || a.createdAt
+                        );
+                        const bTime = new Date(
+                            b.statusUpdatedAt || b.updatedAt || b.createdAt
+                        );
+                        return bTime - aTime;
+                    })
+                    .slice(0, 5);
+            }
+
+            const recentProblems = dashboardState.problems
+                .sort((a, b) => {
+                    const aTime = new Date(a.timestamp || a.reportedAt);
+                    const bTime = new Date(b.timestamp || b.reportedAt);
+                    return bTime - aTime;
+                })
+                .slice(0, 3);
+
+            let activityHTML = "";
+
+            // Recent Shipments
+            if (recentShipments.length > 0) {
+                recentShipments.forEach((shipment) => {
+                    const status = shipment.status || "pending";
+                    const updateTime =
+                        shipment.statusUpdatedAt ||
+                        shipment.updatedAt ||
+                        shipment.createdAt;
+                    const timeAgo = getTimeAgo(new Date(updateTime));
+
+                    activityHTML += `
+              <div class="activity-item">
+                <div class="activity-header">
+                  <div class="activity-type shipment">🚛 Shipment Update</div>
+                  <div class="activity-time">${timeAgo}</div>
+                </div>
+                <div class="activity-description">
+                  <strong>Shipment ${shipment.id || shipment.shipmentId
+                        }</strong><br>
+                  Status changed to ${status}
+                </div>
+                <div class="activity-details">
+                  <span class="activity-status ${status}">${status}</span>
+                  <span>📦 Type: ${shipment.type || "Standard"}</span>
+                  ${shipment.driver
+                            ? `<span>👤 Driver: ${shipment.driver}</span>`
+                            : ""
+                        }
+                </div>
+              </div>
+            `;
+                });
+            }
+
+            // Recent Problems
+            if (recentProblems.length > 0) {
+                recentProblems.forEach((problem) => {
+                    const timeAgo = getTimeAgo(
+                        new Date(problem.timestamp || problem.reportedAt)
+                    );
+                    const message =
+                        problem.message || problem.description || "No message available";
+
+                    activityHTML += `
+              <div class="activity-item">
+                <div class="activity-header">
+                  <div class="activity-type problem">⚠️ Problem Report</div>
+                  <div class="activity-time">${timeAgo}</div>
+                </div>
+                <div class="activity-description">
+                  <strong>Shipment ${problem.shipmentId}</strong><br>
+                  ${message.substring(0, 80)}${message.length > 80 ? "..." : ""}
+                </div>
+                <div class="activity-details">
+                  <span class="activity-status problem">problem</span>
+                  <span>📦 ID: ${problem.shipmentId}</span>
+                  ${problem.reportedBy
+                            ? `<span>👤 Reporter: ${problem.reportedBy}</span>`
+                            : ""
+                        }
+                </div>
+              </div>
+            `;
+                });
+            }
+
+            if (activityHTML === "") {
+                container.innerHTML =
+                    '<div class="no-activity-results">No recent activity available</div>';
+                container.classList.add("empty");
+            } else {
+                container.innerHTML = activityHTML;
+                container.classList.remove("empty");
+            }
+        }
+
+        // Utility function to calculate time ago
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / (1000 * 60));
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (minutes < 60) {
+                return `${minutes} minutes ago`;
+            } else if (hours < 24) {
+                return `${hours} hours ago`;
+            } else {
+                return `${days} days ago`;
+            }
+        }
+
+        // Tab switching function
+        function switchToTab(tabName) {
+            // Remove active class from all tabs and content
+            document
+                .querySelectorAll(".tab-btn")
+                .forEach((btn) => btn.classList.remove("active"));
+            document
+                .querySelectorAll(".tab-content")
+                .forEach((content) => content.classList.remove("active"));
+
+            // Add active class to target tab
+            const targetButton = document.querySelector(`[data-tab="${tabName}"]`);
+            const targetContent = document.getElementById(`${tabName}-section`);
+
+            if (targetButton && targetContent) {
+                targetButton.classList.add("active");
+                targetContent.classList.add("active");
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener("DOMContentLoaded", function () {
+            console.log("Dashboard initializing...");
+
+            // Load real data from Firebase via API
+            loadDashboardData();
+
+            // Refresh data every 30 seconds
+            setInterval(loadDashboardData, 30000);
+
+            console.log("Dashboard initialization complete");
+        });
+
+        // Tab switching functionality
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+            btn.addEventListener("click", function () {
+                // Remove active class from all tabs and content
+                document
+                    .querySelectorAll(".tab-btn")
+                    .forEach((b) => b.classList.remove("active"));
+                document
+                    .querySelectorAll(".tab-content")
+                    .forEach((c) => c.classList.remove("active"));
+
+                // Add active class to clicked tab
+                this.classList.add("active");
+
+                // Show corresponding content
+                const tabName = this.getAttribute("data-tab");
+                const content = document.getElementById(tabName + "-section");
+                if (content) {
+                    content.classList.add("active");
+                }
+            });
+        });
+
+        // Placeholder functions for other tabs (to be implemented)
+        function applyDriverFilters() {
+            showToast("Driver filters functionality coming soon!");
+        }
+
+        function clearDriverFilters() {
+            showToast("Driver filters cleared!");
+        }
+
+        function applyShipmentFilters() {
+            showToast("Shipment filters functionality coming soon!");
+        }
+
+        function clearShipmentFilters() {
+            showToast("Shipment filters cleared!");
+        }
+
+        function applyProblemFilters() {
+            showToast("Problem filters functionality coming soon!");
+        }
+
+        function clearProblemFilters() {
+            showToast("Problem filters cleared!");
+        }
+
+        function applyScheduleFilters() {
+            showToast("Schedule filters functionality coming soon!");
+        }
+
+        function clearScheduleFilters() {
+            showToast("Schedule filters cleared!");
+        }
+
+        function closeModal() {
+            document.getElementById("schedule-details-modal").style.display =
+                "none";
+        }
+    </script>
+
+    <script type="module" src="js/trasporter_dashboard.js"></script>
+</body>
+
+</html>
