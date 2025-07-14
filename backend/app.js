@@ -17,16 +17,30 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const farmerRoutes = require("./routes/farmerRoutes");
-
+const farmerManagerRoutes = require("./routes/farmerManagerRoutes");
+const customerRoutes = require("./routes/customerRoutes");
+const marketRoutes = require("./routes/marketRoutes");  
+const mapsRoutes = require("./routes/mapsRouts");
+const ordersRoutes=require("./routes/ordersRoutes");
 //middlewares
 app.use(cors());
 app.use(express.json());
+
+// Add middleware to log all requests
+app.use((req, res, next) => {
+  next();
+});
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/farmer", farmerRoutes);
+app.use("/api/farmerManager", farmerManagerRoutes);
+app.use("/api/customer", customerRoutes);
+app.use("/api/market", marketRoutes);
+app.use("/api/maps", mapsRoutes);
+app.use("/api/orders", ordersRoutes);
 
 const PORT = process.env.PORT || 4000;
 

@@ -1,9 +1,20 @@
 const { admin, db } = require("../firebaseConfig");
+const bcrypt = require("bcryptjs");
 
-// Register a customer with basic details and default 'customer' role
+// Map roles/positions to Firestore sub-collections
+const roleCollectionMap = {
+  customer: "customers",
+  farmer: "farmers",
+  deliverer: "deliverers",
+  "industrial-driver": "industrialDrivers",
+  sorting: "sorters",
+  picker: "pickers",
+  "warehouse-worker": "warehouseWorkers",
+};
+
+// Register a customer: create Auth user and save profile in both 'customers' and 'users'
 const registerCustomer = async (req, res) => {
   const {
-    uid,
     firstName,
     lastName,
     email,
@@ -19,188 +30,220 @@ const registerCustomer = async (req, res) => {
   }
 
   try {
-    // Create Firebase Auth user
-    // const userRecord = await admin.auth().createUser({ email, password });
+    // Create Auth user
+    const userRecord = await admin.auth().createUser({ email, password });
+    const uid = userRecord.uid;
 
-    // Set custom claim 'role' to 'customer'
-    await admin.auth().setCustomUserClaims(uid, { role: "customer" });
+    // Hash the password before storing
+    const salt = await bcrypt.genSalt(12);
+    const hashPass = await bcrypt.hash(password, salt);
 
-    // Store customer details in Firestore
+    // Save full profile (including hashed password) into users/{uid}
+    const now = admin.firestore.FieldValue.serverTimestamp();
     await db.collection("users").doc(uid).set({
-      role: "customer",
       firstName,
       lastName,
       email,
       phone,
       birthDate,
       address,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      role: "customer",
+      password: hashPass,
+      logisticCenterId: "LC-1",
+      createdAt: now,
+      updatedAt: now,
     });
 
     res.status(201).send({ firstName, lastName });
   } catch (error) {
+    if (error.code === "auth/email-already-exists") {
+      return res.status(400).send({ error: "Email already registered" });
+    }
     res.status(400).send({ error: error.message });
   }
 };
 
-// Get role from custom claims or Firestore
+//TODO : remove after checing if this is needed
+// Get role from custom claims
 const getUserRole = async (req, res) => {
   const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).send({ error: "Missing or invalid token" });
   }
-
   const idToken = authHeader.split(" ")[1];
 
   try {
-    // 1. Verify the token
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const uid = decodedToken.uid;
-
-    // 2. Check Firestore for user's role (preferred)
-    const userDoc = await db.collection("users").doc(uid).get();
-    if (!userDoc.exists) {
-      return res.status(404).send({ error: "User not found in Firestore" });
-    }
-
-    const userData = userDoc.data();
-    const role = userData.role || decodedToken.role || "unknown";
-
-    return res.status(200).send({ role });
+    const role = decodedToken.role || "unknown";
+    res.status(200).send({ role });
   } catch (error) {
     console.error("Error verifying token:", error);
-    return res.status(401).send({ error: "Unauthorized" });
+    res.status(401).send({ error: "Unauthorized" });
   }
 };
 
-// Helper function to validate extraFields based on position
 const validateExtraFields = (position, fields) => {
-  const isString = (val) => typeof val === "string";
-  const isBoolean = (val) => typeof val === "boolean";
-  const isNumber = (val) => typeof val === "number";
+  const isString = (v) => typeof v === "string";
+  const isBoolean = (v) => typeof v === "boolean";
+  const isNumber = (v) => typeof v === "number";
+  const isObject = (v) =>
+    v !== null && typeof v === "object" && !Array.isArray(v);
+
+  const sched = fields.scheduleBitmask;
+  const scheduleValid = Array.isArray(sched) && sched.every(Number.isInteger);
+
+  // Coerce numbers to string where needed
+  const toStr = (v) => (typeof v === "number" ? v.toString() : v);
 
   switch (position) {
-    case "Farmer":
-      return isBoolean(fields.agriculturalInsurance);
-
-    case "Delivery":
-    case "TruckDriver":
+    case "farmer":
       return (
-        isString(fields.licenseType) &&
-        isString(fields.vehicleType) &&
-        isNumber(fields.vehicleCapacity) &&
-        (fields.vehicleExtraCapacity === undefined ||
-          isNumber(fields.vehicleExtraCapacity)) &&
-        isString(fields.driverLicenseNumber) &&
-        isString(fields.vehicleRegistrationNumber) &&
-        isBoolean(fields.insurance) &&
-        typeof fields.availabilitySchedule === "object" &&
-        (position === "TruckDriver" ? isBoolean(fields.refrigerated) : true)
+        Array.isArray(fields.lands) && isBoolean(fields.agriculturalInsurance)
       );
 
-    case "LogisticsCenterWorker":
-      return true; // אין שדות נוספים
+    case "deliverer":
+      return (
+        isString(fields.licenseType) &&
+        isString(fields.vehicleMake) &&
+        isString(fields.vehicleModel) &&
+        isString(fields.vehicleType) &&
+        isNumber(fields.vehicleYear) &&
+        isNumber(fields.vehicleCapacity) &&
+        isString(toStr(fields.driverLicenseNumber)) &&
+        isString(toStr(fields.vehicleRegistrationNumber)) &&
+        isBoolean(fields.vehicleInsurance) &&
+        scheduleValid
+      );
+
+    case "industrial-driver":
+      return (
+        isString(fields.licenseType) &&
+        isString(fields.vehicleMake) &&
+        isString(fields.vehicleModel) &&
+        isString(fields.vehicleType) &&
+        isNumber(fields.vehicleYear) &&
+        isNumber(fields.vehicleCapacity) &&
+        isString(toStr(fields.driverLicenseNumber)) &&
+        isString(toStr(fields.vehicleRegistrationNumber)) &&
+        isBoolean(fields.vehicleInsurance) &&
+        isBoolean(fields.refrigerated) &&
+        scheduleValid
+      );
 
     default:
-      return false;
+      return true; // warehouse, picker, etc.
   }
 };
 
-// Register an employee (pending approval) with extra fields by position
-const registerEmployee = async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    address,
-    birthDate,
-    position,
-    password,
-    confirmPassword,
-    extraFields, // dynamic fields depending on selected position,
-    acceptAgreement,
-    certifyAccuracy,
-  } = req.body;
+// Request employment: save in role-specific, in employmentApplications AND in users
+const requestEmployment = async (req, res) => {
+  const { role, extraFields, certifyAccuracy, submittedAt } = req.body;
+  const authHeader = req.headers.authorization;
 
-  if (password !== confirmPassword) {
-    return res.status(400).send({ error: "Passwords do not match" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
   }
-  if (!acceptAgreement || !certifyAccuracy) {
+  const token = authHeader.split(" ")[1];
+
+  const col = roleCollectionMap[role];
+  if (!col) {
+    return res.status(400).send({ error: "Unknown Role" });
+  }
+  // ─── End Validation ──────────────────────────────────────────────────────
+
+  if (!certifyAccuracy) {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
-  if (!validateExtraFields(position, extraFields)) {
+
+  if (!extraFields || typeof extraFields !== "object") {
+    return res
+      .status(400)
+      .send({ error: "Extra fields are missing or invalid." });
+  }
+
+  if (!validateExtraFields(role, extraFields)) {
     return res.status(400).send({
-      error: "Invalid or missing extra fields for selected position.",
+      error: `Invalid or missing extra fields for position '${role}'. Check required inputs.`,
     });
   }
 
   try {
-    // Create Firebase Auth user
-    const userRecord = await admin.auth().createUser({ email, password });
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const uid = decodedToken.uid;
+    // Prevent duplicate application
+    const existing = await db
+      .collection("employmentApplications")
+      .doc(uid)
+      .get();
+    if (existing.exists) {
+      return res.status(400).send({ error: "Application already submitted." });
+    }
 
-    // Set custom claim 'role' to 'pendingEmployee'
-    await admin
-      .auth()
-      .setCustomUserClaims(userRecord.uid, { role: "pendingEmployee" });
-
-    // Save basic user info to users collection
-    await db.collection("users").doc(userRecord.uid).set({
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      role: "pendingEmployee",
-      position,
+    // Save in role-specific sub-collection
+    await db.collection("employmentApplications").doc(uid).set({
+      role,
+      extraFields,
       status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      submittedAt,
     });
 
-    // Save full application with position-specific fields
-    await db
-      .collection("employmentApplications")
-      .doc(userRecord.uid)
-      .set({
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        birthDate,
-        position,
-        ...extraFields,
-      });
-
-    res.status(201).send({ uid: userRecord.uid });
+    res.status(201).send({
+      success: true,
+      message: "Application submitted. We will contact you shortly.",
+    });
   } catch (error) {
     res.status(400).send({ error: error.message });
   }
 };
 
+// Login: encrypt incoming password, store hash in users collection, then return role
 const login = async (req, res) => {
-  const { uid } = req.body;
+  const { password } = req.body;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
   try {
-    const user_docuement = await db.collection("users").doc(uid).get();
-    //check if user not exist
-    if (!user_docuement) {
-      return res
-        .status(404)
-        .json({ message: "User of this id is not exist!!!" });
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const uid = decodedToken.uid;
+    // 1. Generate a salt & hash the plain password
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    // 2. Get user role from db > doc
+    const doc = await db.collection("users").doc(uid).get();
+    // 3. Save hashed password into users/{uid}.password
+    if (!doc.exists) {
+      return res.status(404).send({ error: "Profile not found 222" });
     }
-    //fetched user object
-    const user = user_docuement.data();
-    res.status(200).json({ message: user.role });
+
+    await db.collection("users").doc(uid).set(
+      {
+        password: hashedPassword,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const user = doc.data();
+    // console.log("user", user);
+    res.status(200).json({
+      role: user.role,
+      name: user.firstName + " " + user.lastName,
+    });
   } catch (err) {
-    console.error("something went wrong", err);
-    res.status(500).json({ message: "something went wrong!!!" });
+    console.error("Login error:", err);
+    if (err.code === "auth/user-not-found") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(500).json({ error: err.message });
   }
 };
-
 module.exports = {
   registerCustomer,
-  registerEmployee,
   getUserRole,
+  requestEmployment,
   login,
 };

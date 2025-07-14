@@ -11,3 +11,9 @@ package-lock.json
 
 /backend/serviceAccountKey.json
 /backend/scripts
+
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
