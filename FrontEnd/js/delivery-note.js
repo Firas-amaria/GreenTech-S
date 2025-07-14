@@ -175,5 +175,15 @@ function openPopup(title, product) {
   document.body.appendChild(popup);
 }
 window.openPopup = openPopup;
-  
+//on clicking the back button, redirect to myOrders.html if the user enter form myOrders.html else redirect to market.html
+document.getElementById("backbutton").addEventListener("click", () => {
+  const referrer = document.referrer;
+  if (referrer.includes("myOrders.html")) {
+    window.location.href = "myOrders.html";
+  } else {
+    window.location.href = "market.html";
+  }
+});
+
+
 //renderDeliveryNote(deliveryData);

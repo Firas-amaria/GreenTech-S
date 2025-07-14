@@ -111,14 +111,29 @@ window.submitOrder = async function() {
       customerName: user.displayName ,
     };
 
-    const res = await fetch("http://localhost:4000/api/market/submit-order", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(orderPayload)
-    });
+   const res = await fetch("http://localhost:4000/api/market/submit-order", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(orderPayload)
+});
+
+if (!res.ok) {
+  const errorText = await res.text();
+  throw new Error(`Order submission failed: ${errorText}`);
+}
+
+const data = await res.json();
+
+// ✅ Redirect to delivery-note.html with the returned orderId
+if (data.orderId) {
+  window.location.href = `delivery-note.html?orderId=${data.orderId}`;
+} else {
+  alert("Order placed, but no order ID was returned.");
+}
+
 
     if (!res.ok) throw new Error("Failed to submit order.");
 
@@ -126,7 +141,7 @@ window.submitOrder = async function() {
     localStorage.removeItem("cart");
     localStorage.removeItem("selectedShift");
     localStorage.removeItem("selectedAddress");
-    window.location.href = "market.html";
+    window.location.href = `delivery-note.html?orderId=${data.orderId}`;
 
   } catch (err) {
     console.error("Submit order failed:", err);

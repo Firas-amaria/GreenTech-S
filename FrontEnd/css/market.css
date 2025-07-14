@@ -151,6 +151,18 @@ body {
   background-color: #218838;
   transform: scale(1.05);
 }
+.add-to-cart-btn{
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
 
 /* === CATEGORY NAVIGATION === */
 .category-navbar button {
@@ -334,8 +346,4 @@ body {
 
 .cart-item:hover {
   box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-}
-
-.main{
-  
 }
