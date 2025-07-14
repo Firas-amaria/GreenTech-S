@@ -165,6 +165,38 @@ async function submitShipmentReport(req, res) {
       history: [...(shipmentData.fullReport?.history || []), newHistoryEntry],
     };
 
+    const farmerShipmentDoc = {
+      id: shipmentId,
+      approvedAt: shipmentData.approvedAt?.toDate().toISOString() || null,
+      createdAt: shipmentData.createdAt?.toDate().toISOString() || null,
+      updatedAt: timestampNow.toDate().toISOString(),
+      pickupTime: shipmentData.pickupTime || null,
+      destination: shipmentData.destination || null,
+      farmerId: farmerUid,
+      driver: shipmentData.driver || null,
+      reportSubmittedAt: timestampNow.toDate().toISOString(),
+      reportSubmittedBy: farmerUid,
+      reportNotes: "",
+      reportedWeight: totalWeightReported,
+      totalWeight: totalWeightReported,
+      totalVolume: totalWeightReported, // Change this logic if volume ≠ weight
+      status: "available_shipment",
+      items: shipmentData.itemId
+        ? [
+            {
+              name: shipmentData.itemDisplayName,
+              quantity: totalWeightReported,
+            },
+          ]
+        : [],
+      containers: containers,
+    };
+
+    await db
+      .collection("farmer_shipments")
+      .doc(shipmentId)
+      .set(farmerShipmentDoc);
+
     // === Final Firestore Update ===
     await shipmentRef.update({
       "fullReport.farmerReports": updatedFullReport.farmerReports,
