@@ -250,10 +250,168 @@ async function getOrdersForUpcomingShifts(req, res) {
 }
 
 
+
+/*===FOR DELIVERY SUMMARRY TO FARMER=*/
+
+
+
+
+
+async function getOrdersGroupedByFarmerForShift(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token." });
+
+    await admin.auth().verifyIdToken(token);
+
+    const { shift, date } = req.query;
+    if (!shift || !date)
+      return res.status(400).json({ error: "Missing shift or date." });
+
+    const prefix = `LC-1_ORD_${date}_${shift}`;
+    const ordersSnap = await db.collection("orders")
+      .where(FieldPath.documentId(), ">=", prefix)
+      .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+      .get();
+
+    const orders = [];
+    const farmerSummary = {};
+
+    ordersSnap.forEach((doc) => {
+      const data = doc.data();
+      const docParts = doc.id.split("_");
+      const randomNumber = docParts[docParts.length - 1];
+      orders.push({ orderNumber: randomNumber, ...data });
+
+      (data.items || []).forEach((item) => {
+        const farmerId = item.sourceFarmerId || "UNKNOWN_ID";
+        const farmName = item.sourceFarmName || "UNKNOWN FARM";
+
+        if (!farmerSummary[farmerId]) {
+          farmerSummary[farmerId] = {
+            totalKg: 0,
+            items: [],
+            farmNames: new Set(),
+          };
+        }
+
+        farmerSummary[farmerId].totalKg += item.quantity;
+        farmerSummary[farmerId].items.push({
+          itemName: item.itemName,
+          quantity: item.quantity,
+          farmName,
+          shipReqId: item.shipReqId,
+          itemImageUrl: item.itemImageUrl
+        });
+        farmerSummary[farmerId].farmNames.add(farmName);
+      });
+    });
+
+    // load farmer pickup details
+    const farmerIds = Object.keys(farmerSummary).filter(id => id !== "UNKNOWN_ID");
+    let pickupDetails = {};
+    if (farmerIds.length > 0) {
+      const farmerRefs = farmerIds.map(id => db.collection("farmers").doc(id));
+      const farmerDocs = await db.getAll(...farmerRefs);
+      farmerDocs.forEach((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          pickupDetails[doc.id] = {
+            address: data.pickupAddress || "No Address",
+            lat: data.pickupLat || null,
+            lng: data.pickupLng || null
+          };
+        }
+      });
+    }
+
+    const finalSummary = await Promise.all(
+      Object.entries(farmerSummary).map(async ([farmerId, summary]) => {
+        let pickup = pickupDetails[farmerId] || { address: "No Address", lat: null, lng: null };
+        if (!pickup.lat || !pickup.lng) {
+          pickup = await findFullAddress(farmerId);
+        }
+        return {
+          farmerId,
+          pickupAddress: pickup.address,
+          pickupLat: pickup.lat,
+          pickupLng: pickup.lng,
+          totalKg: summary.totalKg,
+          farms: Array.from(summary.farmNames),
+          items: summary.items
+        };
+      })
+    );
+
+    return res.json({ orders, farmerSummary: finalSummary });
+
+  } catch (err) {
+    console.error("Error in getOrdersGroupedByFarmerForShift:", err.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+async function findFullAddress(farmerId) {
+  try {
+    const farmerDoc = await db.collection("farmers").doc(farmerId).get();
+    if (!farmerDoc.exists) {
+      return { address: "No Address", lat: null, lng: null };
+    }
+    const data = farmerDoc.data();
+
+    // Try primary pickup location
+    if (data.pickupLat && data.pickupLng) {
+      return {
+        address: data.pickupAddress || "No Address",
+        lat: data.pickupLat,
+        lng: data.pickupLng
+      };
+    }
+
+    // Try to fallback from lands
+    const lands = data.lands || [];
+    if (lands.length > 0) {
+      let totalLat = 0;
+      let totalLng = 0;
+      let count = 0;
+
+      lands.forEach(land => {
+        const lat = parseFloat(land.pickupLat);
+        const lng = parseFloat(land.pickupLng);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          totalLat += lat;
+          totalLng += lng;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        const avgLat = totalLat / count;
+        const avgLng = totalLng / count;
+        return {
+          address: "Based on farm lands",
+          lat: avgLat,
+          lng: avgLng
+        };
+      }
+    }
+
+    // Still nothing
+    return { address: "No Address", lat: null, lng: null };
+  } catch (err) {
+    console.error("Error fetching fallback address for farmer:", farmerId, err);
+    return { address: "No Address", lat: null, lng: null };
+  }
+}
+
+
+
+
 module.exports={
   getAllOrdersForShifts,
   getOrdersForShift,
   getOrdersWithSummaryForShift,
   getOrdersForUpcomingShifts,
+  getOrdersGroupedByFarmerForShift,
 
 }

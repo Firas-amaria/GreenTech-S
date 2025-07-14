@@ -20,7 +20,7 @@ onAuthStateChanged(auth, async (user) => {
 
   document.getElementById("shift-info").innerText = `${shift} shift on ${date}`;
   loadOrdersAndSummary(user, shift, date);
-
+ loadFarmerOrdersSummary(shift, date, user);
   // Toggle tabs
   document.getElementById("summary-tab").addEventListener("click", () => {
     document.getElementById("summary-tab").classList.add("sub-active");
@@ -206,5 +206,70 @@ function renderSummaryByFarmer(farmerSummary, container) {
     });
 
     container.appendChild(itemDiv);
+  }
+}
+
+
+async function loadFarmerOrdersSummary(shift, date,user) {
+  try {
+       const token = await user.getIdToken();
+    const res = await fetch(`${API_BASE}/api/orders/orders-grouped-by-farmer?shift=${shift}&date=${date}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Failed to load data");
+    const data = await res.json();
+    renderFarmerSummary(data.farmerSummary);
+  } catch (err) {
+    console.error("Error loading farmer orders summary:", err);
+  }
+}
+
+function renderFarmerSummary(summaryData) {
+  const container = document.getElementById("farmer-orders-section");
+  container.innerHTML = ""; // clear previous
+
+  summaryData.forEach(farmer => {
+    const div = document.createElement("div");
+    div.classList.add("summary-item");
+
+    const farmsStr = farmer.farms.join(", ");
+
+    // Build a collapsible list of items
+    const itemsList = farmer.items.map(item =>
+      `<li>
+        <img src="${item.itemImageUrl}" alt="${item.itemName}" style="width:30px;height:30px;vertical-align:middle;border-radius:50%;"> 
+        <strong>${item.itemName}</strong> - ${item.quantity} Kg 
+        <br><small>ShipReqId: ${item.shipReqId}</small>
+      </li>`
+    ).join("");
+
+    div.innerHTML = `
+      <div class="summary-header">
+        <div>
+          <strong>Farmer ID:</strong> ${farmer.farmerId}<br>
+          <strong>Pickup Address:</strong> ${farmer.pickupAddress}<br>
+          <strong>Coordinates:</strong> ${farmer.pickupLat}, ${farmer.pickupLng}<br>
+          <strong>Total Kg:</strong> ${farmer.totalKg}<br>
+          <strong>Farms:</strong> ${farmsStr}
+        </div>
+        <button onclick="toggleItems(this)">Show Items ▼</button>
+      </div>
+      <ul class="sources-list" style="display:none;">
+        ${itemsList}
+      </ul>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function toggleItems(btn) {
+  const list = btn.parentElement.nextElementSibling;
+  if (list.style.display === "none") {
+    list.style.display = "block";
+    btn.innerHTML = "Hide Items ▲";
+  } else {
+    list.style.display = "none";
+    btn.innerHTML = "Show Items ▼";
   }
 }
