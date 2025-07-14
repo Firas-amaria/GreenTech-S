@@ -196,3 +196,119 @@ h1 {
   color: green;
   margin-top: 20px;
 }
+
+/* Add to your existing employmentApplication.css */
+
+/* Toggle Section (Land & Crop Container) */
+.toggle-section {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  background-color: #fdfdfd;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.toggle-header {
+  background-color: #f1f1f1;
+  padding: 10px 14px;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toggle-header .arrow {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.toggle-content {
+  padding: 14px;
+  border-top: 1px solid #ddd;
+}
+
+.toggle-content label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.toggle-content input,
+.toggle-content select {
+  padding: 6px;
+  margin-top: 4px;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+}
+
+/* Save button inside land/crop */
+.toggle-content button,
+.crop-entry button {
+  margin-top: 10px;
+  padding: 6px 12px;
+  background-color: #2b3e50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toggle-content button:hover,
+.crop-entry button:hover {
+  background-color: #1a2530;
+}
+
+/* Summary styles */
+.land-summary,
+.crop-summary {
+  background-color: #eef4f7;
+  padding: 10px 14px;
+  margin: 10px 0;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.land-summary span,
+.crop-summary span {
+  font-size: 1.2rem;
+  color: #555;
+}
+
+.land-block {
+  margin-top: 20px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fefefe;
+}
+
+.land-summary {
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  background: #f0f0f0;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.land-summary .arrow {
+  font-size: 1.2rem;
+  transition: transform 0.2s;
+}
+
+.land-summary.collapsed .arrow {
+  transform: rotate(-90deg);
+}
+
+.land-form {
+  padding: 10px 0;
+}

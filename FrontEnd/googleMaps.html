@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Map Modal Example</title>
+  <style>
+    /* ✅ MAP MODAL ONLY CSS */
+    #map-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.95);
+      z-index: 9998;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #map-search {
+      position: relative;
+      z-index: 10000;
+      background: #fff;
+      padding: 8px;
+      width: 300px;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      margin-bottom: 10px;
+    }
+
+    #map {
+      width: 90%;
+      height: 80%;
+      border: 2px solid #ccc;
+      z-index: 1;
+    }
+
+    .pac-container {
+      z-index: 10001 !important;
+    }
+  </style>
+</head>
+<body>
+
+<button onclick="openMapPicker()">Open Map Modal</button>
+
+<!-- ✅ YOUR MAP MODAL -->
+<div id="map-modal">
+  <input id="map-search" type="text" placeholder="Search location in Israel..."/>
+  <div id="map"></div>
+  <div style="margin-top:10px;">
+    <button onclick="confirmMapLocation()">Use This Location</button>
+    <button onclick="closeMapPicker()">Cancel</button>
+  </div>
+</div>
+
+<script>
+  let map, marker, geocoder, autocomplete, confirmCallback;
+
+  function initMap() {
+    console.log("✅ Google Maps loaded");
+    geocoder = new google.maps.Geocoder();
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 32.0853, lng: 34.7818 },
+      zoom: 13
+    });
+    marker = new google.maps.Marker({
+      map,
+      draggable: true,
+      position: { lat: 32.0853, lng: 34.7818 }
+    });
+    map.addListener("click", (e) => marker.setPosition(e.latLng));
+    const input = document.getElementById("map-search");
+    autocomplete = new google.maps.places.Autocomplete(input);
+    autocomplete.bindTo("bounds", map);
+    autocomplete.setComponentRestrictions({ country: ["il"] });
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) {
+        if (place.name) {
+          geocoder.geocode({ address: place.name }, (results, status) => {
+            if (status === "OK" && results[0]) {
+              map.panTo(results[0].geometry.location);
+              map.setZoom(15);
+              marker.setPosition(results[0].geometry.location);
+            }
+          });
+        }
+      } else {
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+        marker.setPosition(place.geometry.location);
+      }
+    });
+  }
+
+  function openMapPicker() {
+    document.getElementById("map-modal").style.display = "flex";
+    setTimeout(() => {
+      google.maps.event.trigger(map, "resize");
+      map.setCenter(marker.getPosition());
+    }, 200);
+  }
+
+  function closeMapPicker() {
+    document.getElementById("map-modal").style.display = "none";
+  }
+
+  function confirmMapLocation() {
+    const pos = marker.getPosition();
+    geocoder.geocode({ location: pos }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        alert("Selected: " + results[0].formatted_address);
+        closeMapPicker();
+      } else {
+        alert("Could not get address.");
+      }
+    });
+  }
+</script>
+
+<!-- ✅ LOAD GOOGLE MAPS -->
+<script async
+  src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&language=en&callback=initMap">
+</script>
+
+</body>
+</html>

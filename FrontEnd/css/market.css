@@ -1,0 +1,341 @@
+/* === RESET & BASE === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  padding-top: 20px; /* your fixed navbar height */
+  padding-bottom: 60px;
+}
+
+/* === NAVIGATION BAR === */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: #28a745;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nav-links a {
+  position: relative;
+  color: #f4f4f4;
+  text-decoration: none;
+  margin: 0 15px;
+  font-size: 16px;
+  transition: transform 0.2s, color 0.2s;
+}
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  left: 0;
+  bottom: -4px;
+  background-color: #f4f4f4;
+  transition: width 0.3s ease;
+}
+.nav-links a:hover {
+  transform: scale(1.1);
+}
+.nav-links a:hover::after {
+  width: 100%;
+}
+.nav-links a.active {
+  color: #fff;
+  font-weight: bold;
+}
+.nav-links a.active::after {
+  width: 100%;
+}
+
+/* === GENERIC SECTION CONTAINER === */
+.section {
+  max-width: 1100px;
+  margin: 20px auto;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 20px;
+}
+
+/* === DELIVERY SELECTION === */
+.delivery-address-section h3,
+.delivery-shift-section h3 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+.delivery-select,
+.delivery-shift {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+.delivery-select select, .delivery-select button,
+.delivery-shift select, .delivery-shift button {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+.delivery-shift select, .delivery-shift button {
+  padding: 6px 10px;
+  font-size: 14px;
+}
+.delivery-select button,
+.delivery-shift button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.delivery-select button:hover,
+.delivery-shift button:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+/* === STICKY SEARCH & CATEGORY FILTER === */
+.sticky-controls {
+  position: sticky;
+  top: 50px; /* aligns under your navbar */
+  background: #ffffff;
+  z-index: 999;
+}
+
+/* ensure no unwanted margin breaks sticky sizing */
+.sticky-controls *, 
+.sticky-controls *::before, 
+.sticky-controls *::after {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* style the inner elements with padding for spacing */
+#search-section, .category-navbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+#search-input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+}
+#search-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+#search-button:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+/* === CATEGORY NAVIGATION === */
+.category-navbar button {
+  background: none;
+  border: 2px solid #28a745;
+  color: #28a745;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
+}
+.category-navbar button:hover {
+  background-color: #e8f5e9;
+}
+.category-navbar button.active {
+  background-color: #28a745;
+  color: white;
+}
+
+/* market section tweak */
+.section.market-section {
+  padding: 10px 20px;
+}
+
+/* === MARKET ITEM GRID === */
+.market-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.item-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  width: 190px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.item-card:hover {
+  transform: scale(1.04);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.item-card img {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.item-card h4 {
+  margin: 12px 0 6px;
+}
+.item-card p {
+  margin: 4px 0;
+}
+
+/* === ITEM CONTROLS === */
+.controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0;
+}
+.controls input {
+  width: 40px;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 5px;
+}
+.controls button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+.controls button:hover {
+  background-color: #218838;
+  transform: scale(1.1);
+}
+.item-card .add-to-cart-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.item-card .add-to-cart-btn:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+/* === FOOTER === */
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #28a745;
+  color: white;
+  text-align: center;
+  padding: 10px 0;
+}
+.footer a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 600px) {
+  .delivery-select, .delivery-shift, #search-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+
+
+/*===Cart====*/
+
+.cart-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.cart-details-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.cart-details-line button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.cart-details-line button:hover {
+  background: #218838;
+}
+
+.cart-details-line .remove-btn {
+  background: #dc3545;
+}
+
+.cart-details-line .remove-btn:hover {
+  background: #c82333;
+}
+
+.cart-item {
+  background: #fff;
+  padding: 12px;
+  margin-bottom: 8px; /* reduced from 15px */
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s;
+}
+
+.cart-item:hover {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.main{
+  
+}

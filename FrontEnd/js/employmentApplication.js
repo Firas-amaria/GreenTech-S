@@ -1,9 +1,6 @@
-// employmentApplication.js
-// -------------------------
-// Builds a dynamic form based on role, with extra HTML injected.
-// All backend calls are commented out and replaced with mock data.
+/* employmentApplication.js - Optimized Version */
 
-import { initSchedule, getScheduleData } from "./schedule.js";
+import { initSchedule, getScheduleBitmaskArray } from "./schedule.js";
 import {
   auth,
   getCurrentUserToken,
@@ -11,305 +8,428 @@ import {
   signOut,
 } from "./firebase-init.js";
 
-console.log("employmentApplication.js loaded");
+  import { initMapPicker, openMapPicker } from "./mapPicker.js";
 
-// Log out link
-document.getElementById("logout-link").addEventListener("click", () => {
-  signOut(auth);
-  alert("Logged out");
-  window.location.href = "login.html";
+
+
+
+
+window.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      alert("You need to log in first!");
+      window.location.href = "login.html";
+    } else {
+      renderApplicationForm();
+    }
+  });
 });
 
-// Mock roles definition
-const mockRoles = [
+const RolesTable = [
   {
     name: "deliverer",
     description: "Responsible for transporting shipments.",
+    includeSchedule: true,
+    includeLand: false,
     fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
+      { label: "License Type", type: "text" },
+      { label: "Vehicle Make", type: "text" },
+      { label: "Vehicle Model", type: "text" },
+      { label: "Vehicle Type", type: "text" },
+      { label: "Vehicle Year", type: "number" },
+      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
+      { label: "Vehicle Insurance", type: "checkbox" },
     ],
   },
   {
-    name: "picker",
-    description: "Packages and labels containers before shipping.",
+    name: "industrial-driver",
+    description: "Delivers goods from farms to the logistics center.",
+    includeSchedule: true,
+    includeLand: false,
     fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-    ],
-  },
-  {
-    name: "supervisor",
-    description: "Oversees operations and staff.",
-    fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
+      { label: "License Type", type: "text" },
+      { label: "Vehicle Make", type: "text" },
+      { label: "Vehicle Model", type: "text" },
+      { label: "Vehicle Type", type: "text" },
+      { label: "Vehicle Year", type: "number" },
+      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
+      { label: "Vehicle Insurance", type: "checkbox" },
+      { label: "Refrigerated", type: "checkbox" },
     ],
   },
   {
     name: "farmer",
     description: "Supplies produce and quality reports.",
+    includeSchedule: false,
+    includeLand: true,
     fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
+      { label: "Agricultural Insurance", type: "checkbox" },
+      { label: "Farm Name", type: "text" },
     ],
   },
   {
-    name: "industrial",
+    name: "picker",
+    description: "Packages and labels containers before shipping.",
+    includeSchedule: false,
+    includeLand: false,
+    fields: [{ label: "Years of Experience", type: "text" }],
+  },
+  {
+    name: "warehouse-worker",
     description: "Operates heavy-duty vehicles and equipment.",
-    fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-    ],
+    includeSchedule: false,
+    includeLand: false,
+    fields: [],
   },
   {
-    name: "warehouseworker",
-    description: "Manages inventory in the warehouse.",
-    fields: [
-      { label: "Full Name", type: "text" },
-      { label: "Email", type: "email" },
-      { label: "Phone", type: "tel" },
-    ],
+    name: "sorting",
+    description: "General worker in the logistics center, sorting employee.",
+    includeSchedule: false,
+    includeLand: false,
+    fields: [],
   },
 ];
 
-function getQueryParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
-}
+const getQueryParam = (name) =>
+  new URLSearchParams(window.location.search).get(name);
 
-function capitalize(word) {
-  return word ? word[0].toUpperCase() + word.slice(1) : "";
-}
-
-onAuthStateChanged(auth, async (user) => {
+async function renderApplicationForm() {
   const container = document.getElementById("application-form-container");
+  const token = await getCurrentUserToken();
 
-  // 1) Not logged in → redirect to login
-  if (!user) {
-    alert("You need to log in first!");
-    return (window.location.href = "login.html");
+  const userRaw = localStorage.getItem("user");
+  if (userRaw) {
+    const user = JSON.parse(userRaw); // convert back to object
+    const Urole = user.role;
+    if (Urole !== "customer") {
+      alert("You already submitted for a role.");
+      return (window.location.href = "index.html");
+    }
   }
 
-  // 2) Fetch user profile from backend
-  // const token = await getCurrentUserToken();
-  // const res = await fetch('/api/user-profile', {
-  //   method: 'GET',
-  //   headers: { 'Authorization': `Bearer ${token}` }
-  // });
-  // const profile = await res.json();
-
-  // Mock profile data from backend:
-  const profile = {
-    fullName: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1234567890",
-    role: "customer", // the only role allowed to apply
-  };
-
-  // 3) If they already have a role ≠ "customer", block them
-  if (profile.role && profile.role !== "customer") {
-    alert("You already submitted for a role, you can’t have different roles");
-    return (window.location.href = "index.html");
-  }
-
-  // 4) Determine which role they're applying for
-  const roleParam = getQueryParam("role");
-  if (!roleParam) {
-    container.innerHTML = "<p>No role specified in URL.</p>";
-    return;
-  }
-  const roleObj = mockRoles.find((r) => r.name === roleParam.toLowerCase());
-  if (!roleObj) {
-    container.innerHTML = `<p>Role "${roleParam}" not found.</p>`;
+  const roleName = getQueryParam("role")?.toLowerCase();
+  const role = RolesTable.find((r) => r.name === roleName);
+  if (!role) {
+    container.innerHTML = `<p>Invalid role: ${roleName}</p>`;
     return;
   }
 
-  // Clear any existing content
+
+
+
   container.innerHTML = "";
-
-  // 1️⃣ Insert the info paragraphs
-  const info = document.createElement("div");
-  info.innerHTML = `
-    <p>Please check that your personal details we already have are up to date. 
-      If not, sign up with the up-to-date information.</p>
-    <p>This is the mail and phone number we will be using to contact you.</p>
+  container.innerHTML += `
+    <h2>Employment Application for ${role.name}</h2>
+    <p>Ensure your personal details are up to date. If not, sign up again with correct information.</p>
+    <p>We will contact you using the details below.</p>
   `;
-  container.appendChild(info);
+// Load Google Maps only if farmer
+if (role.name === "farmer") {
+  fetch("http://localhost:4000/api/maps/google-maps-script")
+    .then(res => res.json())
+    .then(data => {
+      const script = document.createElement("script");
+      script.src = data.scriptUrl + "&language=en&callback=initMap";
+      script.async = true;
+      document.head.appendChild(script);
+      console.log("✅ Google Maps script appended for farmer");
+    })
+    .catch(err => console.error("Failed to load Google Maps script", err));
 
-  // 5) Build the form
+  // Make window callback for Google Maps to call
+  window.initMap = () => {
+    console.log("✅ Google Maps callback fired on farmer application");
+    initMapPicker(); // safely initializes your mapPicker.js
+  };
+}
+
+
+
   const form = document.createElement("form");
   form.id = "application-form";
 
-  // 5a) Display static user info + hidden inputs
-  [
-    ["Full Name", profile.fullName],
-    ["Email", profile.email],
-    ["Phone", profile.phone],
-  ].forEach(([label, value]) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "form-group";
-
-    const lab = document.createElement("label");
-    lab.textContent = label;
-    wrapper.appendChild(lab);
-
-    const span = document.createElement("div");
-    span.className = "static-field";
-    span.textContent = value;
-    wrapper.appendChild(span);
-
-    const hidden = document.createElement("input");
-    hidden.type = "hidden";
-    hidden.name = label.replace(/\s+/g, "").toLowerCase();
-    hidden.value = value;
-    wrapper.appendChild(hidden);
-
-    form.appendChild(wrapper);
-  });
-
-  // Then append the form
-  container.appendChild(form);
-  // 5b) Hidden input for the role being applied to
-  const hiddenRole = document.createElement("input");
-  hiddenRole.type = "hidden";
-  hiddenRole.name = "role";
-  hiddenRole.value = roleObj.name;
-  form.appendChild(hiddenRole);
-
-  // 5c) Placeholder for extra fields
+  form.innerHTML += `<input type="hidden" name="role" value="${role.name}" />`;
   const extraFields = document.createElement("div");
   extraFields.id = "extra-fields";
   form.appendChild(extraFields);
 
-  // 5d) Submit button
-  const submitBtn = document.createElement("button");
-  submitBtn.type = "submit";
-  submitBtn.textContent = "Submit Application";
-  form.appendChild(submitBtn);
+  // Role-specific fields
+  role.fields.forEach((field) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-group";
 
-  container.innerHTML = "";
-  container.appendChild(form);
+    const label = document.createElement("label");
+    label.textContent = field.label;
+    const input = document.createElement("input");
+    input.type = field.type;
+    input.name = toCamelCase(field.label);
+    input.required = true;
 
-  // 6) Inject role-specific HTML
-  const roleKey = capitalize(roleParam.toLowerCase());
-  let html = "";
+    if (field.step) input.step = field.step;
+    if (field.min) input.min = field.min;
+    if (field.pattern) input.pattern = field.pattern;
 
-  switch (roleKey) {
-    case "Farmer":
-      html = `
-        <h3>Additional Information (Farmer)</h3>
-        <label><input type="checkbox" name="agriculturalInsurance" required /> Agricultural Insurance</label>
-        <label>Field Area (ha)<input type="number" name="fieldArea" min="0" step="0.1" required /></label>
-        <label>Crops<input type="text" name="crops" placeholder="e.g. wheat, corn" required /></label>
-        <label>Pick-Up Address<input type="text" name="pickupAddress" required /></label>
-      `;
-      break;
+    field.type === "checkbox" ? label.prepend(input) : label.appendChild(input);
+    wrapper.appendChild(label);
+    extraFields.appendChild(wrapper);
+  });
 
-    case "Deliverer":
-      html = `
-        <h3>Additional Information (Deliverer)</h3>
-        <label>License Type<input type="text" name="licenseType" required /></label>
-        <label>Vehicle Type
-          <select name="vehicleType" required>
-            <option value="" disabled selected>Select…</option>
-            <option value="truck">Truck</option>
-            <option value="tempo">Tempo</option>
-            <option value="car">Car</option>
-            <option value="motorcycle">Motorcycle</option>
-            <option value="auto-rickshaw">Auto Rickshaw</option>
-          </select>
-        </label>
-        <label>Vehicle Capacity (t)<input type="number" name="vehicleCapacity" min="0" step="0.1" required /></label>
-        <label>Driver License #<input type="text" name="driverLicenseNumber" required /></label>
-        <label>Vehicle Reg. #<input type="text" name="vehicleRegistrationNumber" required pattern="^\\d+$" title="Digits only" /></label>
-        <label><input type="checkbox" name="vehicleInsurance" required /> Insurance</label>
-        <div id="schedule-container">
-          <table>
-            <thead>
-              <tr><th>Shift/Day</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      `;
-      break;
+  // Land section
+  if (role.includeLand) {
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.id = "add-land-btn";
+    addBtn.textContent = "Add Land";
+    addBtn.style.cssText= "background-color : #28a745;";
 
-    case "Industrial-driver":
-      html = `
-        <h3>Additional Info (Industrial-driver)</h3>
-        <label>License Type<input type="text" name="licenseType" required /></label>
-        <label>Vehicle Type<input type="text" name="vehicleType" required /></label>
-        <label>Capacity (t)<input type="number" name="vehicleCapacity" min="0" step="0.1" required /></label>
-        <label>Extra Capacity (opt)<input type="number" name="vehicleExtraCapacity" min="0" step="0.1" /></label>
-        <label>Driver License #<input type="text" name="driverLicenseNumber" required /></label>
-        <label>Vehicle Reg. #<input type="text" name="vehicleRegistrationNumber" required pattern="^\\d+$" title="Digits only" /></label>
-        <label><input type="checkbox" name="vehicleInsurance" required /> Insurance</label>
-        <label><input type="checkbox" name="refrigerated" required /> Refrigerated</label>
-        <div id="schedule-container">
-          <table>
-            <thead>
-              <tr><th>Shift/Day</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      `;
-      break;
+    // Create section first
+    const landsSection = document.createElement("div");
+    landsSection.id = "lands-section";
+    landsSection.innerHTML = `<h4>Lands</h4>`;
+    extraFields.appendChild(landsSection);
 
-    default:
-      html = `<h3>Additional Information</h3><p>No extra info required.</p>`;
+    // Append button after section
+    extraFields.appendChild(addBtn);
+
+    //  Attach event listener after DOM is fully updated
+    setTimeout(() => {
+      const section = document.getElementById("lands-section");
+      const button = document.getElementById("add-land-btn");
+      if (section && button) {
+        button.addEventListener("click", () => addLand(section));
+      } else {
+        console.warn("❌ Button or section not found at timeout");
+      }
+    }, 0);
   }
 
-  // agreement checkbox (for all roles)
-  html += `
+  // Schedule
+  if (role.includeSchedule) {
+    const sched = document.createElement("div");
+    sched.id = "schedule-container";
+    sched.innerHTML = `
+      <table><thead><tr>
+        <th>Shift/Day</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+      </tr></thead><tbody></tbody></table>
+    `;
+    extraFields.appendChild(sched);
+    await initSchedule(sched);
+  }
+
+  extraFields.innerHTML += `
     <div class="agreement">
       <label><input type="checkbox" name="agreement" required /> I certify that all information is accurate.</label>
     </div>
   `;
 
-  extraFields.innerHTML = html;
+  form.innerHTML += `<button type="submit" style= "background-color :rgb(46, 164, 73);";>Submit Application</button>`;
+  container.appendChild(form);
 
-  // 7) Initialize schedule widget if needed
-  const schedEl = document.getElementById("schedule-container");
-  if (schedEl) initSchedule(schedEl);
-
-  // 8) Handle form submission
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const formData = new FormData(form);
-    if (schedEl) {
-      formData.append("schedule", JSON.stringify(getScheduleData(schedEl)));
-    }
+    const reserved = ["role", "submittedAt", "agreement"];
 
-    // Real API call commented out:
-    // const token = await getCurrentUserToken();
-    // const applyRes = await fetch('/api/apply', {
-    //   method: 'POST',
-    //   headers: { 'Authorization': `Bearer ${token}` },
-    //   body: formData
-    // });
-    // const applyResult = await applyRes.json();
-
-    // Mock response from backend:
-    const applyResult = {
-      success: true,
-      message:
-        "Application submitted successfully. We will contact you shortly.",
+    const ReqBody = {
+      certifyAccuracy: formData.get("agreement") === "on",
+      submittedAt: new Date().toISOString(),
+      role: roleName,
+      extraFields: {},
     };
 
-    if (applyResult.success) {
-      container.innerHTML = `<p class="success-message">${applyResult.message}</p>
-        <button onclick="window.location.href='index.html'">Home</button>`;
+    if (document.getElementById("schedule-container")) {
+      ReqBody.extraFields.scheduleBitmask = await getScheduleBitmaskArray(
+        document.getElementById("schedule-container")
+      );
+    }
+
+    if (role.includeLand) {
+      const lands = [];
+
+      document.querySelectorAll(".land-block").forEach((block, i) => {
+        const get = (name) =>
+          block.querySelector(`[name="land[${i}][${name}]"]`)?.value;
+        lands.push({
+  landName: get("customName") || `Land ${i + 1}`,
+  ownership: get("ownership"),
+  acres: get("acres"),
+  pickupAddress: get("pickupAddress"),
+  pickupLat: get("pickupLat"),
+  pickupLng: get("pickupLng"),
+  location: get("location"),
+  locLat: get("locLat"),
+  locLng: get("locLng"),
+});
+
+      });
+      ReqBody.extraFields.lands = lands;
+      ReqBody.extraFields.agreementPercentage = 60;
+    }
+
+    for (let [key, val] of formData.entries()) {
+      if (!reserved.includes(key) && !key.startsWith("land[")) {
+        if (val === "on") ReqBody.extraFields[key] = true;
+        else if (!isNaN(val) && val.trim() !== "")
+          ReqBody.extraFields[key] = Number(val);
+        else if (val.startsWith("{") || val.startsWith("[")) {
+          try {
+            ReqBody.extraFields[key] = JSON.parse(val);
+          } catch {
+            ReqBody.extraFields[key] = val;
+          }
+        } else {
+          ReqBody.extraFields[key] = val;
+        }
+      }
+    }
+
+    // Optional renaming
+    const mapKeys = {
+      "Vehicle_Capacity_(t)": "vehicleCapacity",
+    };
+
+    Object.entries(mapKeys).forEach(([oldK, newK]) => {
+      if (oldK in ReqBody.extraFields) {
+        ReqBody.extraFields[newK] = ReqBody.extraFields[oldK];
+        delete ReqBody.extraFields[oldK];
+      }
+    });
+
+    // Remove leftover raw weekday shift fields from extraFields
+    const rawDays = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    rawDays.forEach((day) => {
+      delete ReqBody.extraFields[day];
+    });
+
+    const response = await fetch(
+      "http://localhost:4000/api/auth/register-employee",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(ReqBody),
+      }
+    );
+
+    const resData = await response.json();
+    if (response.ok) {
+      alert(resData.message || "Application submitted!");
+      window.location.href = "market.html";
     } else {
-      container.innerHTML = `<p>${
-        applyResult.message || "Submission failed."
-      }</p>`;
+      alert("Error: " + (resData.error || "Unknown"));
     }
   });
-});
+}
+
+function toCamelCase(label) {
+  return label
+    .replace(/\(.*?\)/g, "") // Remove anything in parentheses (e.g., "(t)")
+    .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters (keep letters/numbers/spaces)
+    .trim()
+    .split(/\s+/) // Split by space
+    .map((word, index) => {
+      if (index === 0) return word.toLowerCase();
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join("");
+}
+
+let landIndex = 0;
+window.addLand = function (landsSection) {
+  if (!landsSection) return;
+
+  const index = landIndex++; // use current index, then increment
+  const block = document.createElement("div");
+  block.className = "land-block";
+
+  block.innerHTML = `
+    <h5>Land ${index + 1}</h5>
+
+    <!-- Custom Name -->
+    <label>Custom Name:
+      <input type="text" name="land[${index}][customName]" placeholder="Land ${index + 1}" />
+    </label><br/>
+
+    <!-- Ownership Dropdown -->
+    <label>Ownership:
+      <select name="land[${index}][ownership]">
+        <option value="Owned">Owned</option>
+        <option value="Rented">Rented</option>
+      </select>
+    </label><br/>
+
+    <!-- Acres -->
+    <label>Acres:
+      <input type="number" step="any" name="land[${index}][acres]" />
+    </label><br/>
+
+    <!-- Pickup Address -->
+    <label>Pickup Address:
+      <input type="text" name="land[${index}][pickupAddress]" placeholder="Click to pick on map" readonly style="cursor:pointer; background:#f9f9f9;" />
+    </label>
+    <input type="hidden" name="land[${index}][pickupLat]" />
+    <input type="hidden" name="land[${index}][pickupLng]" /><br/>
+
+    <!-- Location -->
+    <label>Location:
+      <input type="text" name="land[${index}][location]" placeholder="Click to pick on map" readonly style="cursor:pointer; background:#f9f9f9;" />
+    </label>
+    <input type="hidden" name="land[${index}][locLat]" />
+    <input type="hidden" name="land[${index}][locLng]" /><br/>
+
+    <!-- Delete button -->
+    <button type="button" class="delete-land-btn" style="margin-top:5px; background:#d9534f; color:white; border:none; padding:5px 10px; cursor:pointer;">Delete Land</button>
+    <hr/>
+  `;
+
+  landsSection.appendChild(block);
+
+  // Bind delete button
+  block.querySelector(".delete-land-btn").addEventListener("click", () => {
+    landsSection.removeChild(block);
+  });
+
+  // === MAP BINDINGS ===
+  // Pickup address click
+  const pickupInput = block.querySelector(`[name="land[${index}][pickupAddress]"]`);
+  const pickupLatInput = block.querySelector(`[name="land[${index}][pickupLat]"]`);
+  const pickupLngInput = block.querySelector(`[name="land[${index}][pickupLng]"]`);
+
+  pickupInput.addEventListener("click", () => {
+    openMapPicker((location) => {
+      pickupInput.value = location.address;
+      pickupLatInput.value = location.latitude;
+      pickupLngInput.value = location.longitude;
+    });
+  });
+
+  // Location click
+  const locInput = block.querySelector(`[name="land[${index}][location]"]`);
+  const locLatInput = block.querySelector(`[name="land[${index}][locLat]"]`);
+  const locLngInput = block.querySelector(`[name="land[${index}][locLng]"]`);
+
+  locInput.addEventListener("click", () => {
+    openMapPicker((location) => {
+      locInput.value = location.address;
+      locLatInput.value = location.latitude;
+      locLngInput.value = location.longitude;
+    });
+  });
+};
+
+
+const capitalize = (w) => w && w[0].toUpperCase() + w.slice(1);

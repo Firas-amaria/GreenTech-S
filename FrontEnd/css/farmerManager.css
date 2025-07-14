@@ -1,0 +1,238 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+  color: #333;
+}
+
+h1, h2 {
+  color: #2c3e50;
+}
+
+.dashboard-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.section {
+  flex: 0 0 calc(50% - 20px);
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+
+
+.section h2 {
+  margin-top: 0;
+}
+
+#next-shifts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shift-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  margin: 8px 0;
+}
+
+@media (min-width: 1200px) {
+  .section {
+    flex: 0 0 calc(45% - 20px);
+  }
+}
+
+
+
+/*  FOR STOCK CREATE  */
+
+.item-section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.item-section h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.item-section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.item-section th, .item-section td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.item-section th {
+  background: #e8e8e8;
+}
+
+.item-section input[type="number"] {
+  width: 80px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.item-section button {
+  padding: 5px 10px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.item-section button:hover {
+  background: #2980b9;
+}
+
+.item-section p {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+button.added {
+  background: #27ae60;
+}
+button.added:hover {
+  background: #219150;
+}
+
+/*  Manage Items  */
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+.controls {
+  margin-bottom: 15px;
+}
+#itemsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+.itemCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+}
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 950px; /* previously 650px */
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.hidden {
+  display: none;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.edit-section {
+  margin-top: 20px;
+}
+.edit-section label {
+  display: block;
+  margin: 10px 0;
+}
+.price-grid label {
+  display: inline-block;
+  margin-right: 15px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+.form-actions {
+  margin-top: 20px;
+  text-align: right;
+}
+.edit-section table {
+  width: 100%;
+}
+
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #28a745;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-size: 1rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s, transform 0.4s;
+  z-index: 9999;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}

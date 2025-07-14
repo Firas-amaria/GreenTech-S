@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Delivery Note</title>
+  <link rel="stylesheet" href="css/delivery-note.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+  <div class="delivery-note">
+    <div id="main-qr" style="text-align:center; margin-bottom:20px;"></div>
+
+    <h1>Delivery Note</h1>
+
+    <div class="customer-info" id="customer-info"></div>
+
+    <div id="farmers-container"></div>
+
+    <div class="totals">
+      <p><strong>Total Weight:</strong> <span id="total-kg">0</span> kg</p>
+      <p><strong>Total Price:</strong> $<span id="total-price">0</span></p>
+    </div>  
+  </div>
+
+  <script type="module" src="js/delivery-note.js"></script>
+</body>
+</html>

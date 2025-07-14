@@ -159,8 +159,8 @@ table td {
 }
 
 table th {
-  background-color: #34495e;
-  color: #ecf0f1;
+  background-color: #314c68;
+  color: #060b0c;
 }
 
 button {
@@ -192,17 +192,7 @@ table {
   border-collapse: collapse;
 }
 
-table th,
-table td {
-  border: 1px solid #bdc3c7;
-  padding: 8px;
-  text-align: left;
-}
 
-table th {
-  background-color: #34495e;
-  color: #ecf0f1;
-}
 
 button {
   padding: 6px 12px;
@@ -221,9 +211,11 @@ button:hover {
 #extra-fields label:has(> input[type="checkbox"]) {
   display: inline-flex;
   align-items: center;
-  gap: 8px;            /* space between box & text */
+  gap: 8px;
+  /* space between box & text */
   margin-bottom: 12px;
-  flex-direction: row;  /* override the column layout */
+  flex-direction: row;
+  /* override the column layout */
 }
 
 /* Ensure agreement checkbox appears the same way */
@@ -233,3 +225,5 @@ button:hover {
   gap: 8px;
   margin-top: 16px;
 }
+
+

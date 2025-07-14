@@ -1,297 +1,355 @@
-/*******************************************************
- * script.js
- * 
- * Dynamic front‐end “Farmer Dashboard” demo. All core
- * behaviors (sorting, approving, status transitions)
- * are fully functional without a backend. Wherever a
- * real API call is needed, you’ll find comments marked
- * `// BACKEND:` telling you exactly what to swap in later.
- ******************************************************/
+import { getCurrentUserToken } from "../js/firebase-init.js";
 
-// ===== 1) In‐Memory Sample Data =====
-// (Eventually replace with fetch(...) from your backend)
+// Global variables
+let approvedShipments = [];
+let shipmentRequests = [];
+let parsedLands = [];
+let itemList = [];
 
-let approvedShipments = [
-  { id: 301, item: 'Tomato', amount: 120, pickupTime: '2025-06-02T08:00' },
-  { id: 302, item: 'Lettuce', amount: 80, pickupTime: '2025-06-01T09:30' },
-  { id: 303, item: 'Potato', amount: 200, pickupTime: '2025-06-04T11:00' }
-];
-
-let shipmentRequests = [
-  { id: 1, item: 'Carrot', amount: 50, pickupTime: '2025-06-03T10:00' },
-  { id: 2, item: 'Spinach', amount: 40, pickupTime: '2025-06-05T13:30' }
-];
-
-let cropsData = 
- [
-      {
-        id: 1,
-        item: 'Tomato',
-        plantedAmount: 10,
-        plantedOn: '2025-05-01T07:00',
-        status: 'Planting',
-        lastUpdated: '2025-05-01T07:00',
-         percentage: '50%'
+//API call function
+async function fetchApprovedShipments() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getApprovedShipments",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-      {
-        id: 2,
-        item: 'Lettuce',
-        plantedAmount: 5,
-        plantedOn: '2025-05-10T06:00',
-        status: 'Growing',
-        lastUpdated: '2025-05-11T07:00',
-         percentage: '90%'
-      },
-      {
-        id: 3,
-        item: 'Potato',
-        plantedAmount: 8,
-        plantedOn: '2025-04-20T06:30',
-        status: 'Harvesting',
-         percentage: '85%'
-      }
-    ];
-
-
-
-// ===== Possible Crop Status Stages in Order =====
-const cropStatusOptions = [
-  "Planting",
-  "Growing",
-  "Crop Maintenance",
-  "Blooming",
-  "Fruit Set",
-  "Ripening",
-  "Harvesting",
-  "Harvested",
-  "Field Clearing"
-];
-
-// ===== Utility: Format a "YYYY-MM-DDTHH:MM" string to Human‐Readable =====
-function formatDateTimeLocal(dtLocal) {
-  const d = new Date(dtLocal);
-  if (isNaN(d)) return dtLocal;
-  return d.toLocaleString(); // e.g. "6/2/2025, 8:00:00 AM"
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
 }
 
-// ===== 2) Sidebar Navigation Logic =====
-const navButtons = document.querySelectorAll('.nav-btn');
-const views = document.querySelectorAll('.view');
+async function fetchShipmentRequests() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getShipmentRequests",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
 
-navButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    navButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const viewId = btn.dataset.view;
-    views.forEach(v => {
-      v.id === viewId ? v.classList.add('active') : v.classList.remove('active');
-    });
+async function fetchFarmerLands() {
+  const token = await getCurrentUserToken();
+  const response = await fetch(
+    "http://localhost:4000/api/farmer/getFarmerLands",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
+async function fetchItemList() {
+  const token = await getCurrentUserToken();
+  const response = await fetch("http://localhost:4000/api/farmer/getItemList", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-});
+  if (!response.ok) throw new Error("Failed to fetch users");
+  return await response.json();
+}
+
+async function loadDashboardData() {
+  try {
+    showLoadingIndicator("Loading dashboard data...");
+
+    approvedShipments = await fetchApprovedShipments();
+    shipmentRequests = await fetchShipmentRequests();
+    parsedLands = await fetchFarmerLands();
+    itemList = await fetchItemList();
+
+    hideLoadingIndicator();
+    return true;
+  } catch (error) {
+    console.warn("Failed to load from API, using fallback data:", error);
+    hideLoadingIndicator();
+    showToast("Using offline mode - some features may be limited", "warning");
+
+    return false;
+  }
+}
+
+// Approve shipment request via API
+async function approveRequestViaAPI(requestId) {
+  try {
+    console.log("request id :" + requestId);
+    const token = await getCurrentUserToken();
+
+    const response = await fetch(
+      `http://localhost:4000/api/farmer/approveShipmentRequest/${requestId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) throw new Error("Failed to Approve Shipment Request");
+  } catch (error) {
+    console.error("Failed to approve request via API:", error);
+    throw error;
+  }
+}
+
+// =================================================================
+// 🎨 UI HELPER FUNCTIONS
+// =================================================================
+
+function showLoadingIndicator(message = "Loading...") {
+  let loader = document.getElementById("loadingIndicator");
+  if (!loader) {
+    loader = document.createElement("div");
+    loader.id = "loadingIndicator";
+    loader.innerHTML = `
+      <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                  background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px; z-index: 1000;
+                  text-align: center;">
+        <div>${message}</div>
+        <div style="margin-top: 10px;">⏳</div>
+      </div>
+    `;
+    document.body.appendChild(loader);
+  } else {
+    loader.querySelector("div div").textContent = message;
+  }
+  loader.style.display = "block";
+}
+
+function hideLoadingIndicator() {
+  const loader = document.getElementById("loadingIndicator");
+  if (loader) {
+    loader.style.display = "none";
+  }
+}
+
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  const colors = {
+    success: "#4CAF50",
+    error: "#F44336",
+    warning: "#FF9800",
+    info: "#2196F3",
+  };
+
+  toast.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 1001;
+    padding: 12px 20px; border-radius: 4px; color: white;
+    background: ${colors[type] || colors.info};
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-width: 300px; word-wrap: break-word;
+  `;
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    if (document.body.contains(toast)) {
+      document.body.removeChild(toast);
+    }
+  }, 4000);
+}
+
+function getItemDisplayName(itemId) {
+  const item = itemList.find((it) => it.id === itemId);
+  if (!item) {
+    console.warn("No item found for ID:", itemId);
+    return "Unknown Crop";
+  }
+  return item.name;
+}
+
+// ===== 2) Helpers =====
+function formatDateOnly(isoString) {
+  const d = new Date(isoString);
+  return isNaN(d)
+    ? isoString
+    : `${String(d.getDate()).padStart(2, "0")}/${String(
+        d.getMonth() + 1
+      ).padStart(2, "0")}/${d.getFullYear()}`;
+}
 
 // ===== 3) Populate Approved Shipments Table =====
 function populateApprovedTable() {
-  // Sort by soonest pickupTime (ascending)
-  approvedShipments.sort((a, b) => new Date(a.pickupTime) - new Date(b.pickupTime));
+  const tbody = document.querySelector("#tblApprovedDash tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
 
-  const tbody = document.querySelector('#tblApproved tbody');
-  tbody.innerHTML = '';
-
-  approvedShipments.forEach(sh => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${sh.id}</td>
-      <td>${formatDateTimeLocal(sh.pickupTime)}</td>
-      <td>${sh.item}</td>
-      <td>
-        <button class="small btn-primary" onclick="goToShipmentReport(${sh.id})">
-          Shipment Report
-        </button>
-      </td>
+  approvedShipments.sort(
+    (a, b) => new Date(a.pickupTime) - new Date(b.pickupTime)
+  );
+  approvedShipments.forEach((sh) => {
+    if (sh.overallStatus == "at-farm") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-primary" onclick="createReport('${
+        sh.id
+      }')">Create Report</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    } else if (sh.overallStatus == "ready-for-pickup") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${sh.itemDisplayName}</td>
+      <td>${sh.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(sh.scheduledPickupDate) +
+        "  " +
+        sh.scheduledPickupTimeSlot
+      }</td>
+      <td>${sh.pickupAddress}</td>
+      <td><button class="small btn-secondary" onclick="viewReport('${
+        sh.id
+      }')">View Report</button></td>
+    `;
+      tbody.appendChild(tr);
+    }
   });
-}
-
-// Placeholder: “Go to Shipment Report” for a given ID
-function goToShipmentReport(shipmentId) {
-  alert(`(Placeholder) Navigate to Shipment Report page for ID ${shipmentId}`);
-  // BACKEND: Replace alert with real navigation, e.g.:
-  // window.location.href = `/shipment-report.html?shipmentId=${shipmentId}`;
 }
 
 // ===== 4) Populate Shipment Requests Table =====
 function populateRequestsTable() {
-  const tbody = document.querySelector('#tblRequests tbody');
-  tbody.innerHTML = '';
+  const tbody = document.querySelector("#tblRequestsDash tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
 
-  shipmentRequests.forEach(req => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${req.item}</td>
-      <td>${req.amount}</td>
-      <td>${formatDateTimeLocal(req.pickupTime)}</td>
-      <td>
-        <button class="small btn-success" onclick="approveRequest(${req.id})">
-          Approve
-        </button>
-      </td>
+  shipmentRequests.forEach((req) => {
+    if (req.status === "forecasted") {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${req.itemDisplayName}</td>
+      <td>${"Expected:" + req.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(req.scheduledPickupDate) +
+        "  " +
+        req.scheduledPickupTimeSlot
+      }</td>
+<button class="small btn-no-success" >Waiting Finalization</button>
     `;
-    tbody.appendChild(tr);
-  });
-}
-
-// Approve a request: remove from requests, add to approved, re‐render
-function approveRequest(requestId) {
-  const idx = shipmentRequests.findIndex(r => r.id === requestId);
-  if (idx < 0) return;
-
-  // Remove from in‐memory requests
-  const req = shipmentRequests.splice(idx, 1)[0];
-
-  // Create a new approved shipment (generate a new ID for demo)
-  const newShipmentId = (approvedShipments.length
-    ? Math.max(...approvedShipments.map(s => s.id)) + 1
-    : 301
-  );
-  approvedShipments.push({
-    id: newShipmentId,
-    item: req.item,
-    amount: req.amount,
-    pickupTime: req.pickupTime
-  });
-
-  // Re‐render both tables
-  populateRequestsTable();
-  populateApprovedTable();
-
-  alert(`Request #${requestId} approved as Shipment #${newShipmentId}.`);
-
-  // BACKEND: Instead of the above in‐memory logic, do:
-  // await fetch(`/api/shipments/requests/${requestId}/approve`, { method: 'POST' });
-  // Then re‐fetch from backend or update local arrays accordingly.
-}
-
-// ===== 5) Populate Crops Status Table =====
-function populateCropsTable() {
-  const tbody = document.querySelector('#tblCrops tbody');
-  tbody.innerHTML = '';
-
-  cropsData.forEach(crop => {
-    const tr = document.createElement('tr');
-
-    // Determine current status index
-    const currentIndex = cropStatusOptions.indexOf(crop.status);
-    const isFinal = currentIndex === cropStatusOptions.length - 1; // "Field Clearing"
-
-    // Build <select> if not final, else just show text
-    let statusCell = '';
-    if (!isFinal) {
-      const nextStatus = cropStatusOptions[currentIndex + 1];
-      statusCell = `
-        <td class="inline-edit">
-          <select data-id="${crop.id}" onchange="updateCropStatus(${crop.id}, this.value)">
-            <option value="">--Choose Next--</option>
-            <option value="${nextStatus}">${nextStatus}</option>
-          </select>
-        </td>
-      `;
+      tbody.appendChild(tr);
     } else {
-      statusCell = `<td>${crop.status}</td>`;
-    }
-
-    tr.innerHTML = `
-      <td>${crop.item}</td>
-      <td>${crop.plantedAmount}</td>
-      <td>${formatDateTimeLocal(crop.plantedOn)}</td>
-      ${statusCell}
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+      <td>${req.itemDisplayName}</td>
+      <td>${req.forecastedQuantityKg}</td>
+      <td>${
+        formatDateOnly(req.scheduledPickupDate) +
+        "  " +
+        req.scheduledPickupTimeSlot
+      }</td>
+      <td><button class="small btn-success" onclick="approveDash('${
+        req.id
+      }')">Approve</button></td>
     `;
-    tbody.appendChild(tr);
+      tbody.appendChild(tr);
+    }
   });
 }
 
-// Update a crop’s status to its next stage
-function updateCropStatus(cropId, chosenStatus) {
-  if (!chosenStatus) return; // no selection
+// ===== 5) Populate Crops Status Table (Read-Only) =====
+function populateCropsTable() {
+  const tbody = document.querySelector("#tblCropsDash tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
 
-  const idx = cropsData.findIndex(c => c.id === cropId);
-  if (idx < 0) return;
+  parsedLands.forEach((land) => {
+    const crop = land.crop;
 
-  const currentIdx = cropStatusOptions.indexOf(cropsData[idx].status);
-  const nextIdx = cropStatusOptions.indexOf(chosenStatus);
-
-  // Ensure they only pick exactly currentIndex + 1
-  if (nextIdx !== currentIdx + 1) {
-    alert('You can only advance to the next stage.');
-    populateCropsTable();
-    return;
-  }
-
-  // If next stage is "Harvested", prompt for harvested amount
-  if (chosenStatus === 'Harvested') {
-    const harvestAmt = prompt(
-      `Enter the harvested amount (kg) for "${cropsData[idx].item}":`
-    );
-    const num = parseFloat(harvestAmt);
-    if (isNaN(num) || num < 0) {
-      alert('Invalid harvested amount. Status not updated.');
-      populateCropsTable();
+    if (!crop) {
+      console.log(`Land ${land.landName} has no crops, skipping...`);
       return;
     }
-    cropsData[idx].harvestedAmount = num;
-    // BACKEND: Later, send this harvested amount to your API:
-    // await fetch(`/api/crops/${cropId}/harvest`, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ harvestedAmount: num })
-    // });
-  }
 
-  // Update status
-  cropsData[idx].status = chosenStatus;
+    const tr = document.createElement("tr");
 
-  // BACKEND: In a full integration, send the new status to the server:
-  // await fetch(`/api/crops/${cropId}/status`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ status: chosenStatus })
-  // });
+    // Format updatedAt safely
+    const updatedDate = crop.updatedAt?._seconds
+      ? formatDateOnly(new Date(crop.updatedAt._seconds * 1000))
+      : "—";
 
-  populateCropsTable();
+    tr.innerHTML = `
+      <td>${land.landName}</td>
+      <td>${getItemDisplayName(crop.itemId)}</td>
+      <td>${crop.plantedAmount}</td>
+      <td>${formatDateOnly(crop.plantedDate)}</td>
+      <td>${crop.status}</td>
+      <td>${updatedDate}</td>
+      <td>${crop.statusPercentage + "%"}</td>
+      <td><img src="${crop.imageUrl || "https://via.placeholder.com/50"}"
+               alt="${getItemDisplayName(crop.itemId) || "Crop"}"
+               width="50" height="50"/></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
 }
 
-// ===== 6) Logout Button =====
-document.getElementById('btnLogout').addEventListener('click', () => {
-  alert('Logging out... (placeholder)');
-  // BACKEND: Call your logout endpoint or clear tokens, then:
-  // window.location.href = '/login.html';
+// ===== 6) Approve Request Handler =====
+//TODO comaback after fin f-crop and understanding more
+async function approveDash(requestId) {
+  try {
+    // Show loading state
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = "Approving...";
+    button.disabled = true;
+
+    // Try to approve via API
+    try {
+      await approveRequestViaAPI(requestId);
+      showToast("Request approved successfully!", "success");
+    } catch (apiError) {
+      console.warn("API failed, updating locally:", apiError);
+    }
+
+    // Restore button
+    button.textContent = originalText;
+    button.disabled = false;
+  } catch (error) {
+    console.error("Failed to approve request:", error);
+    showToast("Failed to approve request. Please try again.", "error");
+  }
+}
+window.approveDash = approveDash;
+
+// ===== 7) Redirect to Report =====
+function createReport(shipmentId) {
+  window.location.href = `f-shipmentReport.html?shipmentId=${shipmentId}`;
+}
+window.createReport = createReport;
+
+function viewReport(shipmentId) {
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
+}
+window.viewReport = viewReport;
+
+// ===== 9) Init =====
+window.addEventListener("load", async () => {
+  // Load data from API
+  await loadDashboardData();
+
+  // Populate all tables
+  populateApprovedTable();
+  populateRequestsTable();
+  populateCropsTable();
 });
-
-// ===== 7) Initial Render =====
-populateApprovedTable();
-populateRequestsTable();
-populateCropsTable();
-
-// ===== 8) Future: Fetch Initial Data from Backend =====
-// Once you’re ready to hook into a real API, you can replace the in‐memory arrays above
-// with something like:
-//
-// async function fetchInitialData() {
-//   // Fetch approved shipments
-//   let resApproved = await fetch('/api/shipments/approved');
-//   approvedShipments = await resApproved.json();
-//
-//   // Fetch pending requests
-//   let resRequests = await fetch('/api/shipments/requests');
-//   shipmentRequests = await resRequests.json();
-//
-//   // Fetch all crops
-//   let resCrops = await fetch('/api/crops');
-//   cropsData = await resCrops.json();
-//
-//   populateApprovedTable();
-//   populateRequestsTable();
-//   populateCropsTable();
-// }
-//
-// window.onload = fetchInitialData;

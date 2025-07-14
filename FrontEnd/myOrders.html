@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Orders</title>
+  <link rel="stylesheet" href="./css/myOrders.css" />
+  <link rel="stylesheet" href="css/market.css" />
+</head>
+<body>
+  <script src="./js/marketNavBar.js" type="module"></script>
+  <main>
+  <div class="orders-page">
+    <h1>My Orders</h1>
+
+    <div class="order-filters">
+      <select id="time-filter">
+        <option value="all">All Orders</option>
+        <option value="week">This Week</option>
+        <option value="month">This Month</option>
+        <option value="custom">Custom Range</option>
+      </select>
+      <input type="date" id="start-date" style="display: none;">
+      <input type="date" id="end-date" style="display: none;">
+      <button id="filter-button" style="display: none;">Apply</button>
+    </div>
+
+    <div class="orders-list" id="orders-container">
+      <p>Loading your orders...</p>
+    </div>
+  </div>
+  </main>
+  <footer class="footer">
+    <a href="jobs.html">Job Opportunities</a>
+  </footer>
+
+  <script type="module" src="js/myOrders.js"></script>
+</body>
+</html>

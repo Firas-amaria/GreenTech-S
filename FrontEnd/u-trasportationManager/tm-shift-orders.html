@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shift Orders</title>
+  <link rel="stylesheet" href="../css/trasportaionManager.css" />
+</head>
+<body>
+  <header>
+    <nav id="main-nav"></nav>
+  </header>
+  <h1>Orders for <span id="shift-info"></span></h1>
+ <div id="sub-nav">
+      <ul>
+        <li><a id="orders-tab" class="sub-active" href="#">Orders</a></li>
+      </ul>
+    </div>
+  <main style="padding:20px;">
+   
+<div style="margin: 15px 0;">
+  <label for="summary-sort">Summarize by:</label>
+  <select id="summary-sort" style="padding:6px 10px; border-radius:5px; border:1px solid var(--border-color);">
+    <option value="order">Order</option>
+    <option value="location">Location</option>
+  </select>
+</div>
+
+   
+
+    <section id="orders-section" class="section">
+      <table id="orders-table">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Address</th>
+            <th>Total Volume (kg)</th>
+            <th></th> <!-- arrow toggle -->
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4">Loading orders...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module" src="../js/tm-shift-orders.js"></script>
+</body>
+</html>

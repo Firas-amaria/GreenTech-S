@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard - Job Applications</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/jobApplications.css" />
+</head>
+
+<body>
+  <!-- Main Navigation -->
+  <header>
+    <nav id="main-nav"></nav>
+    <!-- Sub-navigation -->
+    <nav id="sub-nav">
+      <ul>
+        <li><a href="#" id="tab-review" class="sub-active">Review</a></li>
+        <li><a href="#" id="tab-jobs">Jobs</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="review-section">
+      <h1>Application Review</h1>
+      <div id="application-filters">
+        <label for="filter-role">Filter by Role:</label>
+        <select id="filter-role"></select>
+
+        <label for="filter-date">Filter by Date:</label>
+        <select id="filter-time">
+          <option value="">All Time</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="last-week">Last Week</option>
+          <option value="last-month">Last Month</option>
+          <option value="last-year">Last Year</option>
+        </select>
+
+
+        <label for="filter-search">Search:</label>
+        <input type="text" id="filter-search" placeholder="Search by name, email..." />
+
+        <button id="apply-app-filters">Apply Filters</button>
+      </div>
+
+      <div id="applications-list"></div>
+    </section>
+
+    <section id="jobs-section" style="display:none;">
+      <h1>Roles Management</h1>
+      <table id="roles-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <form id="add-role-form">
+        <input id="new-role-name" placeholder="Role title" required />
+        <input id="new-role-desc" placeholder="Job description" required />
+        <button type="submit">Add Role</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Load as ES module so imports work -->
+  <script type="module" src="../js/admin-jobApplications.js"></script>
+  <script type="module" src="../js/m_nav_menu.js"></script>
+</body>
+
+</html>

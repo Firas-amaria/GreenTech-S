@@ -52,7 +52,7 @@ h1 {
 .job-card button {
   align-self: flex-start;
   padding: 8px 12px;
-  background-color: #2b3e50;
+   background-color: #28a745;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -63,3 +63,5 @@ h1 {
 .job-card button:hover {
   background-color: #1a2530;
 }
+
+
