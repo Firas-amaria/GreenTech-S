@@ -8,6 +8,7 @@ const {
   getCustomerOrders,
   addNewAddress,
   getCustomerOrderById,
+    markOrderAsDelivered,
 } = require("../controllers/customerController");
 
 // existing route
@@ -17,6 +18,7 @@ router.get("/profile", getCustomerProfile);
 router.get("/saved-address", authenticate,getSavedAddress);
 router.get("/order/:orderId", authenticate, getCustomerOrderById);
 router.get("/customer-orders", authenticate, getCustomerOrders);
+router.patch("/:orderId/mark-delivered", authenticate, markOrderAsDelivered);
 
 // new: save customer address
 router.post("/save-address", authenticate, addNewAddress);

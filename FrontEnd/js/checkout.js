@@ -22,7 +22,11 @@ async function loadCheckout() {
 
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const shift = localStorage.getItem("selectedShift");
-  const address = localStorage.getItem("selectedAddress");
+  const selectedAddress = JSON.parse(localStorage.getItem("selectedAddress"));
+  console.log(selectedAddress);
+let address=selectedAddress.address;
+
+
 
   if (!cart.length || !shift || !address) {
     container.innerHTML = "<p>Missing cart data or delivery info. Redirecting...</p>";
@@ -103,7 +107,7 @@ window.submitOrder = async function() {
 
     const orderPayload = {
       items: cart,
-      deliveryAddress: address,
+      deliveryAddress: selectedAddress,
       deliveryDate,
       deliveryShift,
       totalOrderValue: total,
