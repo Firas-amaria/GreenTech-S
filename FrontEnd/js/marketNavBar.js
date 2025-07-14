@@ -21,11 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Not logged in
     leftLinks.appendChild(createLink("register.html", "Register", "nav-register"));
     leftLinks.appendChild(createLink("login.html", "Log In", "nav-login"));
+
   } else {
     // Logged in (customer or not)
     leftLinks.appendChild(createLink("cart.html", "Cart (<span id='cart-count'>0</span>)", "nav-cart", true));
     leftLinks.appendChild(createLink("profile.html", "Profile", "nav-profile"));
     leftLinks.appendChild(createLink("myOrders.html", "My Orders", "nav-orders"));
+  
 
     if (role !== "customer") {
       // Additional dashboard link
