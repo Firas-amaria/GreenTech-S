@@ -71,11 +71,18 @@ document.addEventListener("DOMContentLoaded", () => {
   menuItems.forEach((item) => {
     const li = document.createElement("li");
     if (item.className) li.classList.add(item.className);
+    if(item.className === "user-greeting") {
+      li.classList.add("greeting");
+      li.textContent = item.text; // No link for greeting
+
+    }
+    else{
     const a = document.createElement("a");
     a.href = item.href;
     a.textContent = item.text;
     if (item.id) a.id = item.id;
     li.appendChild(a);
+    }
     ul.appendChild(li);
   });
 
