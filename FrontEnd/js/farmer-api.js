@@ -10,7 +10,7 @@ const API_BASE_URL = "http://localhost:4000/api/farmer"; // Update this to your 
 function getAuthToken() {
   // This should return the actual JWT token from your auth system
   // For now, return null - you'll need to implement this based on your auth
-  return localStorage.getItem("authToken") || null;
+  return localStorage.getItem("token") || null;
 }
 
 // Helper function to make authenticated API calls

@@ -28,7 +28,7 @@ const RolesTable = [
     fields: [{ label: "Years of Experience", type: "text" }],
   },
   {
-    name: "industrial-driver",
+    name: "industrialDriver",
     description: "delivering goods from farms to logistic center",
     includeSchedule: true,
     includeLand: false,

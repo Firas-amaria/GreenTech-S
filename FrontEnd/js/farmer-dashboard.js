@@ -7,16 +7,19 @@ const API_BASE_URL = "http://localhost:4000/api/farmer";
 
 // Helper function to get auth token
 function getAuthToken() {
-  return localStorage.getItem("authToken") || null;
+  return localStorage.getItem("token") || null;
 }
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
   const token = getAuthToken();
-  
+
   // Debug logging
-  console.log('Token being sent:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-  console.log('Making API call to:', `${API_BASE_URL}${endpoint}`);
+  console.log(
+    "Token being sent:",
+    token ? `${token.substring(0, 20)}...` : "NO TOKEN"
+  );
+  console.log("Making API call to:", `${API_BASE_URL}${endpoint}`);
 
   const config = {
     method: "GET",
@@ -32,8 +35,8 @@ async function apiCall(endpoint, options = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (!response.ok) {
-      console.error('API Response status:', response.status);
-      console.error('API Response headers:', response.headers);
+      console.error("API Response status:", response.status);
+      console.error("API Response headers:", response.headers);
       throw new Error(`API Error: ${response.status} ${response.statusText}`);
     }
 
@@ -70,12 +73,12 @@ async function loadDashboardData() {
 
     // Update dashboard metrics if elements exist
     updateDashboardMetrics(data.summary);
-    
+
     console.log("Successfully loaded dashboard data from API");
     console.log("Approved shipments:", approvedShipments);
     console.log("Shipment requests:", shipmentRequests);
     console.log("Parsed lands:", parsedLands);
-    
+
     hideLoadingIndicator();
     return true;
   } catch (error) {
@@ -92,17 +95,19 @@ async function loadDashboardData() {
 // Helper function to update dashboard metrics
 function updateDashboardMetrics(summary) {
   if (!summary) return;
-  
+
   // Update metrics if elements exist
-  const totalFarmsEl = document.getElementById('totalFarms');
-  const totalItemsEl = document.getElementById('totalItems'); 
-  const totalShipmentsEl = document.getElementById('totalShipments');
-  const totalRevenueEl = document.getElementById('totalRevenue');
-  
+  const totalFarmsEl = document.getElementById("totalFarms");
+  const totalItemsEl = document.getElementById("totalItems");
+  const totalShipmentsEl = document.getElementById("totalShipments");
+  const totalRevenueEl = document.getElementById("totalRevenue");
+
   if (totalFarmsEl) totalFarmsEl.textContent = summary.totalFarms || 0;
   if (totalItemsEl) totalItemsEl.textContent = summary.totalItems || 0;
-  if (totalShipmentsEl) totalShipmentsEl.textContent = summary.totalShipments || 0;
-  if (totalRevenueEl) totalRevenueEl.textContent = `$${summary.totalRevenue || 0}`;
+  if (totalShipmentsEl)
+    totalShipmentsEl.textContent = summary.totalShipments || 0;
+  if (totalRevenueEl)
+    totalRevenueEl.textContent = `$${summary.totalRevenue || 0}`;
 }
 
 function loadFallbackData() {
@@ -279,7 +284,9 @@ function populateApprovedTable() {
       <td>${sh.id}</td>
       <td>${formatDateTimeLocal(sh.pickupTime)}</td>
       <td>${sh.item}</td>
-      <td><button class="small btn-primary" onclick="goToReport('${sh.id}')">Shipment Report</button></td>
+      <td><button class="small btn-primary" onclick="goToReport('${
+        sh.id
+      }')">Shipment Report</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -297,7 +304,9 @@ function populateRequestsTable() {
       <td>${req.item}</td>
       <td>${req.amount}</td>
       <td>${formatDateTimeLocal(req.pickupTime)}</td>
-      <td><button class="small btn-success" onclick="approveDash('${req.id}')">Approve</button></td>
+      <td><button class="small btn-success" onclick="approveDash('${
+        req.id
+      }')">Approve</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -311,23 +320,25 @@ function populateCropsTable() {
 
   parsedLands.forEach((land) => {
     const crop = land.Crops;
-    
+
     // Skip lands that don't have crops
     if (!crop) {
       console.log(`Land ${land.name} has no crops, skipping...`);
       return;
     }
-    
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${land.name}</td>
-      <td>${crop.name || getItemDisplayName(crop.itemId) || 'Unknown Crop'}</td>
-      <td>${crop.plantedAmount || crop.quantity || 'N/A'}</td>
+      <td>${crop.name || getItemDisplayName(crop.itemId) || "Unknown Crop"}</td>
+      <td>${crop.plantedAmount || crop.quantity || "N/A"}</td>
       <td>${formatDateOnly(crop.plantedOn || crop.plantedDate)}</td>
-      <td>${crop.status || 'Unknown'}</td>
+      <td>${crop.status || "Unknown"}</td>
       <td>${formatDateOnly(crop.updatedOn || crop.updatedAt)}</td>
       <td>${crop.percentage !== null ? crop.percentage + "%" : "N/A"}</td>
-      <td><img src="${crop.imageUrl || 'https://via.placeholder.com/50'}" alt="${crop.name || 'Crop'}" width="50" height="50"/></td>
+      <td><img src="${
+        crop.imageUrl || "https://via.placeholder.com/50"
+      }" alt="${crop.name || "Crop"}" width="50" height="50"/></td>
     `;
     tbody.appendChild(tr);
   });

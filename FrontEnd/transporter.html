@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Transporter Dashboard</title>
+    <link rel="stylesheet" href="css/transporter.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <!-- QR Code Library for decoding -->
+    <script src="js/qrcode-bundle.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav id="main-nav">
+        <ul>
+          <li id="user-info">
+            Welcome, <span id="user-name">Loading...</span>
+          </li>
+          <li id="role-badge"><span id="user-role">Loading...</span></li>
+          <li class="logOut">
+            <a href="index.html" id="logout-link">Logout</a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <!-- Tab Navigation -->
+      <div class="tab-container">
+        <div class="tab-nav">
+          <button class="tab-btn active" data-tab="profile">Profile</button>
+          <button class="tab-btn" data-tab="schedule">Schedule</button>
+          <button class="tab-btn" data-tab="shipments">Shipments</button>
+        </div>
+      </div>
+
+      <!-- Profile Section -->
+      <div id="profile-section" class="tab-content active">
+        <h2>Transporter Profile</h2>
+        <div class="profile-container">
+          <form id="profile-form">
+            <div class="form-group">
+              <label for="name">Full Name:</label>
+              <input type="text" id="name" name="name" readonly />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number:</label>
+              <input type="tel" id="phone" name="phone" readonly />
+            </div>
+            <div class="form-group">
+              <label for="vehicleType">Vehicle Type:</label>
+              <input
+                type="text"
+                id="vehicleType"
+                name="vehicleType"
+                readonly
+                placeholder="Loading vehicle type..."
+              />
+            </div>
+            <div class="form-group">
+              <label for="vehicleCapacity">Vehicle Capacity (kg):</label>
+              <input
+                type="number"
+                id="vehicleCapacity"
+                name="vehicleCapacity"
+                min="500"
+                max="50000"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label for="driverLicenseNumber">Driver License Number:</label>
+              <input
+                type="text"
+                id="driverLicenseNumber"
+                name="driverLicenseNumber"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label for="vehicleRegistrationNumber"
+                >Vehicle Registration:</label
+              >
+              <input
+                type="text"
+                id="vehicleRegistrationNumber"
+                name="vehicleRegistrationNumber"
+                readonly
+              />
+            </div>
+            <div class="form-group checkbox-group">
+              <input type="checkbox" id="insurance" name="insurance" disabled />
+              <label for="insurance">I have valid insurance</label>
+            </div>
+            <div class="form-group checkbox-group">
+              <input
+                type="checkbox"
+                id="refrigerated"
+                name="refrigerated"
+                disabled
+              />
+              <label for="refrigerated">Vehicle is refrigerated</label>
+            </div>
+            <!-- Save button removed - profile is read-only -->
+            <p>
+              <small
+                ><em
+                  >Profile information is read-only. Contact admin to make
+                  changes.</em
+                ></small
+              >
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <!-- Schedule Section -->
+      <div id="schedule-section" class="tab-content">
+        <h2>📅 Schedule Management</h2>
+
+        <!-- Weekly Schedule -->
+        <div class="schedule-container">
+          <div class="schedule-header">
+            <h3>📊 Weekly Availability</h3>
+            <div class="schedule-info">
+              <span class="info-badge">Set your regular weekly schedule</span>
+            </div>
+          </div>
+          <div class="weekly-schedule-card">
+            <div class="schedule-table-container">
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th class="day-header">Day</th>
+                    <th class="time-header morning">
+                      🌅 Morning<br /><small>6AM - 12PM</small>
+                    </th>
+                    <th class="time-header afternoon">
+                      ☀️ Afternoon<br /><small>12PM - 6PM</small>
+                    </th>
+                    <th class="time-header evening">
+                      🌆 Evening<br /><small>6PM - 12AM</small>
+                    </th>
+                    <th class="time-header night">
+                      🌙 Night<br /><small>12AM - 6AM</small>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="weekly-schedule-body">
+                  <!-- Schedule rows will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            <div class="schedule-actions">
+              <button
+                id="save-weekly-schedule"
+                class="btn-primary schedule-btn"
+              >
+                💾 Save Weekly Schedule
+              </button>
+              <div class="schedule-legend">
+                <span class="legend-item">
+                  <span class="availability-dot available"></span>
+                  Available
+                </span>
+                <span class="legend-item">
+                  <span class="availability-dot unavailable"></span>
+                  Unavailable
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monthly Calendar -->
+          <div class="schedule-header">
+            <h3>📋 Monthly Standby Schedule</h3>
+            <div class="schedule-info">
+              <span class="info-badge"
+                >Select up to 10 standby shift dates</span
+              >
+            </div>
+          </div>
+          <div class="monthly-schedule-card">
+            <div class="calendar-header">
+              <div class="calendar-controls">
+                <button id="prev-month" class="nav-btn">❮</button>
+                <span id="current-month-year" class="month-display"></span>
+                <button id="next-month" class="nav-btn">❯</button>
+              </div>
+              <div class="calendar-stats">
+                <div class="stat-item">
+                  <span class="stat-number" id="standby-count">0</span>
+                  <span class="stat-label">Selected</span>
+                </div>
+                <div class="stat-divider">/</div>
+                <div class="stat-item">
+                  <span class="stat-number">10</span>
+                  <span class="stat-label">Maximum</span>
+                </div>
+              </div>
+            </div>
+            <div id="monthly-calendar" class="calendar-grid"></div>
+            <div class="calendar-footer">
+              <div class="calendar-legend">
+                <span class="legend-item">
+                  <span class="date-dot today"></span>
+                  Today
+                </span>
+                <span class="legend-item">
+                  <span class="date-dot selected"></span>
+                  Selected
+                </span>
+                <span class="legend-item">
+                  <span class="date-dot past"></span>
+                  Past Date
+                </span>
+                <span class="legend-item">
+                  <span class="date-dot future"></span>
+                  Available
+                </span>
+              </div>
+              <div class="calendar-actions">
+                <button id="clear-standby-shifts" class="btn-secondary">
+                  🗑️ Clear All
+                </button>
+                <button id="save-standby-shifts" class="btn-primary">
+                  💾 Save Standby Shifts
+                </button>
+              </div>
+            </div>
+            <div class="standby-info-card">
+              <div class="info-content">
+                <h4>💡 Standby Shift Guidelines</h4>
+                <ul>
+                  <li>Click on future dates to select standby shifts</li>
+                  <li>
+                    Standby shifts are additional availability outside regular
+                    schedule
+                  </li>
+                  <li>You can select up to 10 dates per month</li>
+                  <li>Changes take effect immediately after saving</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shipments Section -->
+      <div id="shipments-section" class="tab-content">
+        <h2>🚛 Shipment Management</h2>
+
+        <!-- Available Shipments -->
+        <div class="shipments-container">
+          <div class="section-header available-section">
+            <h3>🆕 Available Shipments</h3>
+            <div class="section-controls">
+              <button id="refresh-shipments" class="btn-refresh">
+                🔄 Refresh
+              </button>
+              <button id="notification-toggle" class="btn-notification">
+                🔔 Notifications
+              </button>
+              <div class="shipment-legend">
+                <span class="legend-item">
+                  <span class="status-dot status-farmer"></span>
+                  Farm → Logistics
+                </span>
+                <span class="legend-item">
+                  <span class="status-dot status-customer"></span>
+                  Logistics → Customer
+                </span>
+              </div>
+            </div>
+          </div>
+          <div id="available-shipments" class="shipments-grid">
+            <!-- Shipments will be populated by JavaScript -->
+          </div>
+
+          <!-- My Shipments -->
+          <div class="section-header assigned-section">
+            <h3>📋 My Assigned Shipments</h3>
+            <div class="status-legend">
+              <span class="legend-item">
+                <span class="status-dot status-transport_to_pickup"></span>
+                Transport to Pickup
+              </span>
+              <span class="legend-item">
+                <span class="status-dot status-at_pickup"></span>
+                At Pickup
+              </span>
+              <span class="legend-item">
+                <span class="status-dot status-in_transportation"></span>
+                In Transportation
+              </span>
+              <span class="legend-item">
+                <span class="status-dot status-arrived"></span>
+                Arrived
+              </span>
+              <span class="legend-item">
+                <span class="status-dot status-problem"></span>
+                Problem
+              </span>
+            </div>
+          </div>
+          <div id="my-shipments" class="shipments-grid">
+            <!-- My shipments will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Message toast -->
+    <div id="message-toast" class="message-toast"></div>
+
+    <!-- Vehicle Loading Visualization -->
+    <div id="vehicle-loading-float" class="vehicle-loading-float hidden">
+      <div class="float-header">
+        <h3>🚚 Vehicle Loading</h3>
+        <button id="close-loading-viz" class="close-btn">&times;</button>
+      </div>
+      <div class="vehicle-visualization">
+        <div class="vehicle-card" id="current-vehicle">
+          <div class="vehicle-title" id="vehicle-title">
+            🚲 Electric Bicycle
+          </div>
+          <div class="vehicle-container">
+            <div class="vehicle-image" id="vehicle-image">🚲</div>
+            <div class="cargo-area" id="cargo-area"></div>
+          </div>
+          <div class="loading-info">
+            <div class="loading-stats">
+              <span class="stat-label">Weight:</span>
+              <span class="stat-value" id="current-weight">0 kg</span>
+              <span class="stat-separator">/</span>
+              <span class="stat-value" id="vehicle-capacity">0 kg</span>
+            </div>
+            <div class="loading-stats">
+              <span class="stat-label">Volume:</span>
+              <span class="stat-value" id="current-volume">0</span>
+              <span class="stat-separator">/</span>
+              <span class="stat-value" id="vehicle-volume-capacity">0</span>
+            </div>
+            <div class="loading-stats">
+              <span class="stat-label">Loading:</span>
+              <span class="stat-value" id="loading-percentage">0%</span>
+            </div>
+          </div>
+          <div class="status-text status-empty" id="loading-status">
+            Empty - Ready for packages
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle button for vehicle loading -->
+    <button
+      id="toggle-loading-viz"
+      class="toggle-loading-btn"
+      title="Toggle Vehicle Loading Visualization"
+    >
+      🚚
+    </button>
+
+    <!-- Shipment Modal -->
+    <div id="shipment-modal" class="modal-overlay">
+      <div class="modal-content">
+        <span class="modal-close" id="modal-close-btn">&times;</span>
+        <div id="modal-body">
+          <!-- Content will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Verification Modal -->
+    <div id="qr-verification-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>QR Code Verification</h3>
+          <span class="modal-close" id="qr-modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div id="qr-verification-content">
+            <div class="qr-section">
+              <h4>Shipment Information</h4>
+              <p>
+                <strong>Shipment ID:</strong> <span id="qr-shipment-id">-</span>
+              </p>
+              <p>
+                <strong>Expected Containers:</strong>
+                <span id="qr-expected-containers">-</span>
+              </p>
+            </div>
+
+            <div class="qr-section">
+              <h4>QR Code Items</h4>
+              <p class="info-text">
+                Click on each item to decode its QR code and add to verification
+                list:
+              </p>
+              <div id="qr-items-list">
+                <!-- Items will be populated dynamically -->
+              </div>
+            </div>
+
+            <div class="qr-section">
+              <h4>Verification Progress</h4>
+              <div id="verification-progress">
+                <div class="progress-info">
+                  <span
+                    >Verified: <span id="verified-count">0</span> /
+                    <span id="total-count">0</span></span
+                  >
+                </div>
+                <div id="verified-items">
+                  <!-- Verified items will be shown here -->
+                </div>
+              </div>
+            </div>
+
+            <div class="qr-section">
+              <div class="qr-actions">
+                <button id="clear-verified-btn" class="btn-secondary">
+                  Clear All
+                </button>
+                <button id="verify-all-btn" class="btn-primary" disabled>
+                  Verify All Codes
+                </button>
+              </div>
+            </div>
+
+            <div id="qr-verification-result" class="qr-result hidden">
+              <!-- Verification result will be shown here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Notification Box -->
+    <div id="floating-notification" class="floating-notification hidden">
+      <div class="notification-container">
+        <div class="notification-header">
+          <div class="notification-icon">
+            <div class="phone-animation">
+              📱
+              <div class="delivery-package">📦</div>
+              <div class="delivery-arrow">➡️</div>
+            </div>
+          </div>
+          <div class="notification-title">
+            <h4>New Shipment Available!</h4>
+            <span class="notification-subtitle">Ready for pickup</span>
+          </div>
+          <button id="notification-close" class="notification-close">×</button>
+        </div>
+        
+        <div class="notification-body">
+          <div class="shipment-preview">
+            <div class="shipment-info">
+              <div class="info-row">
+                <span class="label">Shipment ID:</span>
+                <span id="notif-shipment-id" class="value">Loading...</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Type:</span>
+                <span id="notif-shipment-type" class="value">Loading...</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Distance:</span>
+                <span id="notif-shipment-distance" class="value">Loading...</span>
+              </div>
+            </div>
+            <div class="notification-visual">
+              <div class="truck-animation">
+                🚛
+                <div class="motion-trail"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="notification-actions">
+          <button id="notification-view" class="btn-primary">View Details</button>
+          <button id="notification-accept" class="btn-success">Accept Now</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/transporter.js"></script>
+  </body>
+</html>

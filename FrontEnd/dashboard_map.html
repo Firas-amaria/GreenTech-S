@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transportation Dashboard Map</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            background: white;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-width: 280px;
+        }
+
+        .control-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .filter-group {
+            margin-bottom: 12px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+        }
+
+        .btn-refresh {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-refresh:hover {
+            background: #0056b3;
+        }
+
+        .shipment-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 12px;
+        }
+
+        .info-item {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-pending { background: #ffc107; }
+        .status-at_pickup { background: #17a2b8; }
+        .status-in_transportation { background: #28a745; }
+        .status-arrived { background: #6c757d; }
+        .status-problem { background: #dc3545; }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom marker styles */
+        .custom-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .marker-pending { background: #ffc107; }
+        .marker-at_pickup { background: #17a2b8; }
+        .marker-in_transportation { background: #28a745; }
+        .marker-arrived { background: #6c757d; }
+        .marker-problem { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-spinner"></div>
+            Loading map data...
+        </div>
+
+        <div class="map-controls">
+            <div class="control-title">📊 Shipment Filters</div>
+            
+            <div class="filter-group">
+                <label>Shipment Type:</label>
+                <select id="type-filter">
+                    <option value="">All Types</option>
+                    <option value="farmer_shipment">Farm → Logistics</option>
+                    <option value="customer_shipment">Logistics → Customer</option>
+                    <option value="order">Customer Orders</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Status:</label>
+                <select id="status-filter">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="at_pickup">At Pickup</option>
+                    <option value="in_transportation">In Transportation</option>
+                    <option value="arrived">Arrived</option>
+                    <option value="problem">Problem</option>
+                </select>
+            </div>
+
+            <button id="refresh-btn" class="btn-refresh">🔄 Refresh Data</button>
+        </div>
+
+        <div class="shipment-info">
+            <div class="control-title">📍 Shipment Status Legend</div>
+            <div class="info-item">
+                <span class="status-dot status-pending"></span>
+                <span>Pending (<span id="count-pending">0</span>)</span>
+            </div>
+            <div class="info-item">
+                <span class="status-dot status-at_pickup"></span>
+                <span>At Pickup (<span id="count-at_pickup">0</span>)</span>
+            </div>
+            <div class="info-item">
+                <span class="status-dot status-in_transportation"></span>
+                <span>In Transportation (<span id="count-in_transportation">0</span>)</span>
+            </div>
+            <div class="info-item">
+                <span class="status-dot status-arrived"></span>
+                <span>Arrived (<span id="count-arrived">0</span>)</span>
+            </div>
+            <div class="info-item">
+                <span class="status-dot status-problem"></span>
+                <span>Problem (<span id="count-problem">0</span>)</span>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <!-- Google Maps API will be loaded dynamically -->
+    <script>
+        // Global variables
+        let map;
+        let markers = [];
+        let allShipments = [];
+        let filteredShipments = [];
+        let directionsService;
+        let directionsRenderers = []; // Array to store multiple route renderers
+        let mapBounds; // Store current map bounds to prevent jumping
+
+        // Load Google Maps script from backend API (same as transporter pattern)
+        async function loadGoogleMapsScript() {
+            try {
+                console.log("Loading Google Maps script from backend...");
+                const response = await fetch("http://localhost:4000/api/maps/google-maps-script");
+                const data = await response.json();
+                
+                const script = document.createElement("script");
+                script.src = data.scriptUrl + "&language=en&callback=initMap";
+                script.async = true;
+                document.head.appendChild(script);
+                
+                console.log("✅ Google Maps script loaded from backend");
+            } catch (error) {
+                console.error("Failed to load Google Maps script from backend:", error);
+                // Fallback: load directly if backend is not available
+                console.log("Falling back to direct Google Maps loading...");
+                loadGoogleMapsDirectly();
+            }
+        }
+
+        // Fallback: Load Google Maps directly
+        function loadGoogleMapsDirectly() {
+            const script = document.createElement("script");
+            script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAhjN9W_65iyf_Y-6Mi-Tk05hiaq5PGkkQ&callback=initMap";
+            script.async = true;
+            document.head.appendChild(script);
+        }
+
+        // Global initMap function for Google Maps callback
+        function initMap() {
+            console.log("Initializing Google Map...");
+            
+            // Default to Lebanon center
+            const lebanonCenter = { lat: 33.8547, lng: 35.8623 };
+            
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 8,
+                center: lebanonCenter,
+                mapTypeId: 'roadmap',
+                styles: [
+                    {
+                        featureType: 'poi',
+                        stylers: [{ visibility: 'off' }]
+                    }
+                ]
+            });
+
+            // Initialize directions service for routes
+            directionsService = new google.maps.DirectionsService();
+
+            console.log("Map initialized, loading shipments...");
+            
+            // Initialize Firebase and load data
+            initializeFirebase();
+            loadShipmentsData();
+
+            // Setup event listeners
+            setupEventListeners();
+        }
+
+        // Make initMap available globally
+        window.initMap = initMap;
+
+        // Load Google Maps script when page loads
+        loadGoogleMapsScript();
+    </script>
+
+    <script>
+        // Dashboard Map State
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhjN9W_65iyf_Y-6Mi-Tk05hiaq5PGkkQ",
+            authDomain: "dfcp-system.firebaseapp.com",
+            projectId: "dfcp-system",
+            storageBucket: "dfcp-system.firebasestorage.app",
+            messagingSenderId: "479660967900",
+            appId: "1:479660967900:web:85f5e3544ea451bee93119",
+            measurementId: "G-GWNNJKVF43",
+        };
+
+        // Initialize Firebase
+        function initializeFirebase() {
+            try {
+                console.log("Initializing Firebase...");
+
+                // Check if Firebase is available
+                if (typeof firebase === "undefined") {
+                    console.error("Firebase SDK not loaded");
+                    throw new Error("Firebase SDK not loaded");
+                }
+
+                // Check if Firebase is already initialized
+                if (!firebase.apps || firebase.apps.length === 0) {
+                    console.log("Initializing Firebase app...");
+                    firebase.initializeApp(firebaseConfig);
+                    console.log("Firebase initialized successfully");
+                } else {
+                    console.log("Firebase already initialized");
+                }
+
+                // Verify Firestore is available
+                if (!firebase.firestore) {
+                    console.error("Firestore not available");
+                    throw new Error("Firestore not available");
+                }
+
+                console.log("Firebase initialization complete");
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                throw error;
+            }
+        }
+
+        // API Configuration
+        const API_BASE_URL = "http://localhost:4000/api";
+
+        // API Helper Function (same as main dashboard)
+        async function apiCall(endpoint, options = {}) {
+            const token = localStorage.getItem("token");
+
+            const defaultOptions = {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            };
+
+            const finalOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...options.headers,
+                },
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, finalOptions);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                throw error;
+            }
+        }
+
+        // Load shipments data - API first, Firebase backup only if needed
+        async function loadShipmentsData() {
+            try {
+                showLoading(true);
+                console.log("Loading shipments data...");
+
+                allShipments = [];
+
+                // Try API first (primary method)
+                try {
+                    console.log("Attempting API load...");
+                    const response = await apiCall("/manager/shipments");
+                    
+                    if (response.success && response.shipments) {
+                        console.log(`✅ Loaded ${response.shipments.length} shipments from API`);
+                        
+                        response.shipments.forEach(shipment => {
+                            let coordinates = null;
+                            
+                            // Use same coordinate pattern as transporter.js
+                            if (shipment.type === "farmer_shipment" || shipment.type === "customer_shipment") {
+                                // farmer_shipments and customer_shipments: use lat/lng directly
+                                if (shipment.lat && shipment.lng) {
+                                    coordinates = { lat: shipment.lat, lng: shipment.lng };
+                                }
+                            } else if (shipment.type === "order" && shipment.deliveryAddress) {
+                                // orders: use deliveryAddress.lat/lng
+                                if (shipment.deliveryAddress.lat && shipment.deliveryAddress.lng) {
+                                    coordinates = { lat: shipment.deliveryAddress.lat, lng: shipment.deliveryAddress.lng };
+                                }
+                            }
+                            
+                            // Only add shipments with valid coordinates
+                            if (coordinates) {
+                                allShipments.push({
+                                    id: shipment.id || shipment._id,
+                                    type: shipment.type || 'farmer_shipment',
+                                    status: shipment.status || 'pending',
+                                    lat: coordinates.lat,
+                                    lng: coordinates.lng,
+                                    coordinates: coordinates,
+                                    driver: shipment.driver || shipment.assignedDriver,
+                                    items: shipment.items || shipment.description || 'Items not specified',
+                                    deliveryAddress: shipment.deliveryAddress, // Keep for orders
+                                    ...shipment
+                                });
+                                console.log(`✅ Added ${shipment.type} ${shipment.id} (${coordinates.lat}, ${coordinates.lng})`);
+                            } else {
+                                console.log(`⚠️ Shipment ${shipment.id} has no valid coordinates, skipping`);
+                            }
+                        });
+                        
+                        // API succeeded, apply filters and show data
+                        console.log(`📍 Total loaded shipments with coordinates: ${allShipments.length}`);
+                        applyFilters();
+                        showLoading(false);
+                        
+                        if (allShipments.length === 0) {
+                            console.warn("⚠️ API returned no shipments with coordinates");
+                        } else {
+                            console.log("✅ Using real shipment data from API");
+                        }
+                        return; // Exit early if API worked
+                        
+                    } else {
+                        throw new Error("API returned no shipment data");
+                    }
+                } catch (apiError) {
+                    console.warn("❌ API failed:", apiError);
+                    console.log("🔄 Trying Firebase as fallback...");
+                    
+                    // Only try Firebase if API completely fails
+                    try {
+                        await loadFromFirebaseDirect();
+                        console.log(`📍 Total loaded shipments with coordinates: ${allShipments.length}`);
+                        applyFilters();
+                        showLoading(false);
+                        
+                        if (allShipments.length === 0) {
+                            console.error("❌ No shipments found in Firebase either");
+                            alert("No shipments with coordinates found! Check console for details.");
+                        } else {
+                            console.log("✅ Using real shipment data from Firebase");
+                        }
+                    } catch (firebaseError) {
+                        console.error("❌ Firebase also failed:", firebaseError);
+                        showLoading(false);
+                        
+                        // Show user-friendly message instead of technical error
+                        if (firebaseError.message.includes("permissions")) {
+                            alert("Unable to load shipment data. Please check your connection and try refreshing the page.");
+                        } else {
+                            alert("Failed to load shipments. Please try again later.");
+                        }
+                        
+                        // Still show the map with just the hub marker
+                        applyFilters();
+                    }
+                }
+
+            } catch (error) {
+                console.error("💥 Critical error loading shipments:", error);
+                showLoading(false);
+                alert("Critical error occurred. Please refresh the page.");
+                
+                // Show map with just hub marker as fallback
+                applyFilters();
+            }
+        }
+
+        // Load directly from Firebase (backup method only) - SAME PATTERN AS TRANSPORTER.HTML
+        async function loadFromFirebaseDirect() {
+            console.log("🔥 Trying Firebase as backup...");
+            
+            try {
+                // Check Firebase availability first
+                if (typeof firebase === "undefined" || !firebase.firestore) {
+                    throw new Error("Firebase not available");
+                }
+                
+                // Load from multiple Firebase collections (same as transporter.js)
+                const [farmerShipments, customerShipments, orders] = await Promise.all([
+                    firebase.firestore().collection('farmer_shipments').get(),
+                    firebase.firestore().collection('customer_shipments').get(),
+                    firebase.firestore().collection('orders').get()
+                ]);
+
+                console.log(`📦 Found ${farmerShipments.size} farmer shipments, ${customerShipments.size} customer shipments, and ${orders.size} orders in Firebase`);
+
+                // Process farmer shipments - use lat/lng directly (same as transporter)
+                farmerShipments.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // farmer_shipments: use lat/lng directly (same as transporter.js line 1646-1647)
+                    if (data.lat && data.lng) {
+                        allShipments.push({
+                            id: doc.id,
+                            type: 'farmer_shipment',
+                            status: data.status || 'pending',
+                            lat: data.lat,
+                            lng: data.lng,
+                            coordinates: { lat: data.lat, lng: data.lng }, // For map display
+                            driver: data.driver || data.assignedDriver || data.transporterName,
+                            items: data.items || data.description || data.crops || 'Items not specified',
+                            farmerId: data.farmerId,
+                            farmerName: data.farmerName,
+                            ...data
+                        });
+                        console.log(`✅ Added farmer shipment ${doc.id} (${data.lat}, ${data.lng})`);
+                    } else {
+                        console.log(`⚠️ Farmer shipment ${doc.id} missing lat/lng fields`);
+                    }
+                });
+
+                // Process customer shipments - use lat/lng directly (same as transporter)
+                customerShipments.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // customer_shipments: use lat/lng directly (same as transporter.js line 1646-1647)
+                    if (data.lat && data.lng) {
+                        allShipments.push({
+                            id: doc.id,
+                            type: 'customer_shipment',
+                            status: data.status || 'pending',
+                            lat: data.lat,
+                            lng: data.lng,
+                            coordinates: { lat: data.lat, lng: data.lng }, // For map display
+                            driver: data.driver || data.assignedDriver || data.transporterName,
+                            items: data.items || data.description || data.products || 'Items not specified',
+                            customerId: data.customerId,
+                            customerName: data.customerName,
+                            ...data
+                        });
+                        console.log(`✅ Added customer shipment ${doc.id} (${data.lat}, ${data.lng})`);
+                    } else {
+                        console.log(`⚠️ Customer shipment ${doc.id} missing lat/lng fields`);
+                    }
+                });
+
+                // Process orders - use deliveryAddress.lat/lng (same as transporter)
+                orders.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // orders: use deliveryAddress.lat/lng (same as transporter.js line 1649-1650)
+                    if (data.deliveryAddress && data.deliveryAddress.lat && data.deliveryAddress.lng) {
+                        allShipments.push({
+                            id: doc.id,
+                            type: 'order',
+                            status: data.status || 'pending',
+                            lat: data.deliveryAddress.lat,
+                            lng: data.deliveryAddress.lng,
+                            coordinates: { lat: data.deliveryAddress.lat, lng: data.deliveryAddress.lng }, // For map display
+                            deliveryAddress: data.deliveryAddress,
+                            driver: data.driver || data.assignedDriver || data.transporterName,
+                            items: data.items || data.description || data.products || 'Items not specified',
+                            customerId: data.customerId,
+                            customerName: data.customerName,
+                            ...data
+                        });
+                        console.log(`✅ Added order ${doc.id} (${data.deliveryAddress.lat}, ${data.deliveryAddress.lng})`);
+                    } else {
+                        console.log(`⚠️ Order ${doc.id} missing deliveryAddress.lat/lng fields`);
+                    }
+                });
+
+                console.log(`🗺️ Successfully processed ${allShipments.length} shipments with coordinates from Firebase`);
+                
+            } catch (error) {
+                console.error("❌ Firebase connection error:", error);
+                
+                // Re-throw with more specific error message
+                if (error.message.includes("Missing or insufficient permissions")) {
+                    throw new Error("Firebase permissions issue - using API-only mode");
+                } else {
+                    throw new Error("Firebase unavailable: " + error.message);
+                }
+            }
+        }
+
+        // Apply filters and update map (without jumping)
+        function applyFilters() {
+            const typeFilter = document.getElementById('type-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+
+            // Store current map state to prevent jumping
+            const currentCenter = map.getCenter();
+            const currentZoom = map.getZoom();
+
+            // Filter shipments
+            filteredShipments = allShipments.filter(shipment => {
+                const typeMatch = !typeFilter || shipment.type === typeFilter;
+                const statusMatch = !statusFilter || shipment.status === statusFilter;
+                return typeMatch && statusMatch;
+            });
+
+            console.log(`Filtered to ${filteredShipments.length} shipments`);
+
+            // Update map markers and routes
+            updateMapMarkers();
+            updateStatusCounts();
+
+            // Restore previous map view to prevent jumping
+            if (currentCenter && currentZoom) {
+                map.setCenter(currentCenter);
+                map.setZoom(currentZoom);
+            }
+        }
+
+        // Update map markers and routes
+        function updateMapMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            // Clear existing routes
+            directionsRenderers.forEach(renderer => renderer.setMap(null));
+            directionsRenderers = [];
+
+            // Add default destination point (logistics hub from mapsRoute.js) - SMALLER SIZE
+            const defaultDestination = { lat: 32.7269, lng: 35.2157 };
+            const hubMarker = createHubMarker(defaultDestination);
+            markers.push(hubMarker);
+
+            // Add new markers using same coordinate pattern as transporter.js
+            filteredShipments.forEach(shipment => {
+                // Each shipment now has coordinates field set during loading
+                if (shipment.coordinates) {
+                    const marker = createMarker(
+                        shipment.coordinates,
+                        shipment,
+                        shipment.type
+                    );
+                    markers.push(marker);
+                    
+                    // Add route from shipment to hub (same as transporter.html pattern)
+                    addRouteToHub(shipment.coordinates, defaultDestination, shipment);
+                    
+                    console.log(`📍 Added marker for ${shipment.type} ${shipment.id} at (${shipment.coordinates.lat}, ${shipment.coordinates.lng})`);
+                } else {
+                    console.log(`⚠️ No coordinates for shipment ${shipment.id}`);
+                }
+            });
+
+            // Only fit bounds on initial load, not on filter changes
+            if (!mapBounds && markers.length > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                markers.forEach(marker => {
+                    bounds.extend(marker.getPosition());
+                });
+                map.fitBounds(bounds);
+                mapBounds = bounds; // Store bounds to prevent future jumping
+                
+                // Don't zoom in too much for single markers
+                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                    if (map.getZoom() > 12) {
+                        map.setZoom(12);
+                    }
+                });
+            }
+        }
+
+        // Create a logistics hub marker (default destination from mapsRoute.js) - SMALLER SIZE
+        function createHubMarker(coordinates) {
+            const position = new google.maps.LatLng(coordinates.lat, coordinates.lng);
+            
+            // Create special hub marker with SMALLER size
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: "Logistics Hub (Default Destination)",
+                icon: {
+                    path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                    scale: 8, // Reduced from 15 to 8
+                    fillColor: '#ff6b00', // Orange color for hub
+                    fillOpacity: 1.0,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2, // Reduced from 3 to 2
+                    rotation: 0
+                },
+                zIndex: 1000 // Higher z-index to appear above other markers
+            });
+
+            // Create info window for hub
+            const infoContent = `
+                <div style="font-size: 12px; max-width: 250px;">
+                    <strong>🏢 Logistics Hub</strong><br>
+                    <strong>Type:</strong> Central Distribution Center<br>
+                    <strong>Purpose:</strong> Default destination for all deliveries<br>
+                    <strong>Status:</strong> <span style="color: #ff6b00">Active</span><br>
+                    <strong>Coordinates:</strong> ${parseFloat(coordinates.lat).toFixed(4)}, ${parseFloat(coordinates.lng).toFixed(4)}<br>
+                    <em>This is the main logistics center from mapsRoute.js</em>
+                </div>
+            `;
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: infoContent
+            });
+
+            // Add click listener
+            marker.addListener('click', () => {
+                // Close any open info windows
+                if (window.currentInfoWindow) {
+                    window.currentInfoWindow.close();
+                }
+                infoWindow.open(map, marker);
+                window.currentInfoWindow = infoWindow;
+            });
+
+            console.log(`🏢 Added logistics hub marker at (${coordinates.lat}, ${coordinates.lng})`);
+            return marker;
+        }
+
+        // Add route from shipment to hub (same pattern as transporter.html)
+        function addRouteToHub(origin, destination, shipment) {
+            // Create a new directions renderer for this route
+            const directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                polylineOptions: {
+                    strokeColor: getStatusColor(shipment.status),
+                    strokeOpacity: 0.6,
+                    strokeWeight: 3
+                },
+                suppressMarkers: true // Don't show default markers, we have custom ones
+            });
+
+            // Store renderer for cleanup
+            directionsRenderers.push(directionsRenderer);
+
+            // Calculate and display route
+            directionsService.route({
+                origin: new google.maps.LatLng(origin.lat, origin.lng),
+                destination: new google.maps.LatLng(destination.lat, destination.lng),
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+                    
+                    // Log route info for debugging
+                    const routeLeg = result.routes[0].legs[0];
+                    const duration = routeLeg.duration.text;
+                    const distance = routeLeg.distance.text;
+                    console.log(`🛣️ Route for ${shipment.id}: ${distance} (${duration})`);
+                } else {
+                    console.warn(`⚠️ Could not display route for ${shipment.id}: ${status}`);
+                }
+            });
+        }
+
+        // Create a map marker (same pattern as transporter.js)
+        function createMarker(coordinates, shipment, markerType) {
+            const position = new google.maps.LatLng(coordinates.lat, coordinates.lng);
+            const status = shipment.status || 'pending';
+            
+            // Create marker with custom icon
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: `${shipment.id} (${shipment.type})`,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 12,
+                    fillColor: getStatusColor(status),
+                    fillOpacity: 0.8,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 3
+                },
+                // Add custom properties
+                shipmentId: shipment.id,
+                shipmentType: shipment.type,
+                shipmentStatus: status
+            });
+
+            // Create info window content
+            let locationInfo = '';
+            if (shipment.type === 'order' && shipment.deliveryAddress) {
+                locationInfo = shipment.deliveryAddress.address || 'Delivery location';
+            } else {
+                locationInfo = `${shipment.type} location`;
+            }
+
+            const infoContent = `
+                <div style="font-size: 12px; max-width: 250px;">
+                    <strong>📦 ${shipment.id}</strong><br>
+                    <strong>Type:</strong> ${shipment.type}<br>
+                    <strong>Status:</strong> <span style="color: ${getStatusColor(status)}">${status}</span><br>
+                    <strong>Location:</strong> ${locationInfo}<br>
+                    ${shipment.driver ? `<strong>Driver:</strong> ${shipment.driver}<br>` : ''}
+                    ${shipment.items ? `<strong>Items:</strong> ${shipment.items}<br>` : ''}
+                    ${shipment.farmerName ? `<strong>Farmer:</strong> ${shipment.farmerName}<br>` : ''}
+                    ${shipment.customerName ? `<strong>Customer:</strong> ${shipment.customerName}<br>` : ''}
+                    <strong>Coordinates:</strong> ${parseFloat(coordinates.lat).toFixed(4)}, ${parseFloat(coordinates.lng).toFixed(4)}
+                </div>
+            `;
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: infoContent
+            });
+
+            // Add click listener
+            marker.addListener('click', () => {
+                // Close any open info windows
+                if (window.currentInfoWindow) {
+                    window.currentInfoWindow.close();
+                }
+                infoWindow.open(map, marker);
+                window.currentInfoWindow = infoWindow;
+            });
+
+            return marker;
+        }
+
+        // Get color for shipment status
+        function getStatusColor(status) {
+            const colors = {
+                'pending': '#ffc107',
+                'at_pickup': '#17a2b8',
+                'in_transportation': '#28a745',
+                'arrived': '#6c757d',
+                'problem': '#dc3545'
+            };
+            return colors[status] || '#6c757d';
+        }
+
+        // Update status counts in legend
+        function updateStatusCounts() {
+            const counts = {
+                pending: 0,
+                at_pickup: 0,
+                in_transportation: 0,
+                arrived: 0,
+                problem: 0
+            };
+
+            filteredShipments.forEach(shipment => {
+                const status = shipment.status || 'pending';
+                if (counts.hasOwnProperty(status)) {
+                    counts[status]++;
+                }
+            });
+
+            // Update UI
+            Object.keys(counts).forEach(status => {
+                const element = document.getElementById(`count-${status}`);
+                if (element) {
+                    element.textContent = counts[status];
+                }
+            });
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('type-filter').addEventListener('change', applyFilters);
+            document.getElementById('status-filter').addEventListener('change', applyFilters);
+            document.getElementById('refresh-btn').addEventListener('click', loadShipmentsData);
+        }
+
+        // Show/hide loading overlay
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Dashboard map page loaded");
+            // Google Maps will be loaded by loadGoogleMapsScript() call above
+        });
+    </script>
+</body>
+</html>
