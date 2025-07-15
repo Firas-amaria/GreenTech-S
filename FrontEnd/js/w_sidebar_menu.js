@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     links = [
       { href: "f-dashboard.html", text: "Dashboard" },
       { href: "f-crops.html", text: "Crops" },
-      { href: "f-shipments.html", text: "Shipments" },
+      { href: "f-shipments.html", text: "Orders" },
     ];
   } else if (role === "driver") {
     appTitle = "Driver Panel";

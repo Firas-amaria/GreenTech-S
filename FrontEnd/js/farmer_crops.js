@@ -254,8 +254,10 @@ async function updateCrops(newStatus, statusPercentage, landId) {
         land.crop.updatedAt = new Date().toISOString();
       }
     }
-showToast("Crop status updated successfully!", "success");
+    showToast("Crop status updated successfully!", "success");
+    await loadCropsPageData();
     renderCropTable();
+    setupAddCropButton();
   } catch (error) {
     console.error("Failed to update crop status:", error);
     showToast("Failed to update status. Please try again.", "error");
@@ -294,7 +296,7 @@ async function handleAddCrop() {
     return;
   }
   if (isNaN(plantedAmount)) {
-    showToast("Please fill all fields with valid values. plantedAmount");   
+    showToast("Please fill all fields with valid values. plantedAmount");
     //alert("Please fill all fields with valid values. plantedAmount");
     return;
   }
@@ -312,7 +314,7 @@ async function handleAddCrop() {
   }
 
   // Show loading state
-  
+
   const addButton = document.getElementById("AddCropbtn");
   const originalText = addButton.textContent;
   addButton.textContent = "Adding...";
@@ -349,7 +351,7 @@ async function handleAddCrop() {
     });
 
     if (!response.ok) throw new Error("Failed to add crop");
-showToast("Crop added successfully!", "success");
+    showToast("Crop added successfully!", "success");
     const land = parsedLands.find((l) => l.id === selectedLand.id);
     if (land) {
       land.crop = {
@@ -365,7 +367,9 @@ showToast("Crop added successfully!", "success");
     document.getElementById("inputPlantedOn").value = "";
     document.getElementById("expectedHarvestDate").value = "";
 
+    await loadCropsPageData();
     renderCropTable();
+    setupAddCropButton();
   } catch (error) {
     console.error("Failed to add crop:", error);
     showToast("Failed to add crop. Please try again.", "error");
@@ -459,7 +463,6 @@ function renderCropTable() {
     }
 
     tableBody.appendChild(tr);
-  
   });
 
   // Hide Add Crop form by default

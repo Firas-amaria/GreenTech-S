@@ -56,6 +56,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
     const cropId = `${farmerId}_${crop.itemId}`; // Use farmerId, itemId, and landIndex to create unique cropId
 
     const farmer = await db.collection("farmers").doc(farmerId).get();
+    const User = await db.collection("users").doc(farmerId).get();
+    const userData = User.data();
     if (!farmer.exists) {
       return res.status(404).send({ error: "Farmer not found" });
     }
@@ -66,6 +68,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
     if (action === "add") {
       // Add to inventory when harvesting
       const inventoryData = {
+        farmerName:
+          userData.firstName + " " + userData.lastName || "Unknown Farmer",
         farmerId: farmerId,
         logisticCenterId: "LC-1",
         itemId: crop.itemId,

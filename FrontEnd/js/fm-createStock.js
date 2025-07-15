@@ -13,7 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const isoDate = `${year}-${month}-${day}`; // for demandStatistics
 
   const container = document.getElementById("stock-section");
-  document.getElementById("header").textContent = `Create Stock for ${displayDate} - ${shift}`;
+  document.getElementById(
+    "header"
+  ).textContent = `Create Stock for ${displayDate} - ${shift}`;
 
   let stats = [];
   let farmerInventory = [];
@@ -23,9 +25,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // ✅ Fetch demand statistics with dash format
     const statRes = await fetch(
-      `http://localhost:4000/api/farmerManager/demandStatistics?date=${encodeURIComponent(isoDate)}&shift=${encodeURIComponent(shift)}`,
+      `http://localhost:4000/api/farmerManager/demandStatistics?date=${encodeURIComponent(
+        isoDate
+      )}&shift=${encodeURIComponent(shift)}`,
       {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
 
@@ -44,7 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const invRes = await fetch(
       `http://localhost:4000/api/farmerManager/farmerInventory`,
       {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
 
@@ -81,6 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <thead>
               <tr>
                 <th>Farmer</th>
+              <th>Pickup Address</th>
                 <th>Available</th>
                 <th>Max Order</th>
                 <th>Order (kg)</th>
@@ -106,9 +111,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     createBtn.style.marginTop = "30px";
     createBtn.style.padding = "10px 20px";
     createBtn.style.fontSize = "18px";
-    createBtn.addEventListener("click", () => submitAllStock(backendDate, shift));
+    createBtn.addEventListener("click", () =>
+      submitAllStock(backendDate, shift)
+    );
     container.appendChild(createBtn);
-
   } catch (error) {
     console.error("❌ Error initializing create stock:", error);
     container.innerHTML = "<p>Failed to load data for stock creation.</p>";
@@ -122,7 +128,8 @@ function renderFarmersForItem(farmers, item, tbodyId, typicalDemand) {
   farmers.forEach((farmer) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${farmer.farmerId}</td>
+      <td>${farmer.farmerName}</td>
+      <td>${farmer.pickupAddress}</td>
       <td>${farmer.currentAvailableForProcurementKg.toFixed(1)} kg</td>
       <td id="max-${item.itemId}-${farmer.farmerId}">${farmer.maxOrder} kg</td>
       <td>
@@ -144,7 +151,9 @@ function renderFarmersForItem(farmers, item, tbodyId, typicalDemand) {
       const inputEl = document.getElementById(inputId);
       let orderQty = parseFloat(inputEl.value) || 0;
       const max = parseFloat(
-        btn.closest("tr").querySelector(`#max-${item.itemId}-${farmer.farmerId}`).textContent
+        btn
+          .closest("tr")
+          .querySelector(`#max-${item.itemId}-${farmer.farmerId}`).textContent
       );
 
       if (orderQty <= 0 || orderQty > max) {

@@ -613,7 +613,10 @@ const updateAggrementPrecentage = async (req, res) => {
       return res.status(404).json({ error: "Farmer not found" });
     }
 
-    await farmerRef.update({ extraFields: { agreementPercentage } });
+    await farmerRef.update({
+      "extraFields.agreementPercentage": agreementPercentage,
+    });
+
     return res.status(200).json({ message: "Agreement percentage updated" });
   } catch (error) {
     console.error("Error updating agreementPercentage:", error);
