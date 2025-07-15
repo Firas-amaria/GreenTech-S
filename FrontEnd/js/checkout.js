@@ -139,7 +139,9 @@ window.submitOrder = async function () {
     }
 
     const data = await res.json();
-
+    localStorage.removeItem("cart");
+    localStorage.removeItem("selectedShift");
+    localStorage.removeItem("selectedAddress");
     // ✅ Redirect to delivery-note.html with the returned orderId
     if (data.orderId) {
       window.location.href = `market.html`;
@@ -155,7 +157,8 @@ window.submitOrder = async function () {
     localStorage.removeItem("selectedAddress");
     showPopup();
     launchFireworks();
-    window.location.href = `delivery-note.html?orderId=${data.orderId}`;
+
+    window.location.href = `market.html`;
   } catch (err) {
     console.error("Submit order failed:", err);
     //alert("Could not complete your order. Please try again.");
