@@ -78,14 +78,14 @@ function renderDeliveryNote(data) {
   
   const userJson = localStorage.getItem("user");
 const user = JSON.parse(userJson);
-let addr= JSON.parse(data.deliveryAddress);
+//let addr= JSON.parse(data.deliveryAddress);
 
 const userName = user?.name || "N/A";
   const container = document.getElementById("farmers-container");
 const infoDiv = document.getElementById("customer-info");
 infoDiv.innerHTML = `<p><strong>Order #:</strong> ${data.orderId}</p>
   <p><strong>Customer Name:</strong> ${userName}</p>
-    <p><strong>Address:</strong> ${addr.address|| "N/A"}</p>
+    <p><strong>Address:</strong> ${data.deliveryAddress.address|| "N/A"}</p>
    <p><strong>Delivery Date:</strong> ${data.deliveryDate}</p>
   <p><strong>Delivery Shift:</strong> ${data.deliveryShift || "N/A"}</p>
   <p><strong>Order Status:</strong> ${data.status}</p>

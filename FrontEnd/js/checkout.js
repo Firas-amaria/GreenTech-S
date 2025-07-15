@@ -75,11 +75,11 @@ window.goBack = function () {
 window.submitOrder = async function() {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const stockId = localStorage.getItem("selectedShift");
-  let address = localStorage.getItem("selectedAddress");
-
+let AddressS = JSON.parse(localStorage.getItem("selectedAddress"));
+console.log(AddressS);
   const total = parseFloat(document.getElementById("checkout-total").textContent.replace("Total: $", ""));
 
-  if (!cart.length || !stockId || !address) {
+  if (!cart.length || !stockId || !AddressS) {
     alert("Missing order data. Please review your cart.");
     return;
   }
@@ -108,7 +108,7 @@ window.submitOrder = async function() {
 
     const orderPayload = {
       items: cart,
-      deliveryAddress: {address:address.address, lat: address.lat ,lng: address.lng
+      deliveryAddress: {address:AddressS.address, lat: AddressS.lat ,lng: AddressS.lng
       },      deliveryDate,
       deliveryShift,
       deliveryDate,
@@ -118,7 +118,8 @@ window.submitOrder = async function() {
       stockId: stockId,
 
     };
-
+console.log(orderPayload.deliveryAddress.address);
+console.log(AddressS);
    const res = await fetch("http://localhost:4000/api/market/submit-order", {
   method: "POST",
   headers: {
@@ -137,7 +138,7 @@ const data = await res.json();
 
 // ✅ Redirect to delivery-note.html with the returned orderId
 if (data.orderId) {
-  window.location.href = `delivery-note.html?orderId=${data.orderId}`;
+ window.location.href = `delivery-note.html?orderId=${data.orderId}`;
 } else {
   alert("Order placed, but no order ID was returned.");
 }
@@ -149,11 +150,13 @@ if (data.orderId) {
     localStorage.removeItem("cart");
     localStorage.removeItem("selectedShift");
     localStorage.removeItem("selectedAddress");
+    showPopup();
+    launchFireworks();
     window.location.href = `delivery-note.html?orderId=${data.orderId}`;
 
   } catch (err) {
     console.error("Submit order failed:", err);
-    alert("Could not complete your order. Please try again.");
+    //alert("Could not complete your order. Please try again.");
   }
 };
 
@@ -187,3 +190,4 @@ function formatDeliveryLine(shiftId) {
 
   return `Delivery: ${day}/${month}/${year} ${shiftName} (${windowStr})`;
 }
+

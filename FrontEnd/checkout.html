@@ -5,6 +5,50 @@
   <title>Checkout Summary</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/checkout.css" />
+  <style>
+    #thank-you-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+#thank-you-popup.hidden {
+  display: none;
+}
+
+.popup-content {
+  background: #fff;
+  padding: 30px;
+  text-align: center;
+  border-radius: 12px;
+  position: relative;
+  width: 90%;
+  max-width: 500px;
+  overflow: hidden;
+}
+
+#fireworks-canvas {
+  width: 100%;
+  height: 200px;
+  background: transparent;
+  margin-top: 15px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 5px;
+  right: 12px;
+  font-size: 20px;
+  cursor: pointer;
+}
+  </style>
 </head>
 <body>
   <h1>Checkout Summary</h1>
@@ -35,6 +79,7 @@
     <button onclick="goBack()">Back to Cart</button>
     <button onclick="submitOrder()">Submit Order</button>
   </div>
+  
 
   <script type="module" src="js/checkout.js"></script>
 </body>
