@@ -3,6 +3,45 @@
 const { DateTime } = require("luxon");
 const { admin, db } = require("../firebaseConfig");
 
+// === markOrderAsDelivered ===
+async function markOrderAsDelivered(req, res) {
+  try {
+    const { orderId } = req.params;
+    const { uid } = req.user;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "Missing orderId." });
+    }
+
+    const orderRef = db.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    const orderData = orderSnap.data();
+
+    // 🔐 Ensure this customer owns the order
+    if (orderData.customerId !== uid) {
+      return res.status(403).json({ error: "You do not have permission to modify this order." });
+    }
+
+    await orderRef.update({
+      status: "delivered",
+      deliveredAt: DateTime.now().toISO(),
+    });
+
+    return res.json({ message: `Order ${orderId} marked as delivered.` });
+  } catch (err) {
+    console.error("Error updating order status:", err);
+    return res.status(500).json({ error: "Failed to update order status." });
+  }
+}
+
+
+
+
 // getSavedAddresses ===
 async function getSavedAddress(req, res) {
   try {
@@ -63,9 +102,9 @@ async function getCustomerOrders(req, res) {
   }
 }
 
-async function getCustomerOrderById(req, res){
+async function getCustomerOrderById(req, res) {
   try {
-    const tokenUid = req.user.uid; // you got from auth middleware
+    const tokenUid = req.user.uid; // from auth middleware
     const { orderId } = req.params;
 
     if (!orderId) {
@@ -79,19 +118,26 @@ async function getCustomerOrderById(req, res){
       return res.status(404).json({ error: "Order not found." });
     }
 
-    const orderData = orderSnap.data();
+    const data = orderSnap.data();
 
-    // Make sure the order belongs to this customer
-    if (orderData.customerId !== tokenUid) {
+    if (data.customerId !== tokenUid) {
       return res.status(403).json({ error: "Not authorized to view this order." });
     }
 
-    return res.status(200).json({ orderId, ...orderData });
+    return res.status(200).json({
+      orderId,
+      ...data,
+      deliveryAddress: data.deliveryAddress || null,
+      deliveryDate: data.deliveryDate ? data.deliveryDate.toDate().toISOString().split("T")[0] : null
+    });
+
   } catch (err) {
     console.error("Error fetching order:", err);
     return res.status(500).json({ error: "Internal server error." });
   }
-};
+}
+
+
 
 
 
@@ -179,4 +225,5 @@ module.exports = {
   getCustomerProfile,
   getCustomerOrders,
   getCustomerOrderById,
+  markOrderAsDelivered,
 };

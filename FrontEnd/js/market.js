@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ✅ MAPS CALLBACK
 window.initMap = () => {
-  //console.log("✅ Google Maps callback fired");
   initMapPicker();
   document.getElementById("add-new-address-btn").style.display = "inline-block";
 };
@@ -42,7 +41,13 @@ window.initMap = () => {
 document.getElementById("add-new-address-btn").addEventListener("click", () => {
   openMapPicker(async (location) => {
     console.log("📍 Chosen location:", location);
-    localStorage.setItem("selectedAddress", location.address);
+
+    // Store address with lat/lng in localStorage
+    localStorage.setItem("selectedAddress", JSON.stringify({
+      address: location.address,
+      lat: location.lat,
+      lng: location.lng
+    }));
 
     const token = await auth.currentUser.getIdToken();
     const res = await fetch(`${API_BASE}/api/customer/save-address`, {
@@ -88,32 +93,68 @@ async function loadCustomerAddress(token, forceSelectAddress = null) {
         option.value = addr.address;
         select.appendChild(option);
       });
-      const saved = localStorage.getItem("selectedAddress");
-      if (forceSelectAddress && addresses.find(a => a.address === forceSelectAddress)) {
-        selectedAddress = forceSelectAddress;
-        select.value = selectedAddress;
-      } else if (saved && addresses.find(a => a.address === saved)) {
-        selectedAddress = saved;
-        select.value = saved;
-      } else {
-        selectedAddress = addresses[0].address;
-        select.value = selectedAddress;
+
+      // 🔥 Read saved from localStorage
+      const savedRaw = localStorage.getItem("selectedAddress");
+      let saved = null;
+      if (savedRaw) {
+        try {
+          saved = JSON.parse(savedRaw);
+        } catch (err) {
+          saved = null;
+        }
       }
+
+      // ✅ Try to match
+      let matched = null;
+      if (forceSelectAddress) {
+        matched = addresses.find(a => a.address === forceSelectAddress);
+      } else if (saved) {
+        matched = addresses.find(a => a.address === saved.address);
+      }
+
+      if (matched) {
+        selectedAddress = {
+          address: matched.address,
+          lat: matched.latitude,
+          lng: matched.longitude
+        };
+        select.value = matched.address;
+      } else {
+        const first = addresses[0];
+        selectedAddress = {
+          address: first.address,
+          lat: first.latitude,
+          lng: first.longitude
+        };
+        select.value = first.address;
+      }
+
+      // Always sync localStorage
+      localStorage.setItem("selectedAddress", JSON.stringify(selectedAddress));
     }
 
+    // ✅ On change: save the selected full address with lat/lng
     select.onchange = (e) => {
-  selectedAddress = e.target.value;
-  localStorage.setItem("selectedAddress", selectedAddress);
-  console.log("✅ Address updated to:", selectedAddress);
-  // Force update market display immediately
-  renderMarketPreview();
-};
+      const selectedAddrObj = addresses.find(a => a.address === e.target.value);
+      selectedAddress = {
+        address: selectedAddrObj.address,
+        lat: selectedAddrObj.latitude,
+        lng: selectedAddrObj.longitude
+      };
+      localStorage.setItem("selectedAddress", JSON.stringify(selectedAddress));
+      console.log("✅ Address updated to:", selectedAddress);
+      renderMarketPreview();
+    };
 
   } catch (err) {
     console.error("Error loading addresses:", err);
-showToast("Could not load your delivery addresses.");
+    showToast("Could not load your delivery addresses.");
   }
 }
+
+
+
 
 // ✅ AUTH & INIT LOAD
 onAuthStateChanged(auth, async (user) => {

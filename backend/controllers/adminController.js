@@ -105,9 +105,9 @@ async function getOrdersForUpcomingShifts(req, res) {
         .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
         .get();
 
-      console.log(
-        `Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`
-      );
+      //console.log(
+      //  `Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`
+      //);
 
       results.push({
         shift: entry.shift,

@@ -61,6 +61,7 @@
       <ul>
         <li><a href="#" id="summary-tab" class="sub-active">Summary</a></li>
         <li><a href="#" id="orders-tab">Orders</a></li>
+        <li><a href="#" id="orders-tab">Farmer orders</a></li>
       </ul>
     </nav>
 
@@ -91,18 +92,17 @@
         <tbody></tbody>
       </table>
     </section>
-
-    <section id="item-pie-section">
-  <h2>Item Distribution</h2>
-  <canvas id="itemPieChart" width="400" height="400"></canvas>
-  <div id="itemPieLegend" class="pie-legend"></div>
-</section>
-
-
   </main>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <script type="module" src="../js/admin-shift-orders.js"></script>
+    <section id="farmer-orders-section">
+      <div id="summary-title">
+         <h2>Order Summaries:</h2>
+      <select id="summary-sort">
+
+</select>
+      </div>
+
+  <script type="module" src="../js/fm-shift-orders.js"></script>
   <script type="module" src="../js/m_nav_menu.js"></script>
 </body>
 </html>

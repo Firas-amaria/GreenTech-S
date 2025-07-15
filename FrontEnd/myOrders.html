@@ -6,6 +6,41 @@
   <title>My Orders</title>
   <link rel="stylesheet" href="./css/myOrders.css" />
   <link rel="stylesheet" href="css/market.css" />
+  <style>
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none; /* hidden by default */
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  width: 90%;
+  max-width: 700px;
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+}
+
+#route-map {
+  flex: 1;
+  width: 100%;
+}
+
+#route-info {
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+
+  </style>
 </head>
 <body>
   <script src="./js/marketNavBar.js" type="module"></script>
@@ -30,6 +65,15 @@
     </div>
   </div>
   </main>
+   <div id="route-modal" class="modal">
+  <div class="modal-content">
+    <div id="route-map"></div>
+    <div id="route-info"></div>
+    <button id="closebtn" onclick="closeRouteMap()">Close ✖</button>
+  </div>
+</div>
+
+
   <footer class="footer">
     <a href="jobs.html">Job Opportunities</a>
   </footer>
