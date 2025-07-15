@@ -160,6 +160,7 @@ const getFarmerInventory = async (req, res) => {
     snapshot.forEach((doc) => {
       const data = doc.data();
       results.push({
+        farmerName: data.farmerName,
         farmerId: data.farmerId,
         itemId: data.itemId,
         currentAvailableForProcurementKg: data.currentAvailableForProcurementKg,
@@ -498,13 +499,11 @@ const shipmentRequestQuantitiesConfirmed = async (req, res) => {
 
     // res.status(200).json({ message: "Shipment request finalized", shipmentId });
     res.status(200).json({ message: "Shipment request updated" });
-
   } catch (error) {
     console.error("Error finalizing shipment request:", error);
     res.status(500).json({ error: "Failed to finalize shipment request" });
   }
 };
-
 
 const getApplication = async (req, res) => {
   try {

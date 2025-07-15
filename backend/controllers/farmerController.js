@@ -65,6 +65,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
     const lands = farmerData.extraFields?.lands || [];
     const pickupAddress = lands[landIndex].pickupAddress || "Unknown Address";
     const agreementPercentage = (farmerData.agreementPercentage || 60) / 100; // Default to 60% if not set
+    const currentAvailableForProcurementKg =
+      (crop.expectedHarvestingKg * crop.statusPercentage) / 10;
     if (action === "add") {
       // Add to inventory when harvesting
       const inventoryData = {
@@ -73,9 +75,8 @@ async function manageInventory(farmerId, crop, landIndex, action) {
         farmerId: farmerId,
         logisticCenterId: "LC-1",
         itemId: crop.itemId,
-        currentAvailableForProcurementKg:
-          crop.expectedHarvestingKg * crop.statusPercentage || 60,
-        maxOrder: crop.expectedHarvestingKg * agreementPercentage || 60, // Default to 60% of expected harvesting
+        currentAvailableForProcurementKg: currentAvailableForProcurementKg,
+        maxOrder: currentAvailableForProcurementKg * agreementPercentage || 60, // Default to 60% of expected harvesting
         status: crop.status,
         statusPercentage: crop.statusPercentage || 0,
         harvestedDate: admin.firestore.Timestamp.now(),
@@ -514,6 +515,11 @@ async function updateCropByLandId(req, res) {
 
     // Manage inventory if needed
     if (newStatus === "Harvesting" && oldStatus !== "Harvesting") {
+      await manageInventory(farmerUid, land.crop, index, "add");
+    } else if (
+      oldStatus === "Harvesting" &&
+      updateData.statusPercentage !== oldPercentage
+    ) {
       await manageInventory(farmerUid, land.crop, index, "add");
     } else if (newStatus === "Field Clearing") {
       await manageInventory(farmerUid, land.crop, index, "remove");
