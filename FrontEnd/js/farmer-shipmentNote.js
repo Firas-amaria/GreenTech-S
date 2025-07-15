@@ -6,7 +6,7 @@ function getQueryParam(param) {
   return params.get(param);
 }
 
-const shipmentId = getQueryParam("shipmentId");
+let shipmentId = getQueryParam("shipmentId");
 
 if (!shipmentId) {
   alert("❌ Missing shipmentId in URL.");
@@ -46,6 +46,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
+document.getElementById("backbutton").addEventListener("click", () => {
+  shipmentNote(shipmentId);
+});
+
+async function shipmentNote(shipmentId) {
+  if (!shipmentId) {
+    alert("Shipment ID not found!");
+    return;
+  }
+
+  // Redirect to the delivery note page with shipmentId as a URL parameter
+  window.location.href = `f-shipmentReportView.html?shipmentId=${shipmentId}`;
+}
+
 function renderShipmentHeader(shipment) {
   document.querySelector(".farmer-info").innerHTML = `
     <p><strong>Farmer:</strong> ${shipment.farmerName}</p>
@@ -59,8 +73,10 @@ function renderShipmentHeader(shipment) {
 
   document.getElementById("total-kg").textContent =
     shipment.finalConfirmedQuantityKg?.toFixed(2) || "0.00";
-  document.getElementById("total-vol").textContent = "-";
-  document.getElementById("total-price").textContent = "-";
+  document.getElementById("total-vol").textContent =
+    shipment.finalConfirmedQuantityKg?.toFixed(2) || "0.00";
+  document.getElementById("total-price").textContent =
+    shipment.finalConfirmedQuantityKg?.toFixed(2) * 2 || "0.00";
 
   if (!shipment.products && shipment.fullReport?.farmerReports?.length) {
     const table = document.getElementById("product-table");
