@@ -1,0 +1,77 @@
+/* ===== Page Visual Upgrade Styles ===== */
+
+
+
+/* Styled Order Note Button */
+.shipmentNote-button {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.shipmentNote-button:hover {
+    background-color: #1e8449;
+}
+
+/* Section as a card */
+.section {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+/* Container blocks */
+.container-block {
+    background: #ffffff;
+    border: 1px solid #d1d1d1;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.container-block h3 {
+    color: #2b3e50;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.container-block p {
+    margin: 4px 0;
+}
+
+.container-block ul {
+    padding-left: 16px;
+}
+
+/* Inline row tweaks for better responsiveness */
+.inline-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.inline-row label {
+    min-width: 120px;
+    font-weight: bold;
+}
+
+/* History list styling */
+#historyList li {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #333;
+}

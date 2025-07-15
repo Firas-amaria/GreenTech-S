@@ -1,4 +1,3 @@
-
 import { getCurrentUserToken } from "./firebase-init.js";
 
 // 🔹 Utility to get query param
@@ -52,7 +51,9 @@ function renderShipmentHeader(shipment) {
     <p><strong>Farmer:</strong> ${shipment.farmerName}</p>
     <p><strong>Managed By:</strong> ${shipment.farmerManagerName}</p>
     <p><strong>Pickup Address:</strong> ${shipment.pickupAddress}</p>
-    <p><strong>Scheduled:</strong> ${shipment.scheduledPickupDate?.split("T")[0]} (${shipment.scheduledPickupTimeSlot})</p>
+    <p><strong>Scheduled:</strong> ${
+      shipment.scheduledPickupDate?.split("T")[0]
+    } (${shipment.scheduledPickupTimeSlot})</p>
     <p><strong>Status:</strong> ${shipment.overallStatus}</p>
   `;
 
@@ -73,36 +74,34 @@ function renderShipmentHeader(shipment) {
     for (let i = 0; i < containerArr.length; i++) {
       const qrImg = document.createElement("img");
       qrImg.className = "qr-code";
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(containerArr[i])}&size=60x60`;
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+        containerArr[i]
+      )}&size=60x60`;
       const containerRow = document.createElement("tr");
       const tdContainer = document.createElement("td");
-
 
       tdContainer.appendChild(qrImg);
       tdContainer.style.textAlign = "center";
 
       containerRow.appendChild(tdContainer);
-const tdQuality = document.createElement("td");
+      const tdQuality = document.createElement("td");
       tdQuality.textContent = containerArr[i].grade || "-";
       containerRow.appendChild(tdQuality);
       const tdPrice = document.createElement("td");
-      tdPrice.textContent = "--";
+      tdPrice.textContent = "2$";
       containerRow.appendChild(tdPrice);
       const weightKg = document.createElement("td");
       weightKg.textContent = containerArr[i].weightKg?.toFixed(2) || "0.00";
       containerRow.appendChild(weightKg);
 
       const tdTotalPrice = document.createElement("td");
-      const TotalPrice = containerArr[i].totalPrice || 0;
+      const TotalPrice = containerArr[i].totalPrice || 10;
       tdTotalPrice.textContent = TotalPrice.toFixed(2) || "0.00";
       containerRow.appendChild(tdTotalPrice);
-      
 
       const tdVol = document.createElement("td");
-      tdVol.textContent = "-";
+      tdVol.textContent = "5Kg";
       containerRow.appendChild(tdVol);
-      
-
 
       table.appendChild(containerRow);
     }
