@@ -7,7 +7,7 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
-renderDashboard();
+  renderDashboard();
   // Always get fresh token for secure API calls
   const token = await user.getIdToken();
   loadUpcomingOrdersByShift(token);
@@ -18,9 +18,12 @@ async function loadUpcomingOrdersByShift(token) {
   if (!container) return;
 
   try {
-    const res = await fetch(`${API_BASE}/api/orders/orders-for-upcoming-shifts`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await fetch(
+      `${API_BASE}/api/orders/orders-for-upcoming-shifts`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -30,7 +33,7 @@ async function loadUpcomingOrdersByShift(token) {
       return;
     }
 
-    data.forEach(shiftData => {
+    data.forEach((shiftData) => {
       const card = document.createElement("div");
       card.className = "stat-card orders";
       card.innerHTML = `
@@ -51,7 +54,6 @@ async function loadUpcomingOrdersByShift(token) {
   }
 }
 
-
 async function renderDashboard() {
   const createContainer = document.getElementById("next-shifts");
   const reqContainer = document.getElementById("shipment-req-list");
@@ -59,40 +61,44 @@ async function renderDashboard() {
   reqContainer.innerHTML = "";
 
   try {
-  const res = await fetch("http://localhost:4000/api/farmerManager/dashboardStatus");
-  const { shipmentSummary, createStock } = await res.json();
+    const res = await fetch(
+      "http://localhost:4000/api/farmerManager/dashboardStatus"
+    );
+    const { shipmentSummary, createStock } = await res.json();
 
-  // Show up to 4 not-created shifts
-  createStock.slice(0, 4).forEach(({ date, shift }) => {
-    const div = document.createElement("div");
-    div.className = "shift-line";
-    div.innerHTML = `
+    // Show up to 4 not-created shifts
+    createStock.slice(0, 4).forEach(({ date, shift }) => {
+      const div = document.createElement("div");
+      div.className = "shift-line";
+      div.innerHTML = `
       <span><strong>${date}</strong> - ${shift}</span>
-      <button onclick="window.location.href='fm-createStock.html?date=${encodeURIComponent(date)}&shift=${encodeURIComponent(shift)}'">
+      <button onclick="window.location.href='fm-createStock.html?date=${encodeURIComponent(
+        date
+      )}&shift=${encodeURIComponent(shift)}'">
         Create Stock
       </button>
     `;
-    createContainer.appendChild(div);
-  });
+      createContainer.appendChild(div);
+    });
 
-  // Show all created shifts with counts
-  shipmentSummary.forEach(({ date, shift, count }) => {
-    const div = document.createElement("div");
-    div.className = "shift-line";
-    div.innerHTML = `
+    // Show all created shifts with counts
+    shipmentSummary.forEach(({ date, shift, count }) => {
+      const div = document.createElement("div");
+      div.className = "shift-line";
+      div.innerHTML = `
       <span><strong>${date}</strong> - ${shift}</span>
-      <span>${count} shipment requests</span>
-      <button onclick="window.location.href='fm-shipmentRequests.html?date=${encodeURIComponent(date)}&shift=${encodeURIComponent(shift)}'">
+      <span>${count} Orders requests</span>
+      <button onclick="window.location.href='fm-shipmentRequests.html?date=${encodeURIComponent(
+        date
+      )}&shift=${encodeURIComponent(shift)}'">
         View Requests
       </button>
     `;
-    reqContainer.appendChild(div);
-  });
-
-} catch (err) {
-  console.error("Failed to load dashboard shifts", err);
-  createContainer.innerHTML = "<p>Error loading shift data.</p>";
-  reqContainer.innerHTML = "";
-}
-
+      reqContainer.appendChild(div);
+    });
+  } catch (err) {
+    console.error("Failed to load dashboard shifts", err);
+    createContainer.innerHTML = "<p>Error loading shift data.</p>";
+    reqContainer.innerHTML = "";
+  }
 }

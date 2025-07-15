@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const container = document.getElementById("shipment-section");
   document.getElementById(
     "header"
-  ).textContent = `Shipment Requests for ${displayDate} - ${shift}`;
+  ).textContent = `Orders Requests for ${displayDate} - ${shift}`;
 
   try {
     const token = await getCurrentUserToken();
