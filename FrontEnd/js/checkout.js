@@ -12,9 +12,6 @@ onAuthStateChanged(auth, async (user) => {
   await loadCheckout();
 });
 
-
-
-
 async function loadCheckout() {
   const container = document.getElementById("checkout-container");
   const totalEl = document.getElementById("checkout-total");
@@ -25,13 +22,12 @@ async function loadCheckout() {
   console.log(localStorage.getItem("selectedAddress"));
   const selectedAddress = JSON.parse(localStorage.getItem("selectedAddress"));
   console.log(selectedAddress);
-let address=selectedAddress.address;
-
-
+  let address = selectedAddress.address;
 
   if (!cart.length || !shift || !address) {
-    container.innerHTML = "<p>Missing cart data or delivery info. Redirecting...</p>";
-    setTimeout(() => window.location.href = "cart.html", 1500);
+    container.innerHTML =
+      "<p>Missing cart data or delivery info. Redirecting...</p>";
+    setTimeout(() => (window.location.href = "cart.html"), 1500);
     return;
   }
 
@@ -48,7 +44,9 @@ let address=selectedAddress.address;
     const div = document.createElement("div");
     div.className = "cart-item";
     div.innerHTML = `
-      <strong>${item.itemName} from ${item.sourceFarmName} by ${item.sourceFarmerName}</strong>
+      <strong>${item.itemName} from ${item.sourceFarmName} by ${
+      item.sourceFarmerName
+    }</strong>
       <div class="cart-details-line">
         <span>Qty: ${item.quantity} kg</span>
         <span>Price: $${item.price.toFixed(2)}/kg</span>
@@ -71,13 +69,16 @@ window.goBack = function () {
   window.location.href = "cart.html";
 };
 
-
-window.submitOrder = async function() {
+window.submitOrder = async function () {
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
   const stockId = localStorage.getItem("selectedShift");
-let AddressS = JSON.parse(localStorage.getItem("selectedAddress"));
-console.log(AddressS);
-  const total = parseFloat(document.getElementById("checkout-total").textContent.replace("Total: $", ""));
+  let AddressS = JSON.parse(localStorage.getItem("selectedAddress"));
+  console.log(AddressS);
+  const total = parseFloat(
+    document
+      .getElementById("checkout-total")
+      .textContent.replace("Total: $", "")
+  );
 
   if (!cart.length || !stockId || !AddressS) {
     alert("Missing order data. Please review your cart.");
@@ -108,41 +109,43 @@ console.log(AddressS);
 
     const orderPayload = {
       items: cart,
-      deliveryAddress: {address:AddressS.address, lat: AddressS.lat ,lng: AddressS.lng
-      },      deliveryDate,
+      deliveryAddress: {
+        address: AddressS.address,
+        lat: AddressS.lat,
+        lng: AddressS.lng,
+      },
+      deliveryDate,
       deliveryShift,
       deliveryDate,
       totalOrderValue: total,
       totalOrderWeightKg: totalKg,
-      customerName: user.displayName ,
+      customerName: user.displayName,
       stockId: stockId,
-
     };
-console.log(orderPayload.deliveryAddress.address);
-console.log(AddressS);
-   const res = await fetch("http://localhost:4000/api/market/submit-order", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(orderPayload)
-});
+    console.log(orderPayload.deliveryAddress.address);
+    console.log(AddressS);
+    const res = await fetch("http://localhost:4000/api/market/submit-order", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(orderPayload),
+    });
 
-if (!res.ok) {
-  const errorText = await res.text();
-  throw new Error(`Order submission failed: ${errorText}`);
-}
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Order submission failed: ${errorText}`);
+    }
 
-const data = await res.json();
+    const data = await res.json();
 
-// ✅ Redirect to delivery-note.html with the returned orderId
-if (data.orderId) {
- window.location.href = `delivery-note.html?orderId=${data.orderId}`;
-} else {
-  alert("Order placed, but no order ID was returned.");
-}
-
+    // ✅ Redirect to delivery-note.html with the returned orderId
+    if (data.orderId) {
+      window.location.href = `market.html`;
+    } else {
+      alert("Order placed, but no order ID was returned.");
+    }
 
     if (!res.ok) throw new Error("Failed to submit order.");
 
@@ -153,13 +156,11 @@ if (data.orderId) {
     showPopup();
     launchFireworks();
     window.location.href = `delivery-note.html?orderId=${data.orderId}`;
-
   } catch (err) {
     console.error("Submit order failed:", err);
     //alert("Could not complete your order. Please try again.");
   }
 };
-
 
 function formatDeliveryLine(shiftId) {
   // Example shiftId: "LC-1_AS_2025_07_09_morning"
@@ -172,7 +173,7 @@ function formatDeliveryLine(shiftId) {
     morning: { start: "01:00", end: "07:00" },
     afternoon: { start: "07:00", end: "13:00" },
     evening: { start: "13:00", end: "19:00" },
-    night: { start: "19:00", end: "01:00" }
+    night: { start: "19:00", end: "01:00" },
   };
 
   const shiftInfo = shifts[shiftName];
@@ -185,9 +186,11 @@ function formatDeliveryLine(shiftId) {
   let startHour = endHour - 1;
   if (startHour < 0) startHour += 24;
 
-  const formatTime = (h, m) => `${h.toString().padStart(2,"0")}:${m}`;
-  const windowStr = `${formatTime(startHour, endMin)}-${formatTime(endHour, endMin)}`;
+  const formatTime = (h, m) => `${h.toString().padStart(2, "0")}:${m}`;
+  const windowStr = `${formatTime(startHour, endMin)}-${formatTime(
+    endHour,
+    endMin
+  )}`;
 
   return `Delivery: ${day}/${month}/${year} ${shiftName} (${windowStr})`;
 }
-
