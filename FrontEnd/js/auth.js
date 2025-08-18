@@ -283,7 +283,7 @@ window.login = async (event) => {
         window.location.href = "u-farmerManager/fm-dashboard.html";
         break;
       case "deliverer":
-        window.location.href = "transporter.html";
+        window.location.href = "u-driver/d-dashboard.html";
         break;
       case "industrialDriver":
         window.location.href = "transporter.html";

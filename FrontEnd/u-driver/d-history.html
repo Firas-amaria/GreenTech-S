@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shipment History | Driver App</title>
+
+    <!-- Your existing CSS bundles -->
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="../css/driver.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+</head>
+
+<body>
+    <!-- ===== Sidebar ===== -->
+    <nav class="sidebar"></nav>
+
+
+    <!-- ===== Main ===== -->
+    <div class="main" role="main" aria-label="Shipment history">
+        <h1>Shipment History</h1>
+
+        <!-- Filters / Tools -->
+        <div class="toolbar">
+            <input id="q" type="text" placeholder="Search by DeliveryId or Destination…" />
+            <select id="status">
+                <option value="">All statuses</option>
+                <option value="arrived">Arrived</option>
+                <option value="on_route">On route</option>
+                <option value="picked_up">Picked up</option>
+                <option value="pending">Pending</option>
+                <option value="problem">Problem</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="minRating">
+                <option value="0">Any rating</option>
+                <option value="3">≥ 3★</option>
+                <option value="4">≥ 4★</option>
+                <option value="5">5★ only</option>
+            </select>
+            <div class="spacer"></div>
+            <select id="pageSize">
+                <option value="10">10 / page</option>
+                <option value="25" selected>25 / page</option>
+                <option value="50">50 / page</option>
+                <option value="100">100 / page</option>
+            </select>
+            <button id="btnReset" class="btn-no-success">Reset</button>
+        </div>
+
+        <!-- Table -->
+        <table id="tblHistory">
+            <thead>
+                <tr>
+                    <th>DeliveryId</th>
+                    <th>Date</th>
+                    <th>Distance</th>
+                    <th>Destination</th>
+                    <th>Status</th>
+                    <th>Rating</th>
+                    <th>Notes</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody><!-- JS fills --></tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button id="prev" class="btn-no-success small">Prev</button>
+            <span id="pageInfo"></span>
+            <button id="next" class="btn-primary small">Next</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../js/w_sidebar_menu.js"></script>
+
+    <script type="module" src="../js/driver-history.js"></script>
+</body>
+
+</html>

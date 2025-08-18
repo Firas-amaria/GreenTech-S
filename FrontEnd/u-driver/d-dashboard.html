@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard | Driver App</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/driver.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+
+</head>
+
+<body>
+  <!-- ===== Sidebar ===== -->
+  <nav class="sidebar"></nav>
+
+  <!-- ===== Main Content ===== -->
+  <div class="main" role="main" aria-label="Driver dashboard">
+    <h1>Dashboard Overview</h1>
+
+    <!-- Quick KPIs (filled by JS later if you want; static for now) -->
+    <div class="kpis" aria-hidden="true">
+      <div class="kpi">
+        <div class="label">Today’s Stops</div>
+        <div class="value">6</div>
+      </div>
+      <div class="kpi">
+        <div class="label">On-time % (7d)</div>
+        <div class="value">98%</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Open Issues</div>
+        <div class="value">1</div>
+      </div>
+    </div>
+
+    <!-- ===== Notifications ===== -->
+    <div class="section" aria-labelledby="sec-notifications">
+      <h2 id="sec-notifications">Notifications</h2>
+      <table id="tblNotification">
+        <thead>
+          <tr>
+            <th>Message</th>
+            <th style="width:1%">Action</th>
+          </tr>
+        </thead>
+        <tbody><!-- JS fills --></tbody>
+      </table>
+    </div>
+
+    <!-- ===== Active Delivery ===== -->
+    <div class="section" aria-labelledby="sec-active">
+      <h2 id="sec-active">Active Delivery</h2>
+      <!-- JS injects an .active-card here -->
+    </div>
+
+    <!-- ===== Latest Ratings ===== -->
+    <div class="section" aria-labelledby="sec-ratings">
+      <h2 id="sec-ratings">Latest Ratings</h2>
+      <table id="tblLatestRatings">
+        <thead>
+          <tr>
+            <th>DeliveryId</th>
+            <th>Date</th>
+            <th>Distance</th>
+            <th>Destination</th>
+            <th>Rating</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody><!-- JS fills --></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal host (JS can also create it on the fly; having it here is fine) -->
+  <div id="demo-modal-host" aria-hidden="true"></div>
+
+  <script type="module" src="../js/w_sidebar_menu.js"></script>
+  <script type="module" src="../js/driver-dashboard.js"></script>
+
+
+</body>
+
+</html>

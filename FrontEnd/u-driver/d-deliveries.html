@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pick Deliveries | Driver App</title>
+
+    <!-- Your existing CSS -->
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="../css/driver.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+
+    <style>
+        /* Page-only helpers, compatible with your palette */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .toolbar input[type="text"],
+        .toolbar select {
+            padding: 6px 8px;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+            background: #fff;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: .8rem;
+            background: #eee;
+            color: #333;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .meta .item {
+            background: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 6px;
+        }
+
+        .item .label {
+            font-size: .8rem;
+            color: #555;
+        }
+
+        .item .value {
+            font-weight: 600;
+            color: #2b3e50;
+        }
+
+        .note {
+            font-size: .9rem;
+            color: #444;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .empty {
+            padding: 24px;
+            text-align: center;
+            color: #555;
+            background: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar"></nav>
+
+    <!-- Main -->
+    <div class="main" role="main" aria-label="Pick Deliveries">
+        <h1>Pick Deliveries</h1>
+
+        <div class="toolbar">
+            <input id="q" type="text" placeholder="Search destination or ID…" />
+            <select id="sort">
+                <option value="eta_asc">Soonest first</option>
+                <option value="payment_desc">Highest payment</option>
+                <option value="distance_asc">Nearest first</option>
+                <option value="weight_desc">Heaviest first</option>
+            </select>
+            <select id="window">
+                <option value="any">Any date</option>
+                <option value="today">Today</option>
+                <option value="tomorrow">Tomorrow</option>
+                <option value="3days">Next 3 days</option>
+                <option value="7days">Next 7 days</option>
+            </select>
+            <div style="flex:1"></div>
+            <button id="btnReset" class="btn-no-success">Reset</button>
+        </div>
+
+        <div id="cards" class="cards"><!-- JS fills --></div>
+        <div id="empty" class="empty" style="display:none;">No deliveries match your filters.</div>
+
+        <div class="pagination">
+            <button id="loadMore" class="btn-primary small">Load more</button>
+        </div>
+    </div>
+
+    <script type="module" src="../js/driver-deliveries.js"></script>
+    <script type="module" src="../js/w_sidebar_menu.js"></script>
+
+</body>
+
+</html>

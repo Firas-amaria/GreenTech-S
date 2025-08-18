@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schedule | Driver App</title>
+
+    <!-- Your existing CSS bundles -->
+    <link rel="stylesheet" href="../css/styles.css" />
+    <link rel="stylesheet" href="../css/driver.css" />
+    <link rel="stylesheet" href="../css/sidebar.css" />
+
+    <style>
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .calendar {
+            display: grid;
+            gap: 8px;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .cal-head,
+        .cal-cell {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 64px;
+            position: relative;
+        }
+
+        .cal-head {
+            font-weight: 700;
+            text-align: center;
+            background: #f4f7f9;
+        }
+
+        .cal-cell .day {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: .85rem;
+            color: #666;
+        }
+
+        .cal-cell .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 18px;
+        }
+
+        .chip {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: .75rem;
+            background: #eee;
+            color: #333;
+        }
+
+        .chip.on {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .subtle {
+            color: #666;
+            font-size: .9rem;
+        }
+
+        table.compact td,
+        table.compact th {
+            padding: 6px 8px;
+        }
+
+        /* Minimal modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .4);
+        }
+
+        .modal-box {
+            position: fixed;
+            inset: 0;
+            margin: auto;
+            width: min(900px, 92vw);
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .modal-title {
+            margin: 0 0 6px 0;
+            color: #2b3e50;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .grid-week {
+            overflow: auto;
+        }
+
+        .grid-week table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+
+        .grid-week th,
+        .grid-week td {
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .grid-week td input {
+            transform: scale(1.1);
+        }
+
+        .cal-legend {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 6px 0 12px 0;
+        }
+
+        .cal-toggle {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar"></nav>
+
+    <!-- Main -->
+    <div class="main" role="main" aria-label="Driver schedule">
+        <h1>Schedule</h1>
+
+        <div class="toolbar">
+            <button id="btnPlanNext" class="btn-primary">Plan Next Month</button>
+            <span id="lblContext" class="subtle"></span>
+        </div>
+
+        <!-- Today -->
+        <div class="section">
+            <h2>Today’s Shifts</h2>
+            <table id="tblToday" class="compact">
+                <thead>
+                    <tr>
+                        <th>Shift</th>
+                        <th>Hours</th>
+                        <th>Active</th>
+                    </tr>
+                </thead>
+                <tbody><!-- JS fills --></tbody>
+            </table>
+        </div>
+
+        <!-- Upcoming -->
+        <div class="section">
+            <h2>Upcoming Shifts (Next 5 Days)</h2>
+            <table id="tblUpcoming" class="compact">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Active Shifts</th>
+                    </tr>
+                </thead>
+                <tbody><!-- JS fills --></tbody>
+            </table>
+        </div>
+
+        <!-- Month Grid -->
+        <div class="section">
+            <h2 id="monthTitle">This Month</h2>
+            <div class="cal-legend">
+                <span class="chip on">Active</span>
+                <span class="chip">Off</span>
+                <span class="subtle">Shifts: Morning • Afternoon • Evening • Night</span>
+            </div>
+            <div id="calendar" class="calendar"><!-- JS fills --></div>
+        </div>
+    </div>
+
+    <!-- Modal host -->
+    <div id="modal-host" aria-hidden="true"></div>
+
+    <script type="module" src="../js/w_sidebar_menu.js"></script>
+    <script type="module" src="../js/driver-schedule.js"></script>
+</body>
+
+</html>

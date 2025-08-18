@@ -26,12 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "f-crops.html", text: "Crops" },
       { href: "f-shipments.html", text: "Orders" },
     ];
-  } else if (role === "driver") {
+  } else if (role === "deliverer") {
     appTitle = "Driver Panel";
     links = [
-      { href: "d_dashboard.html", text: "Dashboard" },
-      { href: "d_routes.html", text: "Routes" },
-      { href: "d_shipments.html", text: "Shipments" },
+      { href: "d-dashboard.html", text: "Dashboard" },
+      { href: "d-history.html", text: "History" },
+      { href: "d-deliveries.html", text: "Deliveries" },
+      { href: "d-schedule.html", text: "Schedule" },
     ];
   } else if (role === "picker") {
     appTitle = "Picker Panel";
@@ -52,15 +53,13 @@ document.addEventListener("DOMContentLoaded", () => {
     className: "user-greeting",
   });
 
-  
-
-   links.push({
+  links.push({
     href: "../market.html",
     text: "visit market",
     id: "visit-market-link",
     className: "visit-market-link",
   });
-  
+
   links.push({
     href: "#",
     text: "Logout",
@@ -96,10 +95,10 @@ document.addEventListener("DOMContentLoaded", () => {
       .catch((err) => console.error("Logout failed:", err));
   });
 
-  document.getElementById("visit-market-link").addEventListener("click", (e) => {
-    e.preventDefault();
-    window.location.href = "../market.html";
-  });
+  document
+    .getElementById("visit-market-link")
+    .addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = "../market.html";
+    });
 });
-
-
