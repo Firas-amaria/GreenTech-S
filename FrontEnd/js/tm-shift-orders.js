@@ -220,10 +220,7 @@ const BOXES = [
 ];
 
 // ---- Example item packing profiles (load these from Firestore in prod) ----
-const ITEM_PACK = {
-  "FRT-001": { name: "Apple Fuji",          bulkDensityKgPerL: 0.70, fragility: "normal", maxWeightPerBoxKg: 10, allowMixing: true,  minBoxType: "Small" },
-  "FRT-005": { name: "Strawberry Albion",   bulkDensityKgPerL: 0.35, fragility: "fragile", maxWeightPerBoxKg: 2,  allowMixing: false, minBoxType: "Small" },
-};
+import { ITEM_PACK } from "./item-packing-meta.js";
 
 // ---- Helpers ----
 function litersFor(itemId, kg) {
