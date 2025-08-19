@@ -10,6 +10,7 @@ let selectedCategory = "";
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let shiftLocked = false;
 
+
 // 🔥 LOAD GOOGLE MAPS
 async function loadGoogleMapsScript() {
   try {
@@ -183,6 +184,16 @@ onAuthStateChanged(auth, async (user) => {
     }
     updateCartCount();
   }
+  /*
+const token = await user.getIdToken();
+const r = await fetch("http://localhost:4000/api/market/items", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const items = await r.json();
+  console.log("ITEMS:", items);
+ */
+
+
 });
 
 

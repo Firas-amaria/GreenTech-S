@@ -15,7 +15,7 @@ const {
 // new: get available shifts for market
 router.get("/available-shifts", authenticate, getAvailableShifts);
 router.get("/available-stock/:stockId", authenticate, getAvailableStock);
-router.get("/items", authenticate, getItemList); // NEW LINE
+router.get("/items", authenticate, getItemList); 
 router.post("/reserve-item", authenticate, reserveItem);
 router.post("/restore-item", authenticate, restoreItem);
 router.post("/submit-order", authenticate, submitOrder);

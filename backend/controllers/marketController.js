@@ -149,7 +149,7 @@ async function getItemList(req, res) {
  try {
     const snapshot = await db.collection("items").get();
     const itemList = snapshot.docs.map(doc => ({
-      itemId: doc.data().itemId,
+      itemId: doc.id,
       name: doc.data().name,
       category: doc.data().category
     }));
