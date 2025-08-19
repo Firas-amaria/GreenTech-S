@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Seed & View Packages</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --danger: #ef4444;
+      --border: #1f2937;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; margin: 0; }
+    .wrap { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+    h1 { font-size: 24px; margin: 0 0 12px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 12px 0; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .row input { background: #0b1220; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .btn { background: var(--accent); border: 0; color: #031214; font-weight: 600; border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+    .btn.secondary { background: var(--accent-2); color: white; }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn.danger { background: var(--danger); color: white; }
+    .muted { color: var(--muted); font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: #cbd5e1; font-weight: 600; }
+    code { background: #0b1220; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #0b1220; border: 1px solid var(--border); font-size: 12px; }
+    .ok { color: #22c55e; }
+    .err { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Seed & View Packages</h1>
+    <div class="muted">Calls <code>POST /api/packages/seed</code> then <code>GET /api/packages/get-packages</code>.</div>
+
+    <!-- Auth -->
+    <div class="card" id="auth-card">
+      <div class="row">
+        <strong>Authentication</strong>
+        <span class="muted" id="auth-status">Checking…</span>
+      </div>
+      <div class="row" id="login-row">
+        <input id="email" type="email" placeholder="Email" />
+        <input id="password" type="password" placeholder="Password" />
+        <button class="btn" id="login-btn">Sign In</button>
+        <button class="btn ghost" id="logout-btn" style="display:none;">Sign Out</button>
+      </div>
+      <div class="muted" id="whoami"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="seed-btn">Seed Default Boxes</button>
+        <button class="btn secondary" id="refresh-btn">Refresh List</button>
+        <span id="op-status" class="muted"></span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="row">
+        <strong>Packages</strong>
+        <span class="muted" id="count"></span>
+      </div>
+      <table id="pkg-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Usable Liters</th>
+            <th>Max Weight (kg)</th>
+            <th>Headroom</th>
+            <th>Inner Dims (cm)</th>
+            <th>Mixing</th>
+            <th>Max SKUs</th>
+            <th>Vented</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="8" class="muted">No data yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- If you already have firebase-init.js, just import it. Otherwise replace with your path. -->
+  <script type="module">
+    // ------------------------------------------------------------
+    // CONFIG
+    // ------------------------------------------------------------
+    const API_BASE = "http://localhost:4000/api/packages"; // adjust if needed
+
+    // Import your initialized Firebase auth instance
+    import { auth } from "./js/firebase-init.js";
+    // We import signInWithEmailAndPassword separately from Firebase CDN
+    import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+
+    // ------------------------------------------------------------
+    // DOM refs
+    // ------------------------------------------------------------
+    const authStatusEl = document.getElementById("auth-status");
+    const whoamiEl     = document.getElementById("whoami");
+    const loginRow     = document.getElementById("login-row");
+    const emailEl      = document.getElementById("email");
+    const passEl       = document.getElementById("password");
+    const loginBtn     = document.getElementById("login-btn");
+    const logoutBtn    = document.getElementById("logout-btn");
+    const seedBtn      = document.getElementById("seed-btn");
+    const refreshBtn   = document.getElementById("refresh-btn");
+    const opStatusEl   = document.getElementById("op-status");
+    const tableBody    = document.querySelector("#pkg-table tbody");
+    const countEl      = document.getElementById("count");
+
+    // ------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function getTokenOrThrow() {
+      const u = auth.currentUser;
+      if (!u) throw new Error("Not authenticated");
+      return await u.getIdToken();
+    }
+
+    function setOpStatus(msg, ok = true) {
+      opStatusEl.textContent = msg;
+      opStatusEl.className = ok ? "ok" : "err";
+    }
+
+    function renderRows(rows) {
+      if (!rows || !rows.length) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="muted">No packages found.</td></tr>`;
+        countEl.textContent = "";
+        return;
+      }
+      countEl.textContent = `(${rows.length})`;
+      tableBody.innerHTML = rows.map(r => {
+        const dims = r.innerDimsCm ? `${r.innerDimsCm.l} × ${r.innerDimsCm.w} × ${r.innerDimsCm.h}` : "-";
+        const mix  = r.mixingAllowed === false ? "No" : "Yes";
+        const hr   = typeof r.headroomPct === "number" ? `${Math.round(r.headroomPct*100)}%` : "-";
+        return `
+          <tr>
+            <td><span class="pill">${r.key || r.id || "-"}</span></td>
+            <td>${(r.usableLiters ?? "-")}</td>
+            <td>${(r.maxWeightKg ?? "-")}</td>
+            <td>${hr}</td>
+            <td>${dims}</td>
+            <td>${mix}</td>
+            <td>${r.maxSkusPerBox ?? "-"}</td>
+            <td>${r.vented ? "Yes" : "No"}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function fetchList() {
+      try {
+        setOpStatus("Loading packages…");
+        const token = await getTokenOrThrow();
+        const res = await fetch(`${API_BASE}/get-packages`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`GET failed: ${res.status}`);
+        const rows = await res.json();
+        renderRows(rows);
+        setOpStatus("Loaded ✓");
+      } catch (e) {
+        console.error(e);
+        setOpStatus(e.message || "Load failed", false);
+        renderRows([]);
+      }
+    }
+
+    async function callSeed() {
+      try {
+        setOpStatus("Seeding boxes…");
+        const token = await getTokenOrThrow();
+        const res = await fetch(`${API_BASE}/seed`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`Seed failed: ${res.status}`);
+        const out = await res.json();
+        setOpStatus(`Seeded: ${JSON.stringify(out)}`);
+        // brief pause then refresh
+        await sleep(400);
+        await fetchList();
+      } catch (e) {
+        console.error(e);
+        setOpStatus(e.message || "Seed failed", false);
+      }
+    }
+
+    // ------------------------------------------------------------
+    // Events
+    // ------------------------------------------------------------
+    loginBtn.addEventListener("click", async () => {
+      try {
+        setOpStatus("Signing in…");
+        await signInWithEmailAndPassword(auth, emailEl.value, passEl.value);
+        setOpStatus("Signed in ✓");
+      } catch (e) {
+        console.error(e);
+        setOpStatus(e.message || "Login failed", false);
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+    });
+
+    seedBtn.addEventListener("click", callSeed);
+    refreshBtn.addEventListener("click", fetchList);
+
+    // ------------------------------------------------------------
+    // Auth state + initial load
+    // ------------------------------------------------------------
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authStatusEl.textContent = "Authenticated";
+        whoamiEl.textContent = `UID: ${user.uid} ${user.email ? "• " + user.email : ""}`;
+        loginRow.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+        fetchList();
+      } else {
+        authStatusEl.textContent = "Not authenticated";
+        whoamiEl.textContent = "Enter email & password to sign in.";
+        loginRow.style.display = "flex";
+        logoutBtn.style.display = "none";
+        renderRows([]);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -289,7 +289,8 @@ window.login = async (event) => {
         window.location.href = "transporter.html";
         break;
       case "transportationManager":
-        window.location.href = "trasportationManeger-dashboard.html";
+        window.location.href = "u-transportationManager/tm-dashboard.html";
+        //window.location.href = "trasportationManeger-dashboard.html";
         break;
       default:
         console.log(role);

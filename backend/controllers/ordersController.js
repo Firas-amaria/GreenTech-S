@@ -20,6 +20,57 @@ async function getAllOrdersForShifts(req, res) {
     console.log(upcomingShifts);
 
     const results = [];
+
+    for (const entry of upcomingShifts) {
+      const prefix = `LC-1_ORD_${entry.date}_${entry.shift}`;
+
+      const ordersSnap = await db
+        .collection("orders")
+        .where(FieldPath.documentId(), ">=", prefix)
+        .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
+        .get();
+
+      results.push({
+        shift: `${entry.date.replace(/_/g, "-")} ${capitalizeWords(entry.shift)}`,
+        orders: ordersSnap.size
+      });
+    }
+
+    // 🔘 Prepend your fixed/test shift here
+    const testShiftId = "LC-1_ORD_2025_08_08_morning";
+    const testSnap = await db
+      .collection("orders")
+      .where(FieldPath.documentId(), ">=", testShiftId)
+      .where(FieldPath.documentId(), "<", testShiftId + "\uf8ff")
+      .get();
+
+    results.unshift({
+      shift: "2025-08-08 Morning (Test)", // Label it however you want
+      orders: testSnap.size
+    });
+
+    console.log("Returning shifts summary:", results);
+    return res.json(results);
+
+  } catch (err) {
+    console.error("Error fetching orders for shifts:", err.stack);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
+/*
+async function getAllOrdersForShifts(req, res) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "No token provided." });
+
+    await admin.auth().verifyIdToken(token);
+
+    const upcomingShifts = await getUpcomingShiftsList(db, 6);
+    console.log(upcomingShifts);
+
+    const results = [];
     for (const entry of upcomingShifts) {
       const prefix = `LC-1_ORD_${entry.date}_${entry.shift}`;
       //console.log(`Counting orders for: ${prefix}`);
@@ -44,13 +95,14 @@ async function getAllOrdersForShifts(req, res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
-
+*/
 function capitalizeWords(str) {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
 
 async function getOrdersForShift(req, res) {
   try {
+   
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ error: "No token provided." });
 
@@ -62,7 +114,7 @@ async function getOrdersForShift(req, res) {
     }
 
     const prefix = `LC-1_ORD_${date.replace(/-/g, "_")}_${shift}`;
-    //console.log(`Looking up orders with prefix: ${prefix}`);
+    ///console.log(`Looking up orders with prefix: ${prefix}`);
 
     const ordersSnap = await db.collection("orders")
       .where(FieldPath.documentId(), ">=", prefix)

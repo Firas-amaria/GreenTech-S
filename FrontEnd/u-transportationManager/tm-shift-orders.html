@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shift Orders</title>
   <link rel="stylesheet" href="../css/trasportaionManager.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
 </head>
 <body>
   <header>
     <nav id="main-nav"></nav>
   </header>
+
   <h1>Orders for <span id="shift-info"></span></h1>
  <div id="sub-nav">
       <ul>
@@ -29,22 +31,22 @@
    
 
     <section id="orders-section" class="section">
-      <table id="orders-table">
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Address</th>
-            <th>Total Volume (kg)</th>
-            <th></th> <!-- arrow toggle -->
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="4">Loading orders...</td></tr>
-        </tbody>
-      </table>
+      <table id="orders-table" class="orders">
+  <thead>
+    <tr>
+      <th>Order #</th>
+      <th>Address</th>
+      <th>Total (kg)</th>
+      <th>Packages</th> <!-- NEW -->
+      <th></th>         <!-- arrow toggle -->
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
     </section>
   </main>
-
+<script type="module" src="../js/m_nav_menu.js"></script>
   <script type="module" src="../js/tm-shift-orders.js"></script>
 </body>
 </html>

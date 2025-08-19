@@ -45,6 +45,7 @@ app.use("/api/maps", mapsRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/transporter", transporterRoutes);
 app.use("/api/manager", managerRoutes);
+app.use("/api/packages", require("./routes/packagesRoutes"));
 
 const PORT = process.env.PORT || 4000;
 

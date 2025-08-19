@@ -23,10 +23,14 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "a_reports.html", text: "Reports" },
       { href: "a_manage_users.html", text: "Manage Users" },
     ];
-  } else if (role === "transportation manager") {
+  } else if (role === "transportationManager") {
     menuItems = [
-      { href: "a_all_shipments.html", text: "Shipments" },
-      { href: "schedule.html", text: "Schedule" },
+      { href: "tm-dashboard.html", text: "Dashboard" },
+      { href: "tm-shift-orders.html", text: "Shipments" },
+      { href: "tm-shipments.html", text: "All Shipments" },
+      { href: "tm-manage-users.html", text: "Manage drivers" },
+      { href: "tm-job-applications.html", text: "Job Applications" },
+      { href: "schedule.html", text: "" },
     ];
   } else if (role === "farmerManager") {
     menuItems = [
