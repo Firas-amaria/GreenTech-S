@@ -26,14 +26,13 @@ const RolesTable = [
     name: "deliverer",
     description: "Responsible for transporting shipments.",
     includeSchedule: true,
+      includeDimensions: true,
     includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
+      { label: "Vechile Type", type: "text" },
       { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
       { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
+      { label: "Vehicle payload Capacity (t)", type: "number", step: "0.1", min: "0" },
       { label: "Driver License Number", type: "text" },
       { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
       { label: "Vehicle Insurance", type: "checkbox" },
@@ -43,6 +42,7 @@ const RolesTable = [
     name: "industrialDriver",
     description: "Delivers goods from farms to the logistics center.",
     includeSchedule: true,
+    includeDimensions: true,
     includeLand: false,
     fields: [
       { label: "License Type", type: "text" },
@@ -197,7 +197,19 @@ async function renderApplicationForm() {
       }
     }, 0);
   }
-
+if (role.includeDimensions) {
+    const dimensionsWrapper = document.createElement("div");
+    dimensionsWrapper.id = "cargo-dimensions";
+    dimensionsWrapper.innerHTML = `
+      <label>Cargo dimensions (m):</label>
+      <div>
+        <label>Height: <input type="number" style="width:30%" name="cargoDimensionsHeight" step="0.01" min="0" required /></label>
+        <label>Width: <input type="number"  style="width:30%" name="cargoDimensionsWidth" step="0.01" min="0" required /></label>
+        <label>Length: <input type="number"  style="width:30%" name="cargoDimensionsLength" step="0.01" min="0" required /></label>
+      </div>
+    `;
+    extraFields.appendChild(dimensionsWrapper);
+  }
   // Schedule
   if (role.includeSchedule) {
     const sched = document.createElement("div");
@@ -211,6 +223,7 @@ async function renderApplicationForm() {
     await initSchedule(sched);
   }
 
+  
   extraFields.innerHTML += `
     <div class="agreement">
       <label><input type="checkbox" name="agreement" required /> I certify that all information is accurate.</label>
@@ -236,6 +249,17 @@ async function renderApplicationForm() {
       ReqBody.extraFields.scheduleBitmask = await getScheduleBitmaskArray(
         document.getElementById("schedule-container")
       );
+    }
+    if (document.getElementById("cargo-dimensions")) {
+      ReqBody.extraFields.cargoDimensions = {
+        height: formData.get("cargoDimensionsHeight"),
+        width: formData.get("cargoDimensionsWidth"),
+        length: formData.get("cargoDimensionsLength"),
+
+      };
+      ReqBody.extraFields.cargoDimensionsHeight = formData.get("cargoDimensionsHeight");
+      ReqBody.extraFields.cargoDimensionsWidth = formData.get("cargoDimensionsWidth");
+      ReqBody.extraFields.cargoDimensionsLength = formData.get("cargoDimensionsLength");
     }
 
     if (role.includeLand) {

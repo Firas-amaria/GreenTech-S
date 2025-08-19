@@ -102,17 +102,17 @@ const validateExtraFields = (position, fields) => {
       );
 
     case "deliverer":
-      return (
-        isString(fields.licenseType) &&
-        isString(fields.vehicleMake) &&
+    console.log(fields);  
+    return (
         isString(fields.vehicleModel) &&
-        isString(fields.vehicleType) &&
+        isString(fields.vechileType) &&
         isNumber(fields.vehicleYear) &&
-        isNumber(fields.vehicleCapacity) &&
+        isNumber(fields.vehiclePayloadCapacity) &&
         isString(toStr(fields.driverLicenseNumber)) &&
         isString(toStr(fields.vehicleRegistrationNumber)) &&
         isBoolean(fields.vehicleInsurance) &&
-        scheduleValid
+        isObject(fields.cargoDimensions)
+        
       );
 
     case "industrialDriver":
@@ -120,14 +120,14 @@ const validateExtraFields = (position, fields) => {
         isString(fields.licenseType) &&
         isString(fields.vehicleMake) &&
         isString(fields.vehicleModel) &&
-        isString(fields.vehicleType) &&
+        isString(fields.vechileType) &&
         isNumber(fields.vehicleYear) &&
         isNumber(fields.vehicleCapacity) &&
         isString(toStr(fields.driverLicenseNumber)) &&
         isString(toStr(fields.vehicleRegistrationNumber)) &&
         isBoolean(fields.vehicleInsurance) &&
         isBoolean(fields.refrigerated) &&
-        scheduleValid
+        fields.scheduleBitmask
       );
 
     default:
