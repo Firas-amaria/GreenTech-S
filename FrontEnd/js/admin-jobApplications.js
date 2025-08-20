@@ -9,15 +9,20 @@ const RolesTable = [
     includeSchedule: true,
     includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
-      { label: "Vehicle Insurance", type: "checkbox" },
+      // removed "License Type" and "Vehicle Make" (no matching keys in API)
+      { label: "Vehicle Model", type: "text" }, // → vehicleModel
+      { label: "Vechile Type", type: "text" }, // → vechileType  (matches API typo)
+      { label: "Vehicle Year", type: "number" }, // → vehicleYear
+      {
+        label: "Vehicle Payload Capacity",
+        type: "number",
+        step: "0.1",
+        min: "0",
+      }, // → vehiclePayloadCapacity
+      { label: "Driver License Number", type: "text" }, // → driverLicenseNumber
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" }, // → vehicleRegistrationNumber
+      { label: "Vehicle Insurance", type: "checkbox" }, // → vehicleInsurance
+      { label: "Cargo Dimensions", type: "text" }, // → cargoDimensions (object; your formatValue already handles objects)
     ],
   },
   {
@@ -223,9 +228,11 @@ async function renderDynamicApplicationCard(app) {
       <tr><td><strong>Contact Info</strong></td><td>${app.email || "-"}<br>${
     app.phone || "-"
   }</td></tr>
-      <tr><td><strong>Personal Info</strong></td><td>${app.address || "-"}<br>${
+      <tr><td><strong>Personal Info</strong></td>
+   <td>${app.address && app.address.address ? app.address.address : "-"}<br>${
     app.birthDate || "-"
-  }</td></tr>
+  }</td>
+ </tr>
     </table>
   `;
 

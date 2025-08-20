@@ -261,12 +261,11 @@ async function updateApplicationStatus(req, res) {
         return res.status(400).send({ error: `Unknown role: ${role}` });
       }
 
-      // 1. Copy to the role-specific collection
+      // 1) Copy to the role-specific collection
       await db
         .collection(targetCol)
         .doc(uid)
         .set({
-          //add name and phone number
           ...appData,
           firstName,
           lastName,
@@ -274,7 +273,7 @@ async function updateApplicationStatus(req, res) {
           approvedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-      // 2. Update user's main role
+      // 2) Update user's main role
       await db.collection("users").doc(uid).set(
         {
           role,
@@ -282,6 +281,40 @@ async function updateApplicationStatus(req, res) {
         },
         { merge: true }
       );
+
+      // 3) ONLY FOR DELIVERER: create delivererSchedule with a monthly bitmap
+      if (role === "deliverer") {
+        const weekly = Array.isArray(appData?.extraFields?.scheduleBitmask)
+          ? appData.extraFields.scheduleBitmask
+          : null;
+
+        // Build monthly schedule from weekly mask (Sun..Sat -> 0..6)
+        const now = DateTime.local(); // server time
+        const year = now.year;
+        const month = now.month; // 1..12
+        const daysInMonth = now.daysInMonth;
+
+        let activeSchedule;
+        if (Array.isArray(weekly) && weekly.length === 7) {
+          activeSchedule = [];
+          for (let day = 1; day <= daysInMonth; day++) {
+            // JS Date getDay(): 0=Sunday..6=Saturday
+            const dow = new Date(year, month - 1, day).getDay();
+            activeSchedule.push(weekly[dow] ?? 0);
+          }
+        } else {
+          // Fallback if weekly mask missing/malformed
+          activeSchedule = Array(daysInMonth).fill(0);
+        }
+
+        await db.collection("delivererSchedule").doc(uid).set({
+          currentMonth: month, // e.g. 5 for May
+          activeSchedule, // monthly bitmap (length = daysInMonth)
+          nextSchedule: [], // empty for now
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
     }
 
     // For all statuses (including "approved"), update the application status
