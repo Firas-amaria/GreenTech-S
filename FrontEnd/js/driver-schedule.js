@@ -1,5 +1,7 @@
 // schedule.js — Monthly bitmask schedule with "Plan Next Month" flow (no libs).
 
+//const { createElement } = require("react");
+
 /* ===== Helpers ===== */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -328,7 +330,7 @@ function renderExceptionsStep(
     el(
       "div",
       { class: "subtle" },
-      "Click a day to toggle work/on‑off. (We keep the same shifts as per weekday pattern; toggle just sets off/on)"
+      "Click a day to toggle work on/off. Use the M/A/E/N chips for per-shift control."
     )
   );
 
@@ -338,21 +340,40 @@ function renderExceptionsStep(
     grid.appendChild(el("div", { class: "cal-head" }, d));
   for (let i = 0; i < firstDow; i++)
     grid.appendChild(el("div", { class: "cal-cell", "aria-hidden": "true" }));
+
   for (let day = 1; day <= len; day++) {
-    const mask = monthArr[day - 1];
     const dow = new Date(y, m - 1, day).getDay();
-    const baseMask = pattern[dow] || 0; // used when toggling back on
+    const baseMask = pattern[dow] || 0; // used when toggling whole day on
 
     const cell = el(
       "div",
       { class: "cal-cell", "data-day": String(day) },
       el("div", { class: "day" }, String(day)),
-      el("div", { class: "chips" }, ...simpleChips(mask))
+      el("div", { class: "chips" }) // fill below
     );
-    cell.addEventListener("click", () => {
+
+    // helper to (re)paint this day’s chips
+    const paint = () => {
+      const cur = monthArr[day - 1] || 0;
+      const chipsHost = $(".chips", cell);
+      chipsHost.replaceChildren(
+        ...simpleChips(cur, (bit, nextOn) => {
+          const before = monthArr[day - 1] || 0;
+          monthArr[day - 1] = nextOn ? before | bit : before & ~bit;
+          paint(); // repaint this day’s chips to reflect the change
+        })
+      );
+    };
+    paint();
+
+    // clicking the *cell* toggles whole day off/on (per the weekday baseMask)
+    cell.addEventListener("click", (ev) => {
+      // ignore clicks that originated on a chip button (handled above)
+      if (ev.target && ev.target.classList.contains("chip")) return;
       monthArr[day - 1] = monthArr[day - 1] ? 0 : baseMask;
-      $(".chips", cell).replaceChildren(...simpleChips(monthArr[day - 1]));
+      paint();
     });
+
     grid.appendChild(cell);
   }
 
@@ -426,10 +447,21 @@ function renderExceptionsStep(
       const dow = new Date(y, m - 1, day).getDay();
       monthArr[day - 1] = on ? pattern[dow] || 0 : 0;
     }
-    // Repaint chips
+    // Repaint chips with handlers intact
     $$(".cal-cell[data-day]").forEach((cell) => {
       const d = +cell.getAttribute("data-day");
-      $(".chips", cell).replaceChildren(...simpleChips(monthArr[d - 1]));
+      const chipsHost = $(".chips", cell);
+      const repaint = () => {
+        const cur = monthArr[d - 1] || 0;
+        chipsHost.replaceChildren(
+          ...simpleChips(cur, (bit, nextOn) => {
+            const before = monthArr[d - 1] || 0;
+            monthArr[d - 1] = nextOn ? before | bit : before & ~bit;
+            repaint();
+          })
+        );
+      };
+      repaint();
     });
   }
 
@@ -441,9 +473,21 @@ function renderExceptionsStep(
         monthArr[day - 1] = on ? pattern[dow] || 0 : 0;
       }
     }
+    // Repaint chips with handlers intact
     $$(".cal-cell[data-day]").forEach((cell) => {
       const d = +cell.getAttribute("data-day");
-      $(".chips", cell).replaceChildren(...simpleChips(monthArr[d - 1]));
+      const chipsHost = $(".chips", cell);
+      const repaint = () => {
+        const cur = monthArr[d - 1] || 0;
+        chipsHost.replaceChildren(
+          ...simpleChips(cur, (bit, nextOn) => {
+            const before = monthArr[d - 1] || 0;
+            monthArr[d - 1] = nextOn ? before | bit : before & ~bit;
+            repaint();
+          })
+        );
+      };
+      repaint();
     });
   }
 }
@@ -510,21 +554,44 @@ function shiftChips(mask, shifts) {
   }
   return kids;
 }
-function simpleChips(mask) {
-  // Compact chips for exceptions modal (just count)
-  const count =
-    (mask & 8 ? 1 : 0) +
-    (mask & 4 ? 1 : 0) +
-    (mask & 2 ? 1 : 0) +
-    (mask & 1 ? 1 : 0);
-  return [
-    el(
-      "span",
-      { class: `chip ${count ? "on" : ""}` },
-      count ? `${count} shift${count > 1 ? "s" : ""}` : "Off"
-    ),
+
+/* ===== Interactive simpleChips (per-shift toggles) ===== */
+function simpleChips(mask, onToggle) {
+  // M(8) A(4) E(2) N(1)
+  const defs = [
+    { label: "M", bit: 8 },
+    { label: "A", bit: 4 },
+    { label: "E", bit: 2 },
+    { label: "N", bit: 1 },
   ];
+
+  const nodes = [];
+  let anyOn = false;
+
+  for (const { label, bit } of defs) {
+    const isOn = (mask & bit) !== 0;
+    anyOn = anyOn || isOn;
+
+    const btn = el(
+      "button",
+      { type: "button", class: `chip ${isOn ? "on" : ""}` },
+      label
+    );
+
+    if (typeof onToggle === "function") {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation(); // don’t trigger the cell’s day on/off toggle
+        onToggle(bit, !isOn);
+      });
+    }
+
+    nodes.push(btn);
+  }
+
+  if (!anyOn) nodes.push(el("span", { class: "chip off" }, "—"));
+  return nodes;
 }
+
 function nextMonthOf(date) {
   const y = date.getFullYear(),
     m = date.getMonth() + 1;
