@@ -17,7 +17,7 @@ async function getAllOrdersForShifts(req, res) {
     await admin.auth().verifyIdToken(token);
 
     const upcomingShifts = await getUpcomingShiftsList(db, 6);
-    console.log(upcomingShifts);
+   // console.log(upcomingShifts);
 
     const results = [];
 
@@ -49,11 +49,11 @@ async function getAllOrdersForShifts(req, res) {
       orders: testSnap.size
     });
 
-    console.log("Returning shifts summary:", results);
+    //console.log("Returning shifts summary:", results);
     return res.json(results);
 
   } catch (err) {
-    console.error("Error fetching orders for shifts:", err.stack);
+   // console.error("Error fetching orders for shifts:", err.stack);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -283,9 +283,9 @@ async function getOrdersForUpcomingShifts(req, res) {
         .where(FieldPath.documentId(), "<", prefix + "\uf8ff")
         .get();
 
-      console.log(
-        `Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`
-      );
+     // console.log(
+      //  `Found ${ordersSnap.size} orders for ${entry.shift} on ${entry.date}`
+     // );
 
       results.push({
         shift: entry.shift,

@@ -1,428 +1,401 @@
+// tm-shift-orders.js
+// Orders table + multi-route planner UI. Uses routesCalculations for maps and planning.
+// Departure time now auto-bumps to NEXT DAY if the selected date is already in the past.
+
 import { auth, onAuthStateChanged } from "./firebase-init.js";
+import { ITEM_PACK } from "./data/item-packing-meta.js";
+import { activeDeliverers } from "./data/activeDeliverers.mock.js";
+import { LOGISTIC_CENTERS } from "./data/logistics-centers.mock.js";
+import { PACKAGE_MAX_KG } from "./data/packages-std-sizes.js";
+
+import {
+  initMapsLoader,
+  openRouteMap,
+  closeRouteMap,
+  computePackingForOrder,
+  normalizeOrders,
+  buildRoutePlans,
+  buildDrivingOptions,
+  getEffectiveDepartureInfo,
+  SHIFT_DEPART_HHMM,
+  SHIFT_END_HHMM
+} from "./routesCalculations.js";
 
 const API_BASE = "http://localhost:4000";
-let orders = []; // global for toggling modes
+const LC = LOGISTIC_CENTERS["LC-1"]; // supports { alt (lat) , lng } or { lat, lng }
+const ORIGIN = { lat: (LC.lat ?? LC.alt), lng: LC.lng };
 
+const $ = (sel) => document.querySelector(sel);
+
+const shiftInfoEl   = $("#shift-info");
+const ordersTbody   = $("#orders-table tbody");
+const sortSelect    = $("#summary-sort");
+const ordersSection = $("#orders-section");
+
+// Inject routing UI + modal
+injectRoutingUI();
+
+// State
+let currentUser = null;
+let urlShift = null;
+let urlDate  = null;
+let orders = [];
+
+// Load Maps for this page (map helpers are inside routesCalculations.js)
+initMapsLoader({ API_BASE });
+
+// Close map on global click
+document.body.addEventListener("click", (e) => {
+  if (e.target?.hasAttribute?.("data-close-modal")) closeRouteMap();
+});
+
+// Auth
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     alert("Please log in to continue.");
     window.location.href = "login.html";
     return;
   }
+  currentUser = user;
 
   const params = new URLSearchParams(window.location.search);
-  const shift = params.get("shift");
-  const date = params.get("date");
-
-  if (!shift || !date) {
+  urlShift = params.get("shift");
+  urlDate  = params.get("date");
+  if (!urlShift || !urlDate) {
     alert("Missing shift or date in URL");
     return;
   }
+  if (urlShift === "morning (test)") urlShift = "morning";
 
-  document.getElementById("shift-info").innerText = `${shift} shift on ${date}`;
-  await loadOrders(user, shift, date);
+  const { usedDateStr, bumped } = getEffectiveDepartureInfo(urlDate, SHIFT_DEPART_HHMM);
+  const bumpedNote = bumped ? ` (using ${usedDateStr})` : "";
+  shiftInfoEl.textContent = `${urlShift} shift on ${urlDate}${bumpedNote}`;
 
-  // Listen for summarize dropdown
-  document.getElementById("summary-sort").addEventListener("change", (e) => {
-    if (e.target.value === "location") {
-      renderSummaryByLocation(orders);
-    } else {
-      renderOrdersAsRows(orders);
-    }
+  await loadOrders();
+
+  sortSelect.addEventListener("change", (e) => {
+    if (e.target.value === "location") renderSummaryByLocation(orders);
+    else renderOrdersAsRows(orders);
   });
+
+  $("#btn-compute-routing").addEventListener("click", onComputeRoutes);
 });
 
-async function loadOrders(user, shift, date) {
-  const tbody = document.querySelector("#orders-table tbody");
-  tbody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
-  console.log("Loading orders for shift:", shift, "on date:", date);
-//for the testing 
-if (shift === "morning (test)") {
-  console.log("Shift is exactly 'morning (test)'");
-  shift="morning";
-}
+// Fetch orders
+async function loadOrders() {
+  ordersTbody.innerHTML = "<tr><td colspan='5'>Loading...</td></tr>";
   try {
-    const token = await user.getIdToken();
-    const res = await fetch(`${API_BASE}/api/orders/getOrdersForShift?shift=${shift}&date=${date}`, {
+    const token = await currentUser.getIdToken();
+    const res = await fetch(`${API_BASE}/api/orders/getOrdersForShift?shift=${encodeURIComponent(urlShift)}&date=${encodeURIComponent(urlDate)}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    console.log("Orders for shift:", data);
-
-    orders = data;
+    orders = Array.isArray(data) ? data : [];
     renderOrdersAsRows(orders);
-
   } catch (err) {
     console.error("Error loading orders:", err);
-    tbody.innerHTML = "<tr><td colspan='5'>Error loading orders. Check console.</td></tr>";
+    ordersTbody.innerHTML = "<tr><td colspan='5'>Error loading orders.</td></tr>";
   }
 }
 
-
-/*
+// Render orders table
 function renderOrdersAsRows(data) {
-  const tbody = document.querySelector("#orders-table tbody");
   if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='5'>No orders for this shift.</td></tr>";
+    ordersTbody.innerHTML = "<tr><td colspan='5'>No orders for this shift.</td></tr>";
     return;
   }
 
-  tbody.innerHTML = "";
+  ordersTbody.innerHTML = "";
   data.forEach(order => {
     const orderId = order.id;
-    const orderData = order.data;
+    const d = order.data || order;
+    const shortId = String(orderId || "").split("_").pop();
+    const addrObj = d.deliveryAddress || d;
+    const addr = addrObj.address || "-";
+    const totalKg = d.totalOrderWeightKg ?? "-";
 
-    const shortOrderId = orderId.split("_").pop();
-    const deliveryAddress = orderData.deliveryAddress.address || "-";
-    const totalWeight = orderData.totalOrderWeightKg || "-";
-    const totalValue = orderData.totalOrderValue || "-";
+    const pack = computePackingForOrder(d, ITEM_PACK);
+    const packagesText = pack.summary;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${shortOrderId}</td>
-      <td>${deliveryAddress}</td>
-      <td>${totalWeight} kg</td>
-      <td class="arrow-toggle">&#9660;</td>
+      <td>${esc(shortId)}</td>
+      <td>${esc(addr)}</td>
+      <td>${esc(totalKg)} kg</td>
+      <td>${esc(packagesText)}</td>
+      <td class="arrow-toggle" style="cursor:pointer" title="Show items">&#9660;</td>
     `;
 
-    const itemsTr = document.createElement("tr");
-    const itemsTd = document.createElement("td");
-    itemsTd.colSpan = 5;
-    itemsTd.style.display = "none";
+    const detailsTr = document.createElement("tr");
+    detailsTr.style.display = "none";
+    const detailsTd = document.createElement("td");
+    detailsTd.colSpan = 5;
 
-    if (orderData.items && orderData.items.length > 0) {
-      const itemsList = orderData.items.map(it =>
-        `<div>&bull; ${it.itemName}: ${it.quantity} kg from ${it.sourceFarmName}</div>`
-      ).join("");
-      itemsTd.innerHTML = itemsList;
-    } else {
-      itemsTd.innerHTML = "<div>No items listed.</div>";
-    }
+    const itemsList = (d.items || []).map(it =>
+      `<div>&bull; ${esc(it.itemName)}: ${Number(it.quantity || 0)} kg from ${esc(it.sourceFarmName || "")}</div>`
+    ).join("");
 
-    itemsTr.appendChild(itemsTd);
+    const boxList = pack.boxes?.length
+      ? `<div class="pack-summary"><strong>Boxes:</strong> ${esc(packagesText)}</div>` +
+        `<ul class="pack-breakdown">` +
+        pack.boxes.map(b => {
+          const meta = [];
+          if (b.estWeightKg) meta.push(`${b.estWeightKg} kg`);
+          if (b.estFillLiters) meta.push(`${b.estFillLiters} L`);
+          const content = (b.contents || []).map(c => `${c.kg} kg ${c.itemId}`).join(", ");
+          return `<li><strong>${b.boxType}</strong>${meta.length ? ` <em>(${meta.join(", ")})</em>` : ""}${content ? ` — ${esc(content)}` : ""}</li>`;
+        }).join("") +
+        `</ul>`
+      : "";
 
-    tr.querySelector(".arrow-toggle").addEventListener("click", () => {
-      const isVisible = itemsTd.style.display === "table-cell";
-      itemsTd.style.display = isVisible ? "none" : "table-cell";
-      tr.querySelector(".arrow-toggle").innerHTML = isVisible ? "&#9660;" : "&#9650;";
-      tr.querySelector(".arrow-toggle").classList.toggle("open", !isVisible);
+    detailsTd.innerHTML = `<div class="order-items">${itemsList || "No items listed."}</div>${boxList}`;
+    detailsTr.appendChild(detailsTd);
+
+    const arrow = tr.querySelector(".arrow-toggle");
+    arrow.addEventListener("click", () => {
+      const hidden = detailsTr.style.display === "none";
+      detailsTr.style.display = hidden ? "table-row" : "none";
+      arrow.innerHTML = hidden ? "&#9650;" : "&#9660;";
+      arrow.classList.toggle("open", hidden);
     });
 
-    tbody.appendChild(tr);
-    tbody.appendChild(itemsTr);
+    ordersTbody.appendChild(tr);
+    ordersTbody.appendChild(detailsTr);
   });
 }
-*/
+
 function renderSummaryByLocation(data) {
-  const tbody = document.querySelector("#orders-table tbody");
   if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='4'>No orders for this shift.</td></tr>";
+    ordersTbody.innerHTML = "<tr><td colspan='4'>No orders for this shift.</td></tr>";
     return;
   }
-
   const areaMap = {};
-  data.forEach(order => {
-    const address = order.data.deliveryAddress || "-";
-    const area = extractArea(address);
-    if (!areaMap[area]) {
-      areaMap[area] = { totalKg: 0, orders: [] };
-    }
-    areaMap[area].totalKg += order.data.totalOrderWeightKg || 0;
+  data.forEach(o => {
+    const d = o.data || o;
+    const addr = (d.deliveryAddress || d).address || "-";
+    const area = extractArea(addr);
+    if (!areaMap[area]) areaMap[area] = { totalKg: 0, orders: [] };
+    areaMap[area].totalKg += (d.totalOrderWeightKg || 0);
     areaMap[area].orders.push({
-      id: order.id.split("_").pop(),
-      address,
-      totalKg: order.data.totalOrderWeightKg || 0
+      id: o.id.split("_").pop(),
+      address: addr,
+      totalKg: d.totalOrderWeightKg || 0
     });
   });
 
-  tbody.innerHTML = "";
+  ordersTbody.innerHTML = "";
   for (const area in areaMap) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td colspan="3">
-        <strong>${area}</strong> - Orders: ${areaMap[area].orders.length}, Total: ${areaMap[area].totalKg} kg
-      </td>
-      <td class="arrow-toggle">&#9660;</td>
+      <td colspan="3"><strong>${esc(area)}</strong> — Orders: ${areaMap[area].orders.length}, Total: ${areaMap[area].totalKg} kg</td>
+      <td class="arrow-toggle" style="cursor:pointer">&#9660;</td>
     `;
-
-    const ordersTr = document.createElement("tr");
-    const ordersTd = document.createElement("td");
-    ordersTd.colSpan = 4;
-    ordersTd.style.display = "none";
-
-    const ordersTable = `
-      <table style="width:100%; border-collapse: collapse; margin-top:5px;">
-        <thead>
-          <tr>
-            <th>Order ID</th>
-            <th>Address</th>
-            <th>Total kg</th>
-          </tr>
-        </thead>
+    const detailsTr = document.createElement("tr");
+    const detailsTd = document.createElement("td");
+    detailsTd.colSpan = 4;
+    detailsTd.style.display = "none";
+    detailsTd.innerHTML = `
+      <table style="width:100%; border-collapse:collapse; margin-top:5px;">
+        <thead><tr><th>Order ID</th><th>Address</th><th>Total kg</th></tr></thead>
         <tbody>
           ${areaMap[area].orders.map(o => `
             <tr>
-              <td>${o.id}</td>
-              <td>${extractHouseNumber(o.address)}</td>
-              <td>${o.totalKg}</td>
-            </tr>
-          `).join("")}
+              <td>${esc(o.id)}</td>
+              <td>${esc(extractHouseNumber(o.address))}</td>
+              <td>${Number(o.totalKg)}</td>
+            </tr>`).join("")}
         </tbody>
       </table>
     `;
-    ordersTd.innerHTML = ordersTable;
-    ordersTr.appendChild(ordersTd);
+    detailsTr.appendChild(detailsTd);
 
     tr.querySelector(".arrow-toggle").addEventListener("click", () => {
-      const isVisible = ordersTd.style.display === "table-cell";
-      ordersTd.style.display = isVisible ? "none" : "table-cell";
-      tr.querySelector(".arrow-toggle").innerHTML = isVisible ? "&#9660;" : "&#9650;";
-      tr.querySelector(".arrow-toggle").classList.toggle("open", !isVisible);
+      const hidden = detailsTd.style.display === "none";
+      detailsTd.style.display = hidden ? "table-cell" : "none";
+      tr.querySelector(".arrow-toggle").innerHTML = hidden ? "&#9650;" : "&#9660;";
+      tr.querySelector(".arrow-toggle").classList.toggle("open", hidden);
     });
 
-    tbody.appendChild(tr);
-    tbody.appendChild(ordersTr);
+    ordersTbody.appendChild(tr);
+    ordersTbody.appendChild(detailsTr);
   }
 }
 
-function extractArea(address) {
-  const parts = address.split(",");
-  if (parts.length >= 3) return parts[1].trim();
-  if (parts.length === 2) return parts[0].trim();
-  return address.trim();
-}
+// Compute multi-route plans and render cards
+async function onComputeRoutes() {
+  if (!orders.length) return alert("No orders to compute.");
 
-function extractHouseNumber(address) {
-  const parts = address.split(",");
-  return parts.length ? parts[0].trim() : address.trim();
-}
+  // Normalize (S/M/L + weight) using your ITEM_PACK
+  const norm = normalizeOrders(orders, ITEM_PACK, PACKAGE_MAX_KG);
 
-
-/*for orders pacakages */
-// ---- Box catalog ----
-function buildBox({ key, l, w, h, maxWeightKg, headroomPct = 0.15 }) {
-  const liters = (l * w * h) / 1000;
-  return {
-    key,
-    innerDimsCm: { l, w, h },
-    headroomPct,
-    usableLiters: liters * (1 - headroomPct),
-    maxWeightKg
-  };
-}
-
-const BOXES = [
-  buildBox({ key: "Small",  l: 20, w: 20, h: 20, maxWeightKg: 6 }),
-  buildBox({ key: "Medium", l: 30, w: 30, h: 30, maxWeightKg: 12 }),
-  buildBox({ key: "Large",  l: 60, w: 60, h: 60, maxWeightKg: 25 }),
-];
-
-// ---- Example item packing profiles (load these from Firestore in prod) ----
-import { ITEM_PACK } from "./item-packing-meta.js";
-
-// ---- Helpers ----
-function litersFor(itemId, kg) {
-  const meta = ITEM_PACK[itemId];
-  if (!meta?.bulkDensityKgPerL) throw new Error(`Missing packing meta for ${itemId}`);
-  return kg / meta.bulkDensityKgPerL;
-}
-const fragRank = f => (f === "fragile" ? 0 : f === "normal" ? 1 : 2);
-
-// Can we place this line item into an existing box?
-function canPlace(boxType, boxContents, addLine) {
-  const meta = ITEM_PACK[addLine.itemId] || {};
-  const totalKg = boxContents.reduce((s,c)=>s+c.kg,0) + addLine.kg;
-  const totalL  = boxContents.reduce((s,c)=>s+c.liters,0) + addLine.liters;
-
-  if (totalKg > boxType.maxWeightKg) return false;
-  if (totalL  > boxType.usableLiters) return false;
-
-  // item-specific per-box weight cap (e.g., berries)
-  const kgOfThisItem = boxContents.filter(c => c.itemId === addLine.itemId)
-                                  .reduce((s,c)=>s+c.kg,0) + addLine.kg;
-  if (meta.maxWeightPerBoxKg && kgOfThisItem > meta.maxWeightPerBoxKg) return false;
-
-  // min box type (disallow placing in a smaller type)
-  if (meta.minBoxType) {
-    const order = ["Small","Medium","Large"];
-    if (order.indexOf(boxType.key) < order.indexOf(meta.minBoxType)) return false;
-  }
-
-  // mixing rules
-  if (meta.allowMixing === false) {
-    if (boxContents.length && boxContents.some(c => c.itemId !== addLine.itemId)) return false;
-  }
-
-  return true;
-}
-
-// Pack ONE order object like you pasted (order.items: [{ itemId, quantity, ... }])
-function packOrder(order) {
-  // normalize to {itemId, kg, liters, fragility}
-  const pieces = order.items.map(it => {
-    const kg = it.quantity; // your quantity is already in kg
-    const liters = litersFor(it.itemId, kg);
-    const meta = ITEM_PACK[it.itemId] || {};
-    return { itemId: it.itemId, kg, liters, fragility: meta.fragility || "normal" };
-  }).sort((a,b) => {
-    const f = fragRank(a.fragility) - fragRank(b.fragility);
-    if (f !== 0) return f;
-    return b.liters - a.liters; // larger first
+  // Build plans (1..N). Internally uses FUTURE departure if needed.
+  const plans = await buildRoutePlans({
+    dateStr: urlDate,
+    origin: ORIGIN,
+    orders: norm,
+    deliverers: activeDeliverers,
   });
 
-  const boxes = [];
-
-  for (const p of pieces) {
-    let placed = false;
-
-    // try existing boxes first (smallest workable first)
-    for (const box of boxes) {
-      if (canPlace(box.type, box.contents, p)) {
-        box.contents.push(p);
-        placed = true;
-        break;
-      }
-    }
-    if (placed) continue;
-
-    // open a new box; prefer smallest that fits
-    for (const bt of BOXES) {
-      if (canPlace(bt, [], p)) {
-        boxes.push({ type: bt, contents: [p] });
-        placed = true;
-        break;
-      }
-    }
-
-    if (!placed) throw new Error(`Cannot place ${p.itemId} with current rules/boxes`);
-  }
-
-  // return a summary
-  return boxes.map((b, i) => ({
-    boxNo: i + 1,
-    boxType: b.type.key,
-    estFillLiters: +b.contents.reduce((s,c)=>s+c.liters,0).toFixed(2),
-    estWeightKg:   +b.contents.reduce((s,c)=>s+c.kg,0).toFixed(2),
-    contents: b.contents.map(c => ({ itemId: c.itemId, kg: c.kg }))
-  }));
+  renderRoutePlans(plans);
 }
 
-// --- helpers ---
-function formatBoxSummary(boxes) {
-  // boxes: [{ boxType: "Small" | "Medium" | "Large", ... }]
-  const counts = boxes.reduce((acc, b) => {
-    const key = b.boxType || b.type?.key || b.key; // be tolerant
-    if (!key) return acc;
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
-  const order = ["Small", "Medium", "Large"];
-  const parts = order.filter(k => counts[k]).map(k => `${counts[k]}×${k}`);
-  return parts.join(" + ") || "—";
-}
+function renderRoutePlans(plans) {
+  const wrap = $("#routes-list");
+  wrap.innerHTML = "";
 
-function computePackingForOrder(orderData) {
-  try {
-    // Use your packOrder if available
-    if (typeof packOrder === "function") {
-      const boxes = packOrder({
-        items: (orderData.items || []).map(i => ({
-          itemId: i.itemId,
-          quantity: i.quantity // your quantity is already in kg
-        }))
-      });
-      return { summary: formatBoxSummary(boxes), boxes };
-    }
-  } catch (e) {
-    console.warn("Packing failed, fallback:", e);
-  }
-
-  // Fallback: show nothing when we can’t compute (e.g., missing metadata)
-  return { summary: "—", boxes: [] };
-}
-
-// --- your renderer with the new column ---
-function renderOrdersAsRows(data) {
-  const tbody = document.querySelector("#orders-table tbody");
-  const thCount = document.querySelectorAll("#orders-table thead th").length || 5;
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="${thCount}">No orders for this shift.</td></tr>`;
+  if (!plans.length) {
+    wrap.innerHTML = `<div class="card"><div class="card-title">No route could be built.</div></div>`;
     return;
   }
 
-  tbody.innerHTML = "";
-  data.forEach(order => {
-    const orderId = order.id;
-    const orderData = order.data;
+  plans.forEach((p, idx) => {
+    const totalPk = p.totals.Small + p.totals.Medium + p.totals.Large;
+    const fits = p.fitsMorningWindow;
 
-    const shortOrderId = orderId.split("_").pop();
-    const deliveryAddress = orderData.deliveryAddress?.address || "-";
-    const totalWeight = (orderData.totalOrderWeightKg ?? "-");
-    const packing = computePackingForOrder(orderData); // << NEW
-    const packagesText = packing.summary;              // << NEW
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.marginBottom = "12px";
+    card.innerHTML = `
+      <div class="card-title">${esc(p.label || `Route ${idx+1}`)}</div>
+      <div class="kv">
+        <span>Orders: ${p.stops.length}</span>
+        <span>Packages: ${totalPk} (S:${p.totals.Small}/M:${p.totals.Medium}/L:${p.totals.Large})</span>
+        <span>Travel: ${minsToText(p.travelMin)}</span>
+        <span>Service: ${minsToText(p.serviceMin)}</span>
+        <span>Total: <strong>${minsToText(p.totalMin)}</strong></span>
+      </div>
+      <div class="kv" style="margin-top:6px;">
+        <span class="badge">ETD ${fmtDateTime(p.startTime)}</span>
+        <span class="badge">Latest ${SHIFT_END_HHMM}</span>
+        <span class="badge ${fits ? "" : "danger"}">${fits ? "Within window" : "Exceeds 07:00"}</span>
+        <span class="badge">ETA ${fmtDateTime(p.endTime)}</span>
+      </div>
 
-    // main row
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${shortOrderId}</td>
-      <td>${deliveryAddress}</td>
-      <td>${totalWeight} kg</td>
-      <td>${packagesText}</td>      <!-- NEW COLUMN -->
-      <td class="arrow-toggle" title="Show items" style="cursor:pointer">&#9660;</td>
+      <div class="kv" style="margin-top:8px; display:block;">
+        <div class="muted" style="margin-bottom:6px;">Stops & ETAs</div>
+        <ol class="stop-list">
+          ${p.stops.map(s => `
+            <li>
+              <strong>${s.etaLabel}</strong> — ${esc(s.address || "")}
+              <small class="muted"> (drive ${Math.round(s.legTravelMin)}m + stop ${Math.round(s.stopServiceMin)}m)</small>
+            </li>`).join("")}
+        </ol>
+      </div>
+
+      <div class="card-actions" style="gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <button class="btn" data-map="${idx}">Show on map</button>
+        <div class="inline">
+          <label class="subtle" for="deliv-${idx}">Deliverer</label>
+          <select id="deliv-${idx}"></select>
+          <button class="btn primary" data-assign="${idx}">Assign</button>
+        </div>
+      </div>
     `;
 
-    // details row
-    const itemsTr = document.createElement("tr");
-    itemsTr.style.display = "none"; // toggle the whole row (cleaner)
-    const itemsTd = document.createElement("td");
-    itemsTd.colSpan = thCount;
-
-    if (orderData.items && orderData.items.length > 0) {
-      const itemsList = orderData.items.map(it =>
-        `<div>&bull; ${it.itemName}: ${it.quantity} kg from ${it.sourceFarmName}</div>`
-      ).join("");
-
-      // if we have a detailed pack plan, show it too (optional)
-      let packDetails = "";
-      if (packing.boxes?.length) {
-        const perBox = packing.boxes.map(b => {
-          const content = (b.contents || []).map(c => `${c.kg} kg ${c.itemId}`).join(", ");
-          const weight = b.estWeightKg ?? "";
-          const liters = b.estFillLiters ?? "";
-          const meta = [];
-        if (weight) meta.push(`${weight} kg`);
-        if (liters) meta.push(`${liters} L`);
-          return `<li><strong>${b.boxType}</strong>${meta.length ? ` <em>(${meta.join(", ")})</em>` : ""}${content ? ` — ${content}` : ""}</li>`;
-        }).join("");
-        packDetails = `
-          <div class="pack-summary"><strong>Boxes:</strong> ${packagesText}</div>
-          <ul class="pack-breakdown">${perBox}</ul>
-        `;
-      }
-
-      itemsTd.innerHTML = `
-        <div class="order-items">${itemsList}</div>
-        ${packDetails}
-      `;
+    // Populate deliverer dropdown (best-first)
+    const sel = card.querySelector(`#deliv-${idx}`);
+    if (!p.delivererOptions?.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "No deliverer fits";
+      sel.appendChild(opt);
     } else {
-      itemsTd.innerHTML = "<div>No items listed.</div>";
+      p.delivererOptions.forEach(id => {
+        const d = activeDeliverers.find(x => x.id === id);
+        const cap = d?.capacity?.maxPackages || { Small:0, Medium:0, Large:0 };
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = `${d?.name || id} — S:${cap.Small}/M:${cap.Medium}/L:${cap.Large} — ${d?.limitKg || 0}kg`;
+        sel.appendChild(opt);
+      });
+      if (p.bestDelivererId) sel.value = p.bestDelivererId;
     }
 
-    itemsTr.appendChild(itemsTd);
-
-    // toggle
-    const arrow = tr.querySelector(".arrow-toggle");
-    arrow.addEventListener("click", () => {
-      const isHidden = itemsTr.style.display === "none";
-      itemsTr.style.display = isHidden ? "table-row" : "none";
-      arrow.innerHTML = isHidden ? "&#9650;" : "&#9660;";
-      arrow.classList.toggle("open", isHidden);
+    // Show on map (keep the chunk order, no re-optimize)
+    card.querySelector(`[data-map="${idx}"]`).addEventListener("click", () => {
+      const waypoints = p.waypointsOrdered.map(x =>
+        Number.isFinite(x.lat) && Number.isFinite(x.lng) ? { lat:x.lat, lng:x.lng } : x.address
+      );
+      openRouteMap({
+        origin: ORIGIN,
+        waypoints,
+        optimizeWaypoints: false,
+        drivingOptions: buildDrivingOptions(urlDate), // uses FUTURE date if needed
+        onResult: () => {}
+      });
     });
 
-    tbody.appendChild(tr);
-    tbody.appendChild(itemsTr);
+    // Assign (placeholder)
+    card.querySelector(`[data-assign="${idx}"]`).addEventListener("click", async () => {
+      const delivererId = sel.value;
+      if (!delivererId) return alert("No deliverer selected.");
+
+      // Placeholder: wire to your backend if/when ready
+      // const token = await currentUser.getIdToken();
+      // await fetch(`${API_BASE}/api/transportation/assign-route`, { ... })
+
+      alert(`Assigned ${delivererId} to orders: ${p.waypointsOrdered.map(o => o.id.split("_").pop()).join(", ")}`);
+    });
+
+    wrap.appendChild(card);
   });
+}
+
+// Inject routing assistant section + map modal
+function injectRoutingUI() {
+  const section = document.createElement("section");
+  section.className = "section";
+  section.id = "routing-assistant";
+  section.innerHTML = `
+    <div class="section-header">
+      <h2>Routing Assistant</h2>
+      <div class="section-actions">
+        <button class="btn" id="btn-compute-routing">Compute Routes</button>
+      </div>
+    </div>
+
+    <div id="routes-list" class="card-grid"></div>
+
+    <!-- Map modal -->
+    <div class="modal" id="route-modal" style="display:none;">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card" style="width:min(1100px,95vw);">
+        <div class="modal-header">
+          <h3>Route</h3>
+          <button class="icon-btn" title="Close" data-close-modal>✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="route-map" style="width:100%; height:480px;"></div>
+          <div id="route-info" class="kv" style="margin-top:10px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" data-close-modal>Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  ordersSection.insertAdjacentElement("afterend", section);
+}
+
+// Small helpers
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    "\"":"&quot;",
+    "'":"&#39;"
+  })[c]);
+}
+function extractArea(address){const p=String(address||"").split(",");if(p.length>=3)return p[1].trim();if(p.length===2)return p[0].trim();return String(address||"").trim();}
+function extractHouseNumber(address){const p=String(address||"").split(",");return p.length?p[0].trim():String(address||"").trim();}
+function minsToText(min){const h=Math.floor(min/60);const m=Math.round(min%60);return h<=0?`${m} min`:`${h} hr ${m} min`;}
+function fmtDateTime(dt){
+  try{
+    const d = new Date(dt);
+    const time = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const date = d.toLocaleDateString(undefined,{month:"short",day:"2-digit"});
+    return `${time} (${date})`;
+  }catch{ return "—"; }
 }

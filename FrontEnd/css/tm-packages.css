@@ -1,0 +1,160 @@
+/* tm-shift-orders.css — neat, readable UI for orders + routing */
+
+:root{
+  --bg:#0b0f14;
+  --surface:#111823;
+  --surface-2:#0f1621;
+  --text:#e6edf3;
+  --muted:#9fb0c0;
+  --brand:#4da3ff;
+  --brand-2:#7cc6ff;
+  --success:#30d17b;
+  --danger:#ff6262;
+  --border:rgba(255,255,255,0.08);
+  --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  --radius:16px;
+}
+
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+}
+
+h1,h2,h3{ margin: 0 0 8px 0; }
+.muted{ color: var(--muted); font-size: 0.92rem; }
+.subtle{ color: var(--muted); font-size: 0.9rem; }
+
+.section{
+  background: transparent;
+  margin: 20px 20px 0;
+}
+
+.section-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 10px;
+}
+.section-header h2{ font-size: 1.3rem; }
+.section-actions{ display:flex; gap:8px; }
+
+.card-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.card{
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+}
+
+.card-title{
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+
+.kv{
+  display:flex; gap:14px; flex-wrap:wrap;
+  font-size: 0.95rem;
+}
+
+.badge{
+  display:inline-block;
+  background: rgba(77,163,255,0.12);
+  color: var(--brand-2);
+  border: 1px solid rgba(77,163,255,0.25);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.badge.danger{
+  background: rgba(255,98,98,0.12);
+  color: #ff9a9a;
+  border-color: rgba(255,98,98,0.25);
+}
+
+.btn{
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #131b27;
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+.btn.primary{ background: linear-gradient(180deg, #2d73ff, #1456d8); border: none; }
+.btn.primary:hover{ filter: brightness(1.05); }
+.icon-btn{ background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+
+.inline{ display:flex; gap:8px; align-items:center; }
+
+table.orders{
+  width: calc(100% - 40px);
+  margin: 0 20px;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table.orders th, table.orders td{
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: left;
+}
+table.orders thead th{
+  background: #0e1520;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+table.orders tr:hover td{
+  background: rgba(255,255,255,0.02);
+}
+.pack-summary{ margin-top: 6px; }
+.pack-breakdown{ margin: 6px 0 0 16px; }
+
+/* Modal */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none; /* toggled to flex */
+  align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.modal-backdrop{
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+}
+.modal-card{
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  width: min(1100px, 95vw);
+  max-height: 90vh;
+  overflow: hidden;
+  display:flex; flex-direction:column;
+}
+.modal-header, .modal-footer{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 12px 14px; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-footer{ border-top: 1px solid var(--border); border-bottom:none; }
+.modal-body{ padding: 12px 14px; }
+#route-map{ width: 100%; height: 480px; border-radius: 12px; border: 1px solid var(--border); background: #0b111b; }
+
+.stop-list{ padding-left: 18px; margin: 0; }
+.stop-list li{ margin: 4px 0; }
+
+/* Sub nav (from your HTML) */
+#sub-nav ul{ list-style:none; display:flex; gap:8px; padding:0 20px; margin: 10px 0 0; }
+#sub-nav a{ color: var(--muted); text-decoration:none; padding: 6px 10px; border-radius: 8px; }
+#sub-nav a.sub-active{ background: rgba(77,163,255,0.12); color: var(--brand-2); border: 1px solid rgba(77,163,255,0.25); }

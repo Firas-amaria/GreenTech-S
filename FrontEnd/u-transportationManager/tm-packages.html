@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transportation Manager • Packages & Containers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Your shared global styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+  <!-- Page-specific styles -->
+  <link rel="stylesheet" href="../css/tm-packages.css" />
+</head>
+<body>
+  <header>
+    <nav id="main-nav"></nav> <!-- your role-based nav injector will fill this -->
+<script src="../js/m_nav_menu.js" type="module"></script>
+</header>
+
+  <main>
+    <div class="page-title">
+      <h1>Packages & Containers</h1>
+      <span class="subtle">Manage standardized package types and container specs</span>
+    </div>
+
+    <!-- ======= PACKAGES (cards) ======= -->
+    <section class="section" id="packages-section">
+      <div class="section-header">
+        <h2>Packages</h2>
+        <div class="section-actions">
+          <button class="btn primary" id="btn-new-package">Add New</button>
+        </div>
+      </div>
+
+      <div id="package-grid" class="card-grid"></div>
+    </section>
+
+    <!-- ======= CONTAINERS (cards) ======= -->
+    <section class="section" id="containers-section">
+      <div class="section-header">
+        <h2>Containers</h2>
+        <div class="section-actions">
+          <button class="btn primary" id="btn-new-container">Add New</button>
+        </div>
+      </div>
+
+      <div id="container-grid" class="card-grid"></div>
+    </section>
+  </main>
+
+  <!-- ======= MODAL: PACKAGE EDITOR ======= -->
+  <div class="modal" id="package-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="package-modal-title">
+      <div class="modal-header">
+        <h3 id="package-modal-title">Edit Package</h3>
+        <button class="icon-btn" title="Close" data-close-modal>✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Package Name</label>
+          <input type="text" id="pkg-name" placeholder="e.g., Medium Crate" />
+        </div>
+
+        <div class="fields-head">
+          <h4>Shared Fields</h4>
+          <small class="muted">
+            Editing a field’s <b>label</b> or <b>type</b> affects <b>all packages</b>.  
+            Adding a field here adds it to <b>all packages</b>.
+          </small>
+          <div class="field-add-inline">
+            <input type="text" id="new-field-label" placeholder="New field label (e.g., Max Kg)" />
+            <select id="new-field-type">
+              <option value="number">Number</option>
+              <option value="text">Text</option>
+            </select>
+            <input type="text" id="new-field-default" placeholder="Default (optional)" />
+            <button class="btn" id="btn-add-field">Add Field (all)</button>
+          </div>
+        </div>
+
+        <div id="pkg-fields-list" class="fields-list"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn danger" id="btn-delete-package">Delete</button>
+        <div class="spacer"></div>
+        <button class="btn" data-close-modal>Cancel</button>
+        <button class="btn primary" id="btn-save-package">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= MODAL: CONTAINER EDITOR ======= -->
+  <div class="modal" id="container-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="container-modal-title">
+      <div class="modal-header">
+        <h3 id="container-modal-title">Edit Container</h3>
+        <button class="icon-btn" title="Close" data-close-modal>✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Container Name</label>
+          <input type="text" id="ctr-name" placeholder="e.g., Plastic Crate" />
+        </div>
+
+        <div class="fields-head">
+          <h4>Container Fields</h4>
+          <small class="muted">
+            Editing a field’s label/type affects all containers (only one type now, but future-proof).
+          </small>
+          <div class="field-add-inline">
+            <input type="text" id="ctr-new-field-label" placeholder="New field label" />
+            <select id="ctr-new-field-type">
+              <option value="number">Number</option>
+              <option value="text">Text</option>
+            </select>
+            <input type="text" id="ctr-new-field-default" placeholder="Default (optional)" />
+            <button class="btn" id="ctr-btn-add-field">Add Field</button>
+          </div>
+        </div>
+
+        <div id="ctr-fields-list" class="fields-list"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn danger" id="btn-delete-container">Delete</button>
+        <div class="spacer"></div>
+        <button class="btn" data-close-modal>Cancel</button>
+        <button class="btn primary" id="btn-save-container">Save</button>
+      </div>
+    </div>
+  </div>
+  
+
+  <script src="../js/tm-packages.js" type="module"></script>
+</body>
+</html>

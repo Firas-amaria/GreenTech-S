@@ -42,6 +42,7 @@ async function loadUpcomingOrdersByShift(token) {
     }
 
     container.innerHTML = ""; // clear loading message
+var totalOrders = 0;
 
 data.forEach(shiftData => {
   const [datePart, ...shiftParts] = shiftData.shift.split(" ");
@@ -56,8 +57,10 @@ data.forEach(shiftData => {
       View
     </button>
   `;
+  totalOrders=totalOrders+shiftData.orders
   container.appendChild(card);
 });
+document.getElementById("total-orders").textContent = `${totalOrders}`;
 
 
   } catch (err) {

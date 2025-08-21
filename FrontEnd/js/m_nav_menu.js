@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
       { href: "tm-shift-orders.html", text: "Shipments" },
       { href: "tm-shipments.html", text: "All Shipments" },
       { href: "tm-manage-users.html", text: "Manage drivers" },
+      { href: "tm-packages.html", text: "Packages" },
       { href: "tm-job-applications.html", text: "Job Applications" },
       { href: "schedule.html", text: "" },
     ];
