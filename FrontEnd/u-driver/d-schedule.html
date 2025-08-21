@@ -1,218 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Schedule | Driver App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schedule | Driver App</title>
 
-    <!-- Your existing CSS bundles -->
-    <link rel="stylesheet" href="../css/styles.css" />
-    <link rel="stylesheet" href="../css/driver.css" />
-    <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/driver.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
 
-    <style>
-        .toolbar {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+  <style>
+    .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    .calendar{display:grid;gap:8px;grid-template-columns:repeat(7,1fr)}
+    .cal-head,.cal-cell{background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;min-height:64px;position:relative}
+    .cal-head{font-weight:700;text-align:center;background:#f4f7f9}
+    .cal-cell .day{position:absolute;top:6px;right:8px;font-size:.85rem;color:#666}
+    .cal-cell .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:18px}
+    .chip{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.75rem;background:#eee;color:#333}
+    .chip.on{background:#27ae60;color:#fff}
+    .chip.disabled{opacity:.45;pointer-events:none}
+    .subtle{color:#666;font-size:.9rem}
+    table.compact td,table.compact th{padding:6px 8px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4)}
+    .modal-box{position:fixed;inset:0;margin:auto;width:min(900px,92vw);background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px}
+    .modal-title{margin:0 0 6px 0;color:#2b3e50}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+    .grid-week{overflow:auto}
+    .grid-week table{width:100%;border-collapse:collapse;background:#fff}
+    .grid-week th,.grid-week td{border:1px solid #ddd;text-align:center}
+    .grid-week td input{transform:scale(1.1)}
+    .cal-toggle{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .cal-cell.standby{outline:2px dashed #b58900;background:#fff6d6}
+    /* tiny buttons for the Step 1 cells */
+.btn-xxs { padding: 2px 8px; font-size: .75rem; line-height: 1.1; }
 
-        .calendar {
-            display: grid;
-            gap: 8px;
-            grid-template-columns: repeat(7, 1fr);
-        }
+/* tiny chips on the right side */
+.chip.xs { padding: 1px 6px; font-size: .7rem; }
+.chip.dim { background: #eee; color: #666; }   /* when Off/Standby */
+/* Modal layout: header + SCROLLABLE content + footer */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9998;
+}
+.modal-box{
+  position:fixed; inset:24px;          /* small margin from edges */
+  margin:auto;
+  width:min(980px, 96vw);
+  max-height:92vh;                     /* cap height to viewport */
+  background:#fff; border:1px solid #ddd; border-radius:12px;
+  display:flex; flex-direction:column; /* important */
+  overflow:hidden;                     /* keep rounded corners */
+  z-index:9999;
+}
+.modal-title{ margin:0 0 4px 0; }
+.modal-step{ color:#666; margin:0 0 8px 0; }
 
-        .cal-head,
-        .cal-cell {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 8px;
-            min-height: 64px;
-            position: relative;
-        }
+/* this is the scrollable middle area */
+.modal-content{
+  overflow:auto;                       /* <-- scrolling happens here */
+  padding:8px 12px;
+  flex:1 1 auto;                       /* fill remaining height */
+}
 
-        .cal-head {
-            font-weight: 700;
-            text-align: center;
-            background: #f4f7f9;
-        }
+/* footer stays fixed at bottom of modal */
+.modal-actions{
+  padding:10px 12px;
+  border-top:1px solid #eee;
+  display:flex; gap:8px; justify-content:flex-end;
+  flex:0 0 auto;
+}
 
-        .cal-cell .day {
-            position: absolute;
-            top: 6px;
-            right: 8px;
-            font-size: .85rem;
-            color: #666;
-        }
+/* optional: tighter buttons you asked for */
+.tiny{ padding:3px 8px; font-size:.8rem; line-height:1; border-radius:999px; }
 
-        .cal-cell .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 18px;
-        }
-
-        .chip {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 999px;
-            font-size: .75rem;
-            background: #eee;
-            color: #333;
-        }
-
-        .chip.on {
-            background: #27ae60;
-            color: #fff;
-        }
-
-        .subtle {
-            color: #666;
-            font-size: .9rem;
-        }
-
-        table.compact td,
-        table.compact th {
-            padding: 6px 8px;
-        }
-
-        /* Minimal modal */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, .4);
-        }
-
-        .modal-box {
-            position: fixed;
-            inset: 0;
-            margin: auto;
-            width: min(900px, 92vw);
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        .modal-title {
-            margin: 0 0 6px 0;
-            color: #2b3e50;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 12px;
-        }
-
-        .grid-week {
-            overflow: auto;
-        }
-
-        .grid-week table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-        }
-
-        .grid-week th,
-        .grid-week td {
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-
-        .grid-week td input {
-            transform: scale(1.1);
-        }
-
-        .cal-legend {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin: 6px 0 12px 0;
-        }
-
-        .cal-toggle {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin: 8px 0;
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-    </style>
+  </style>
 </head>
-
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar"></nav>
+  <!-- Sidebar -->
+  <nav class="sidebar"></nav>
 
-    <!-- Main -->
-    <div class="main" role="main" aria-label="Driver schedule">
-        <h1>Schedule</h1>
+  <!-- Main -->
+  <div class="main" role="main" aria-label="Driver schedule">
+    <h1>Schedule</h1>
 
-        <div class="toolbar">
-            <button id="btnPlanNext" class="btn-primary">Plan Next Month</button>
-            <span id="lblContext" class="subtle"></span>
-        </div>
-
-        <!-- Today -->
-        <div class="section">
-            <h2>Today’s Shifts</h2>
-            <table id="tblToday" class="compact">
-                <thead>
-                    <tr>
-                        <th>Shift</th>
-                        <th>Hours</th>
-                        <th>Active</th>
-                    </tr>
-                </thead>
-                <tbody><!-- JS fills --></tbody>
-            </table>
-        </div>
-
-        <!-- Upcoming -->
-        <div class="section">
-            <h2>Upcoming Shifts (Next 5 Days)</h2>
-            <table id="tblUpcoming" class="compact">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Day</th>
-                        <th>Active Shifts</th>
-                    </tr>
-                </thead>
-                <tbody><!-- JS fills --></tbody>
-            </table>
-        </div>
-
-        <!-- Month Grid -->
-        <div class="section">
-            <h2 id="monthTitle">This Month</h2>
-            <div class="cal-legend">
-                <span class="chip on">Active</span>
-                <span class="chip">Off</span>
-                <span class="subtle">Shifts: Morning • Afternoon • Evening • Night</span>
-            </div>
-            <div id="calendar" class="calendar"><!-- JS fills --></div>
-        </div>
+    <div class="toolbar">
+      <button id="btnPlanNext" class="btn-primary">Plan Next Month</button>
+      <span id="lblContext" class="subtle"></span>
     </div>
 
-    <!-- Modal host -->
-    <div id="modal-host" aria-hidden="true"></div>
+    <!-- Today -->
+    <div class="section">
+      <h2>Today’s Shifts</h2>
+      <table id="tblToday" class="compact">
+        <thead>
+          <tr><th>Shift</th><th>Hours</th><th>Active</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-    <script type="module" src="../js/w_sidebar_menu.js"></script>
-    <script type="module" src="../js/driver-schedule.js"></script>
+    <!-- Upcoming -->
+    <div class="section">
+      <h2>Upcoming Shifts (Next 5 Days)</h2>
+      <table id="tblUpcoming" class="compact">
+        <thead>
+          <tr><th>Date</th><th>Day</th><th>Active Shifts</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Month Grid -->
+    <h2 id="monthTitle"></h2>
+    <div id="calendar" class="calendar"></div>
+  </div>
+
+  <!-- Single modal host (one only) -->
+  <div id="modal-host" aria-hidden="true"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="../js/w_sidebar_menu.js"></script>
+  <!-- Split scheduler modules -->
+  <script type="module">
+    import { boot } from "../js/scheduler/boot.js";
+    document.addEventListener("DOMContentLoaded", boot);
+  </script>
 </body>
-
 </html>
