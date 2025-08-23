@@ -24,6 +24,7 @@ const mapsRoutes = require("./routes/mapsRouts");
 const ordersRoutes = require("./routes/ordersRoutes");
 const transporterRoutes = require("./routes/transporterRoutes");
 const managerRoutes = require("./routes/managerRoutes");
+const driverRoutes = require("./routes/driverRoutes");
 //middlewares
 app.use(cors());
 app.use(express.json());
@@ -45,6 +46,7 @@ app.use("/api/maps", mapsRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/transporter", transporterRoutes);
 app.use("/api/manager", managerRoutes);
+app.use("/api/driver", driverRoutes);
 
 const PORT = process.env.PORT || 4000;
 
