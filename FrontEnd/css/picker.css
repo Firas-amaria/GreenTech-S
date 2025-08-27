@@ -5,11 +5,7 @@
   --accent:#6ea8ff; --accent2:#8b5cf6;
   --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
   --border:#1c2450; --chip:#141c46;
-
-  /* Bigger desktop canvas */
-  --maxw: 1600px;            /* was 1440 */
-  --sidebar: 280px;
-  --hud: 320px;              /* was 360 to give stage more width */
+  --maxw: 1600px; --sidebar: 280px; --hud: 320px;
 }
 
 /* Base / bg */
@@ -33,7 +29,7 @@ body{
 }
 @keyframes twinkle{0%,100%{opacity:.6}50%{opacity:1}}
 
-/* Sidebar (LEFT) */
+/* Sidebar */
 .sidebar{
   position:fixed; inset:0 auto 0 0; width:var(--sidebar);
   background:linear-gradient(180deg, #0c1230, #0a1027);
@@ -102,7 +98,7 @@ body.sidebar-open .sidebar{ transform: translateX(0); }
 }
 .stage{
   position:relative; width:100%;
-  aspect-ratio: 21/9;                 /* wider arena */
+  aspect-ratio: 21/9;
   min-height: 560px;
   background:radial-gradient(60% 60% at 50% 40%, #16205a 0%, #0d1438 60%, #0b112d 100%);
   border:1px solid var(--border); border-radius:18px; overflow:hidden;
@@ -137,6 +133,14 @@ body.sidebar-open .sidebar{ transform: translateX(0); }
 .badge .emo{font-size:16px}
 .summary{white-space:pre-wrap; background:rgba(0,0,0,.25); border:1px solid var(--border); padding:10px; border-radius:12px}
 
+/* Switch (Active / Inactive) */
+.switch{position:relative; display:inline-block; width:56px; height:30px}
+.switch input{opacity:0; width:0; height:0}
+.slider{position:absolute; cursor:pointer; inset:0; background:#2b2f54; border:1px solid #3b4482; transition: .2s; border-radius:999px}
+.slider:before{position:absolute; content:""; height:22px; width:22px; left:4px; top:3px; background:#cfe0ff; transition:.2s; border-radius:50%}
+.switch input:checked + .slider{background:#0c3c2a; border-color:#15634a}
+.switch input:checked + .slider:before{transform:translateX(26px); background:#aaffd7}
+
 /* Views area */
 .views{max-width:var(--maxw); margin: 0 auto 40px; padding:0 20px; transition: padding-left .28s ease;}
 .view{display:none}
@@ -163,14 +167,6 @@ body.sidebar-open .sidebar{ transform: translateX(0); }
 .muted{color:var(--muted)} .small{font-size:12px}
 .route{margin:0; padding-inline-start:22px}
 
-/* Queue / Leaders / Wallet */
-.queue{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
-@media (max-width:1200px){ .queue{grid-template-columns:1fr 1fr} }
-@media (max-width:640px){ .queue{grid-template-columns:1fr} }
-.order-card{background:var(--chip); border:1px solid var(--border); border-radius:14px; padding:12px}
-.order-card .head{display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
-.order-card .items{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
-.order-card .it{background:#0f1a44; border:1px solid #23306b; padding:4px 8px; border-radius:999px; font-size:12px}
 
 .leaders{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
 @media (max-width:1000px){ .leaders{grid-template-columns:1fr 1fr} }
@@ -191,19 +187,98 @@ body.sidebar-open .sidebar{ transform: translateX(0); }
 /* Confetti */
 #confetti{pointer-events:none; position:fixed; inset:0; overflow:hidden; z-index:9999}
 .confetti{position:absolute; width:8px; height:14px; border-radius:2px; opacity:.9; animation:fall 1.8s linear forwards}
-@keyframes fall{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(120vh) rotate(720deg)}}
-/* Make the circular map readable */
-#circleMap .ring { stroke:#26347a; stroke-width:2; fill:none; opacity:.9 }
-#circleMap .spoke { stroke:#1a275f; stroke-width:1; opacity:.85 }
-
-#circleMap .shelf-dot { fill:#0ea5e9; stroke:#99e5ff; stroke-width:2 }
-#circleMap .shelf-text, #circleMap .sector-label {
-  fill:#cfe0ff;
-  font-weight:800;
-  paint-order: stroke;        /* draw stroke behind fill */
-  stroke:#000;                /* subtle outline */
-  stroke-width:3px;           /* just enough to separate from background */
-  letter-spacing:.4px;
+@keyframes fall{
+  0%{transform:translateY(-20px) rotate(0)}
+  100%{transform:translateY(120vh) rotate(720deg)}
 }
-#circleMap .sector-label { font-size:14px }
-#circleMap .shelf-text   { font-size:12px }
+
+/* ===== Racetrack Map styling ===== */
+#lcMap .rt-outer{
+  fill:#0b1238; stroke:#1b2660; stroke-width:2;
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,.35));
+}
+#lcMap .rt-inner{ fill:#0a1033; stroke:#22306e; stroke-width:2 }
+#lcMap .rt-arrow{ stroke:#7fb6ff; stroke-width:3; opacity:.6 }
+#lcMap .spoke{ stroke:#1a275f; stroke-width:3; opacity:.85 }
+
+/* Shelf nodes */
+#lcMap .shelf-dot{ fill:#0ea5e9; stroke:#99e5ff; stroke-width:2 }
+#lcMap .shelf-node.route .shelf-dot{ fill:#22d3ee; }
+#lcMap .shelf-node.active .shelf-dot{ fill:#22c55e; stroke:#c7ffd6 }
+
+/* Labels */
+#lcMap .shelf-text, #lcMap .sector-label{
+  fill:#cfe0ff; font-weight:800; paint-order: stroke; stroke:#000; stroke-width:3px; letter-spacing:.4px;
+}
+#lcMap .sector-label{ font-size:14px }
+#lcMap .shelf-text{ font-size:12px }
+/* Utility helpers */
+.hidden {
+  display: none !important;
+}
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+/* Checklist */
+.checklist{
+  list-style:none; margin:0; padding:0; display:grid; gap:6px; max-height:260px; overflow:auto;
+  border:1px solid var(--border); border-radius:12px; padding:10px; background:var(--chip);
+}
+.chk{
+  display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:10px;
+  border:1px solid #23306b; background:#0f1a44;
+}
+.chk .box{
+  width:18px; height:18px; border-radius:4px; border:1px solid #2e3a77; background:#0c1336; display:inline-block;
+}
+.chk.current{ outline:2px solid #6ea8ff66; box-shadow:0 0 18px #6ea8ff25; }
+.chk.done{ border-color:#1f6b49; background:#0c2a24; }
+.chk.done .box{ background:#10b981; border-color:#10b981; }
+.chk.skipped{ border-color:#6b1f1f; background:#2a0c0c; }
+.chk.skipped .box{ background:#ef4444; border-color:#ef4444; }
+.chk small{ color:var(--muted) }
+.chk .name{ font-weight:700 }
+/* Map zones & legend */
+.zone { stroke:#22306e; fill:#0c1233; opacity:.85 }
+.zone.ambient { fill:#d69e6f33 }     /* soft orange */
+.zone.chilledFv { fill:#7fcf7f33 }   /* light green */
+.zone.chilledAnimal { fill:#9aaacb44 } /* grayish */
+.zone.staging { fill:#6ea8ff22 }
+.zone.frozen { fill:#8ec0f633 }
+
+.zone-label {
+  fill:#cfe0ff;
+  font-weight:700;
+  font-size:13px;
+  paint-order:stroke;
+  stroke:#000;
+  stroke-width:3px;
+}
+.aisle { fill:#1b275f; opacity:.75; stroke:#2b3a75; stroke-width:1 }
+/* Zones & aisles (logistics map) */
+.zone { stroke:#22306e; opacity:.9 }
+.zone.ambient       { fill:#d69e6f33 }
+.zone.chilledFv     { fill:#7fcf7f33 }
+.zone.chilledAnimal { fill:#a7b5cc44 }
+.zone.staging       { fill:#6ea8ff22 }
+.zone.frozen        { fill:#8ec0f633 }
+
+.zone-label{
+  fill:#cfe0ff; font-weight:800; font-size:13px;
+  paint-order:stroke; stroke:#000; stroke-width:3px;
+  text-anchor:middle; dominant-baseline:middle;
+}
+
+.aisle { fill:#1b275f; stroke:#2b3a75; stroke-width:1; opacity:.75 }
+
+/* existing classes reused */
+#lcMap .rt-outer{ fill:#0b1238; stroke:#1b2660; stroke-width:2;
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,.35)); }
+#lcMap .rt-arrow{ stroke:#7fb6ff; stroke-width:3; opacity:.6 }
+#lcMap .shelf-dot{ fill:#0ea5e9; stroke:#99e5ff; stroke-width:2 }
+#lcMap .shelf-node.route .shelf-dot{ fill:#22d3ee; }
+#lcMap .shelf-node.active .shelf-dot{ fill:#22c55e; stroke:#c7ffd6 }
+#lcMap .shelf-text{ fill:#cfe0ff; font-weight:800; paint-order:stroke; stroke:#000; stroke-width:3px; font-size:12px }
+

@@ -3,7 +3,6 @@ const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 const choice=a=>a[rand(0,a.length-1)];
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
-// typing guard: ignore global shortcuts when user is editing a field
 const isTyping = (el) => {
   const t = el?.tagName?.toLowerCase();
   return t === "input" || t === "textarea" || t === "select" || el?.isContentEditable;
@@ -29,6 +28,7 @@ const congestion={}; allShelves.forEach(s=>congestion[s]=rand(0,3));
 
 let W_ANGLE=1.0, W_RADIUS=0.9, TURN_PENALTY=0.5;
 
+/* Mock user */
 const user={
   name: choice(["David","Noa","Erez","Sahar","Walaa","Maya","Guy"]),
   level: rand(2,7),
@@ -43,7 +43,7 @@ const user={
   streak: rand(1,6)
 };
 
-/* ===================== Orders ===================== */
+/* ===================== Orders (no queue; generate on demand) ===================== */
 function makeOrder(id){
   const cnt=rand(2,5), items=[], used=shuffle(allShelves).slice(0,cnt);
   for(let i=0;i<cnt;i++){
@@ -60,10 +60,19 @@ function makeOrder(id){
   }
   return {id:`ORD-${id}`, items};
 }
-let QUEUE_SIZE=8;
-let ORDER_QUEUE=Array.from({length:QUEUE_SIZE},(_,i)=>makeOrder(1000+i));
-let currentOrder=ORDER_QUEUE[0];
+let currentOrder=null;
 let startShelf=choice(allShelves);
+let pickerIsActive=true; // Dashboard toggle
+
+function autoAssignOrder(){
+  if(!pickerIsActive){ currentOrder=null; renderPickLock(); return; }
+  currentOrder = makeOrder(rand(1000,9999));   // fresh order each time
+  startShelf = choice(allShelves);
+  initChecklist(currentOrder);
+  toast(`Auto-assigned ${currentOrder.id}`,"ok");
+  renderPick();
+  goView("#view-pick");
+}
 
 /* ===================== HUD ===================== */
 function renderTop(){
@@ -82,100 +91,157 @@ function renderTop(){
     d.innerHTML=`<span class="emo">${x.emo}</span><span>${x.text}</span>`;
     b.appendChild(d);
   });
+
+  const tgl = $("#pickerActive");
+  const lbl = $("#pickerActiveLabel");
+  if (tgl){
+    tgl.checked = pickerIsActive;
+    lbl.textContent = pickerIsActive ? "Active" : "Inactive";
+    lbl.style.background = pickerIsActive ? "#063c2a" : "#3d1c1c";
+    lbl.style.border = "1px solid var(--border)";
+  }
 }
 
-/* ===================== Circular Map (SVG) ===================== */
-const CMAP_SIZE = 520;
-const CMAP_CX = CMAP_SIZE/2;
-const CMAP_CY = CMAP_SIZE/2;
-const CMAP_INNER = 70;
-const CMAP_STEP  = 70;
+/* ===================== Racetrack + Spokes Map (SVG) ===================== */
+const MAP_ID = "lcMap";
+const MAP_W = 800, MAP_H = 520;
+const MARGIN = 30;
+const LOOP_W = 70;
+const INNER_X = MARGIN + LOOP_W;
+const INNER_Y = MARGIN + LOOP_W;
+const OUTER_X = MARGIN;
+const OUTER_Y = MARGIN;
+const OUTER_W = MAP_W - 2*MARGIN;
+const OUTER_H = MAP_H - 2*MARGIN;
+const INNER_W = OUTER_W - 2*LOOP_W;
+const INNER_H = OUTER_H - 2*LOOP_W;
 
+const SPOKE_LEN = 230;
+const DEPTH_STEP = Math.floor(SPOKE_LEN / RINGS.length);
+
+const POS_T = [0.28, 0.72];
+const POS_R = [0.30, 0.70];
+const POS_B = [0.28, 0.72];
+const POS_L = [0.30, 0.70];
+
+function sectorAnchor(s){
+  switch(s){
+    case "A": return ["T", POS_T[0]];
+    case "B": return ["T", POS_T[1]];
+    case "C": return ["R", POS_R[0]];
+    case "D": return ["R", POS_R[1]];
+    case "E": return ["B", POS_B[1]];
+    case "F": return ["B", POS_B[0]];
+    case "G": return ["L", POS_L[1]];
+    case "H": return ["L", POS_L[0]];
+    default:  return ["T", 0.5];
+  }
+}
+function spokeMouth(s){
+  const [side, t] = sectorAnchor(s);
+  let x=0, y=0, dx=0, dy=0;
+  if(side==="T"){ x = INNER_X + t*INNER_W; y = INNER_Y; dx = 0; dy = +1; }
+  else if(side==="R"){ x = INNER_X + INNER_W; y = INNER_Y + t*INNER_H; dx = -1; dy = 0; }
+  else if(side==="B"){ x = INNER_X + t*INNER_W; y = INNER_Y + INNER_H; dx = 0; dy = -1; }
+  else{ x = INNER_X; y = INNER_Y + t*INNER_H; dx = +1; dy = 0; }
+  return { x, y, dx, dy };
+}
 function shelfXY(id){
   const m = /^([A-Z])(\d+)$/.exec(id);
-  const sector = m[1], ring = Number(m[2]);
-  const sectorIdx = SECTORS.indexOf(sector);
-  const angle = (2*Math.PI * sectorIdx) / SECTORS.length;
-  const radius = CMAP_INNER + (ring-1)*CMAP_STEP;
-  return { x: CMAP_CX + radius * Math.cos(angle),
-           y: CMAP_CY + radius * Math.sin(angle) };
+  const sector = m[1], r = Number(m[2]);
+  const {x, y, dx, dy} = spokeMouth(sector);
+  const depth = Math.min(Math.max(r,1), RINGS.length)*DEPTH_STEP;
+  return { x: x + dx * depth, y: y + dy * depth };
 }
-
 function buildStageMap(){
   const host = document.getElementById("stageMap");
   if(!host){ console.warn("stageMap not found"); return; }
   host.innerHTML = "";
-
   const svgNS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("id", "circleMap");
-  svg.setAttribute("viewBox", `0 0 ${CMAP_SIZE} ${CMAP_SIZE}`);
+  svg.setAttribute("id", MAP_ID);
+  svg.setAttribute("viewBox", `0 0 ${MAP_W} ${MAP_H}`);
   svg.style.width = "100%";
   svg.style.height = "100%";
   host.appendChild(svg);
 
-  // rings
-  RINGS.forEach((_, idx) => {
-    const circ = document.createElementNS(svgNS, "circle");
-    circ.setAttribute("cx", CMAP_CX);
-    circ.setAttribute("cy", CMAP_CY);
-    circ.setAttribute("r", CMAP_INNER + idx*CMAP_STEP);
-    circ.setAttribute("class", "ring");
-    svg.appendChild(circ);
+  // defs
+  const defs = document.createElementNS(svgNS, "defs");
+  const marker = document.createElementNS(svgNS, "marker");
+  marker.setAttribute("id","arrow"); marker.setAttribute("viewBox","0 0 10 10");
+  marker.setAttribute("refX","7"); marker.setAttribute("refY","5");
+  marker.setAttribute("markerWidth","6"); marker.setAttribute("markerHeight","6");
+  marker.setAttribute("orient","auto-start-reverse");
+  const tri = document.createElementNS(svgNS, "path");
+  tri.setAttribute("d","M 0 0 L 10 5 L 0 10 z");
+  tri.setAttribute("fill","#7fb6ff");
+  marker.appendChild(tri); defs.appendChild(marker); svg.appendChild(defs);
+
+  const outer = document.createElementNS(svgNS, "rect");
+  outer.setAttribute("x", OUTER_X); outer.setAttribute("y", OUTER_Y);
+  outer.setAttribute("width", OUTER_W); outer.setAttribute("height", OUTER_H);
+  outer.setAttribute("class","rt-outer");
+  svg.appendChild(outer);
+
+  const inner = document.createElementNS(svgNS, "rect");
+  inner.setAttribute("x", INNER_X); inner.setAttribute("y", INNER_Y);
+  inner.setAttribute("width", INNER_W); inner.setAttribute("height", INNER_H);
+  inner.setAttribute("class","rt-inner");
+  svg.appendChild(inner);
+
+  // one-way arrows on the loop
+  const arrowLines = [
+    {x1: INNER_X+20, y1: INNER_Y-LOOP_W/2, x2: INNER_X+INNER_W-20, y2: INNER_Y-LOOP_W/2},
+    {x1: INNER_X+INNER_W+LOOP_W/2, y1: INNER_Y+20, x2: INNER_X+INNER_W+LOOP_W/2, y2: INNER_Y+INNER_H-20},
+    {x1: INNER_X+INNER_W-20, y1: INNER_Y+INNER_H+LOOP_W/2, x2: INNER_X+20, y2: INNER_Y+INNER_H+LOOP_W/2},
+    {x1: INNER_X-LOOP_W/2, y1: INNER_Y+INNER_H-20, x2: INNER_X-LOOP_W/2, y2: INNER_Y+20},
+  ];
+  arrowLines.forEach(a=>{
+    const l = document.createElementNS(svgNS, "line");
+    l.setAttribute("x1",a.x1); l.setAttribute("y1",a.y1);
+    l.setAttribute("x2",a.x2); l.setAttribute("y2",a.y2);
+    l.setAttribute("class","rt-arrow");
+    l.setAttribute("marker-end","url(#arrow)");
+    svg.appendChild(l);
   });
 
   // spokes + labels
-  SECTORS.forEach((s, si) => {
-    const ang = (2*Math.PI * si)/SECTORS.length;
-    const outer = CMAP_INNER + (RINGS.length-1)*CMAP_STEP + 24;
-
-    const x2 = CMAP_CX + outer * Math.cos(ang);
-    const y2 = CMAP_CY + outer * Math.sin(ang);
-
+  SECTORS.forEach((s)=>{
+    const {x,y,dx,dy} = spokeMouth(s);
     const line = document.createElementNS(svgNS, "line");
-    line.setAttribute("x1", CMAP_CX);
-    line.setAttribute("y1", CMAP_CY);
-    line.setAttribute("x2", x2);
-    line.setAttribute("y2", y2);
-    line.setAttribute("class", "spoke");
+    line.setAttribute("x1", x); line.setAttribute("y1", y);
+    line.setAttribute("x2", x + dx * SPOKE_LEN); line.setAttribute("y2", y + dy * SPOKE_LEN);
+    line.setAttribute("class","spoke");
     svg.appendChild(line);
 
-    const labelR = CMAP_INNER + RINGS.length*CMAP_STEP + 18;
-    const lx = CMAP_CX + labelR * Math.cos(ang);
-    const ly = CMAP_CY + labelR * Math.sin(ang);
+    const lx = x - 14*dy + 14*dx;
+    const ly = y - 14*dx - 14*dy;
     const label = document.createElementNS(svgNS, "text");
-    label.setAttribute("x", lx);
-    label.setAttribute("y", ly);
+    label.setAttribute("x", lx); label.setAttribute("y", ly);
     label.setAttribute("class", "sector-label");
-    label.setAttribute("text-anchor","middle");
-    label.setAttribute("dominant-baseline","middle");
-    label.textContent = s;
-    svg.appendChild(label);
+    label.setAttribute("text-anchor","middle"); label.setAttribute("dominant-baseline","middle");
+    label.textContent = s; svg.appendChild(label);
   });
 
   // shelves
   allShelves.forEach(id=>{
     const {x,y} = shelfXY(id);
-
     const g = document.createElementNS(svgNS, "g");
     g.setAttribute("class", "shelf-node");
     g.setAttribute("data-shelf", id);
 
-    const dot = document.createElementNS(svgNS, "circle");
-    dot.setAttribute("cx", x);
-    dot.setAttribute("cy", y);
-    dot.setAttribute("r", 12);
+    const dot = document.createElementNS(svgNS, "rect");
+    dot.setAttribute("x", x-10); dot.setAttribute("y", y-10);
+    dot.setAttribute("rx", 4); dot.setAttribute("ry", 4);
+    dot.setAttribute("width", 20); dot.setAttribute("height", 20);
     dot.setAttribute("class", "shelf-dot");
     g.appendChild(dot);
 
     const txt = document.createElementNS(svgNS, "text");
-    txt.setAttribute("x", x);
-    txt.setAttribute("y", y+4);
+    txt.setAttribute("x", x); txt.setAttribute("y", y+4);
     txt.setAttribute("class", "shelf-text");
-    txt.setAttribute("text-anchor","middle");
-    txt.setAttribute("dominant-baseline","middle");
-    txt.textContent = id;
-    g.appendChild(txt);
+    txt.setAttribute("text-anchor","middle"); txt.setAttribute("dominant-baseline","middle");
+    txt.textContent = id; g.appendChild(txt);
 
     svg.appendChild(g);
   });
@@ -183,7 +249,6 @@ function buildStageMap(){
 
 /* ===================== Dashboard / Traffic Monitor ===================== */
 function renderDashboardViews(){
-  // goals
   const goals=[
     {t:"Complete 10 orders",v:Math.min(user.shiftOrdersDone,10),max:10},
     {t:"Keep zigzag low",v:rand(0,8),max:8},
@@ -198,18 +263,11 @@ function renderDashboardViews(){
     gEl.appendChild(li);
   });
 
-  // rename title (backup)
-  const loadCardTitle = document.querySelector('#view-dashboard .between h2');
-  if (loadCardTitle) loadCardTitle.textContent = "Traffic Monitor 🚦";
-
-  // show only high traffic as red
   const map=$("#ringMap"); map.innerHTML="";
-  const HIGH = 3; // threshold for “high traffic”
-
+  const HIGH = 3;
   SECTORS.forEach(s=>RINGS.forEach(r=>{
     const id=`${s}${r}`;
-    const load=congestion[id]; // 0..3
-
+    const load=congestion[id];
     const cell=document.createElement("div");
     cell.className="cell";
     cell.style.background="transparent";
@@ -234,53 +292,6 @@ function renderDashboardViews(){
   }));
 }
 
-/* ===================== Queue ===================== */
-function refillQueue(size){
-  ORDER_QUEUE=Array.from({length:size},(_,i)=>makeOrder(1000+i));
-  currentOrder=ORDER_QUEUE[0];
-  startShelf=choice(allShelves);
-}
-function renderQueue(){
-  const q=$("#orderQueue"); q.innerHTML="";
-  ORDER_QUEUE.forEach(o=>{
-    const card=document.createElement("div"); card.className="order-card";
-    card.innerHTML=`<div class="head">
-        <div><b>#${o.id}</b> • ${o.items.length} items</div>
-        <div class="row"><button class="btn outline" data-accept="${o.id}">Take</button></div>
-      </div>
-      <div class="items">
-        ${o.items.map(it=>`<span class="it">${it.name} • ${it.qty}${it.unit==="kg"?"kg":"u"} (${it.shelf})</span>`).join("")}
-      </div>`;
-    q.appendChild(card);
-  });
-  const sel=$("#orderSelect"); sel.innerHTML="";
-  ORDER_QUEUE.forEach(o=>{
-    const opt=document.createElement("option");
-    opt.value=o.id; opt.textContent=`${o.id} • ${o.items.length} items`;
-    sel.appendChild(opt);
-  });
-  sel.value=currentOrder.id;
-
-  q.querySelectorAll("[data-accept]").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const id=btn.getAttribute("data-accept");
-      currentOrder=ORDER_QUEUE.find(x=>x.id===id); startShelf=choice(allShelves);
-      $("#orderSelect").value=id; toast(`You took order #${id}`,"ok");
-      goView("#view-pick"); renderPick(); focusRouteOnStage();
-    });
-  });
-}
-$("#queueCount").addEventListener("input",e=>{
-  const n=Number(e.target.value); $("#queueCountVal").textContent=n; QUEUE_SIZE=n; refillQueue(n); renderQueue();
-});
-$("#btnWorkOnSelected").addEventListener("click",()=>{
-  const id=$("#orderSelect").value;
-  currentOrder=ORDER_QUEUE.find(o=>o.id===id)||currentOrder;
-  startShelf=choice(allShelves);
-  toast(`Working on ${id}`,"ok");
-  goView("#view-pick"); renderPick(); focusRouteOnStage();
-});
-
 /* ===================== Route planning ===================== */
 function sectorIndex(s){return SECTORS.indexOf(s)}
 function parseShelf(id){const m=/^([A-Z])(\d+)$/.exec(id);return {s:m[1],r:Number(m[2])}}
@@ -302,7 +313,7 @@ function travelCost(from,to,last=0){
   const base=W_ANGLE*angDist(A.a,B.a)+W_RADIUS*Math.abs(A.rad-B.rad);
   const cong=(congestion[to]||0)*0.5;
   const dir=moveDir(A.s,B.s);
-  const turn=(last!==0&&dir!==0&&dir!==last)?TURN_PENALTY:0;
+  const turn=(last!==0&&dir!==0&&dir!==last)?TURN_PENALTY=0.5:0; // keep penalty
   return {cost:base+cong+turn,dir};
 }
 function planRoute(start,targets){
@@ -324,6 +335,21 @@ function planRoute(start,targets){
 
 /* ===================== Pick view ===================== */
 function renderPick(){
+  const lockMsg = $("#pickLockMessage");
+  if(!pickerIsActive){
+    $("#pickOrderId").textContent="—";
+    $("#startShelf").textContent="—";
+    $("#pickItems").innerHTML="";
+    $("#routeList").innerHTML="";
+    $("#routeDebug").textContent="";
+    if (lockMsg) lockMsg.textContent = "Inactive: switch to Active on the Dashboard to get an order.";
+    return;
+  }
+  if(!currentOrder){
+    if (lockMsg) lockMsg.textContent = "Waiting for system to assign…";
+    return autoAssignOrder();
+  }
+
   $("#pickOrderId").textContent=currentOrder.id; $("#startShelf").textContent=startShelf;
   const items=$("#pickItems"); items.innerHTML="";
   currentOrder.items.forEach(it=>{
@@ -332,24 +358,12 @@ function renderPick(){
     items.appendChild(d);
   });
 
-  // Controls may be hidden; attach only if exist
-  const angleEl = $("#wAngle"), radiusEl = $("#wRadius"), turnEl = $("#turnPenalty");
-  const btnPlan = $("#btnPlan"), btnStartWeigh = $("#btnStartWeigh");
-
-  if (angleEl) angleEl.oninput = e => { W_ANGLE=Number(e.target.value); $("#wAngleVal").textContent=W_ANGLE.toFixed(1); renderRoute(); focusRouteOnStage(); };
-  if (radiusEl) radiusEl.oninput = e => { W_RADIUS=Number(e.target.value); $("#wRadiusVal").textContent=W_RADIUS.toFixed(1); renderRoute(); focusRouteOnStage(); };
-  if (turnEl) turnEl.oninput = e => { TURN_PENALTY=Number(e.target.value); $("#turnPenaltyVal").textContent=TURN_PENALTY.toFixed(1); renderRoute(); focusRouteOnStage(); };
-  if (btnPlan) btnPlan.onclick = ()=>{ renderRoute(); focusRouteOnStage(); };
-  if (btnStartWeigh) btnStartWeigh.onclick = ()=>{ goView("#view-weigh"); startWeighFlow(); };
-
-  // extra Start weigh button in Current Order
-  const altBtn = $("#btnStartWeighAlt");
-  if (altBtn) altBtn.onclick = ()=>{ goView("#view-weigh"); startWeighFlow(); };
-
   renderRoute(); focusRouteOnStage();
+  renderChecklist(); // keep current highlight in sync
+  if (lockMsg) lockMsg.textContent = "Assigned by system. Proceed to Weigh when done.";
 }
-
 function renderRoute(){
+  if(!currentOrder) return;
   const targets=currentOrder.items.map(i=>i.shelf);
   const {order,debug}=planRoute(startShelf,targets);
   const list=$("#routeList"); list.innerHTML="";
@@ -360,41 +374,103 @@ function renderRoute(){
   });
   $("#routeDebug").textContent=debug.join("\n");
 
-  // highlight route on SVG
-  $$('#circleMap .shelf-node').forEach(n=>n.classList.remove('route'));
+  $('#'+MAP_ID) && $$('#'+MAP_ID+' .shelf-node').forEach(n=>n.classList.remove('route'));
   order.forEach(id=>{
-    const n=document.querySelector(`#circleMap .shelf-node[data-shelf="${id}"]`);
+    const n=document.querySelector(`#${MAP_ID} .shelf-node[data-shelf="${id}"]`);
     if(n) n.classList.add('route');
   });
 }
-
 function focusRouteOnStage(step=0){
   const route = Array.from($("#routeList").children)
     .map(li=>li.textContent.replace("Go to","").trim());
-  $$('#circleMap .shelf-node').forEach(n=>n.classList.remove('active'));
+  $$('#'+MAP_ID+' .shelf-node').forEach(n=>n.classList.remove('active'));
   const first = route[step];
-  const node = document.querySelector(`#circleMap .shelf-node[data-shelf="${first}"]`);
+  const node = document.querySelector(`#${MAP_ID} .shelf-node[data-shelf="${first}"]`);
   if(node) node.classList.add('active');
 }
 
 /* ===================== Weigh flow ===================== */
 let routeOrder=[], routeIndex=0, picked=[], skipped=[];
+/* ===================== Checklist ===================== */
+let checklist = []; // [{sku, name, shelf, status: 'pending' | 'done' | 'skipped'}]
+
+function initChecklist(order){
+  checklist = order.items.map(it => ({
+    sku: it.sku, name: it.name, shelf: it.shelf, status: 'pending'
+  }));
+  renderChecklist();
+}
+
+function renderChecklist(){
+  const list = document.getElementById("checklistList");
+  const prog = document.getElementById("checklistProgress");
+  if(!list || !prog){ return; }
+
+  // derive "current" shelf from route
+  const curShelf = routeOrder?.[routeIndex];
+
+  list.innerHTML = "";
+  checklist.forEach(it=>{
+    const li = document.createElement("li");
+    li.className = "chk";
+    if(it.status === "done") li.classList.add("done");
+    if(it.status === "skipped") li.classList.add("skipped");
+    if(it.status === "pending" && curShelf && it.shelf === curShelf) li.classList.add("current");
+    li.innerHTML = `
+      <span class="box"></span>
+      <div style="display:grid; gap:2px">
+        <span class="name">${it.name}</span>
+        <small>📍 ${it.shelf}</small>
+      </div>
+    `;
+    list.appendChild(li);
+  });
+
+  const handled = checklist.filter(x=>x.status!=="pending").length;
+  prog.textContent = `${handled} / ${checklist.length}`;
+}
+
+function markChecklist(sku, status){
+  const it = checklist.find(x=>x.sku===sku);
+  if(it){ it.status = status; renderChecklist(); }
+}
+
+function setWeighControlsEnabled(enabled){
+  $("#wInput")?.toggleAttribute("disabled", !enabled);
+  $("#wUnit")?.toggleAttribute("disabled", !enabled);
+  $("#btnConfirmItem")?.classList.toggle("disabled", !enabled);
+  $("#btnSkipItem")?.classList.toggle("disabled", !enabled);
+}
+function doneAll(){ return currentOrder && (picked.length + skipped.length >= currentOrder.items.length); }
+function updateFinishVisibility(){
+  const btn=$("#btnFinishOrder");
+  if(!btn) return;
+  btn.classList.toggle("hidden", !doneAll());
+  setWeighControlsEnabled(!doneAll()); // lock when all items handled
+}
+
 function startWeighFlow(){
+  if(!pickerIsActive){ toast("Inactive – cannot start weigh","warn"); return; }
+  if(!currentOrder){ toast("No order assigned yet","warn"); return; }
   routeOrder=planRoute(startShelf,currentOrder.items.map(i=>i.shelf)).order;
   routeIndex=0; picked=[]; skipped=[];
   renderWeighPanel(); renderWeighAccum(); renderWeighSummary();
+  updateFinishVisibility();
 
-  $$('#circleMap .shelf-node').forEach(n=>n.classList.remove('active'));
-  const c=document.querySelector(`#circleMap .shelf-node[data-shelf="${routeOrder[0]}"]`);
+  $$('#'+MAP_ID+' .shelf-node').forEach(n=>n.classList.remove('active'));
+  const c=document.querySelector(`#${MAP_ID} .shelf-node[data-shelf="${routeOrder[0]}"]`);
   if(c) c.classList.add('active');
+
+  renderChecklist(); // highlight current shelf in checklist
 }
 function currentItem(){
+  if(!currentOrder) return null;
   const shelf=routeOrder[routeIndex];
   return currentOrder.items.find(i=>i.shelf===shelf);
 }
 function renderWeighPanel(){
   const it=currentItem();
-  $("#wOrderId").textContent=currentOrder.id;
+  $("#wOrderId").textContent=currentOrder?.id ?? "—";
   $("#wShelf").textContent=it?it.shelf:"—";
   $("#wItemName").textContent=it?it.name:"—";
   $("#wTarget").textContent=it?`${it.qty}${it.unit==="kg"?" kg":" u"}`:"—";
@@ -409,52 +485,79 @@ function renderWeighAccum(){
     d.textContent=`${p.name} • ${p.measured}${p.unit==="kg"?" kg":" u"} (target ${p.qty}${p.unit==="kg"?" kg":" u"})`;
     el.appendChild(d);
   });
-  $("#miniSummary").textContent = `#${currentOrder.id}\nPicked: ${picked.length}/${currentOrder.items.length}`;
+  $("#miniSummary").textContent = currentOrder
+    ? `#${currentOrder.id}\nPicked: ${picked.length}/${currentOrder.items.length}`
+    : `No order assigned`;
 }
 function withinTol(target,measured,unit){
   if(unit==="kg"){ const tol=0.05*target; return Math.abs(measured-target)<=tol; }
   return Number(measured)===Number(target);
 }
-function doneAll(){ return picked.length + skipped.length >= currentOrder.items.length; }
 function renderWeighSummary(){
-  const lines=[]; lines.push(`Order #${currentOrder.id}`); lines.push(`-----------------------`);
+  const lines=[];
+  if(!currentOrder){ $("#weighSummary").textContent="—"; updateFinishVisibility(); return; }
   picked.forEach(p=>lines.push(`${p.name} | ${p.measured}${p.unit==="kg"?" kg":" u"} | target ${p.qty}${p.unit==="kg"?" kg":" u"} | ${p.shelf}`));
   const total=picked.filter(p=>p.unit==="kg").reduce((s,p)=>s+Number(p.measured||0),0);
-  lines.push(`-----------------------`); lines.push(`Total kg: ${total.toFixed(2)}`);
+  lines.unshift(`Order #${currentOrder.id}`,'-----------------------');
+  lines.push('-----------------------',`Total kg: ${total.toFixed(2)}`);
   lines.push(`Status: ${doneAll()? "Ready for courier (mock)" : "In progress"}`);
   $("#weighSummary").textContent=lines.join("\n");
+  updateFinishVisibility();
 }
-$("#btnMockIoT").onclick=()=>{ const it=currentItem(); if(!it) return;
-  $("#wInput").value=it.unit==="kg"? Number(it.qty).toFixed(2): Number(it.qty); };
-$("#btnConfirmItem").onclick=()=>{ const it=currentItem(); if(!it) return;
+$("#btnMockIoT")?.addEventListener("click",()=>{ const it=currentItem(); if(!it) return;
+  $("#wInput").value=it.unit==="kg"? Number(it.qty).toFixed(2): Number(it.qty); });
+$("#btnConfirmItem")?.addEventListener("click",()=>{ const it=currentItem(); if(!it) return;
   const measured=Number($("#wInput").value||0), unit=$("#wUnit").value;
   if(!measured){ toast("Enter a measurement","warn"); return; }
   if(!withinTol(Number(it.qty),measured,unit)){ if(!confirm("Outside tolerance (±5% kg / exact units). Approve anyway?")) return; }
   picked.push({...it, measured, unit});
+  markChecklist(it.sku, "done");                 // ✅ checklist
   routeIndex=Math.min(routeIndex+1, routeOrder.length-1);
   renderWeighPanel(); renderWeighAccum(); renderWeighSummary(); celebrate();
-  $$('#circleMap .shelf-node').forEach(n=>n.classList.remove('active'));
-  const c=document.querySelector(`#circleMap .shelf-node[data-shelf="${routeOrder[routeIndex]}"]`);
+  updateFinishVisibility();
+  renderChecklist();                              // ✅ refresh current highlight
+  $$('#'+MAP_ID+' .shelf-node').forEach(n=>n.classList.remove('active'));
+  const c=document.querySelector(`#${MAP_ID} .shelf-node[data-shelf="${routeOrder[routeIndex]}"]`);
   if(c) c.classList.add('active');
-};
-$("#btnSkipItem").onclick=()=>{ const it=currentItem(); if(!it) return;
-  skipped.push(it); routeIndex=Math.min(routeIndex+1, routeOrder.length-1);
-  renderWeighPanel(); renderWeighAccum(); renderWeighSummary(); };
+});
+$("#btnSkipItem")?.addEventListener("click",()=>{ const it=currentItem(); if(!it) return;
+  skipped.push(it);
+  markChecklist(it.sku, "skipped");              // ✅ checklist
+  routeIndex=Math.min(routeIndex+1, routeOrder.length-1);
+  renderWeighPanel(); renderWeighAccum(); renderWeighSummary();
+  updateFinishVisibility();
+  renderChecklist();                              // ✅ refresh current highlight
+});
 
 /* ===================== Finish & Competition ===================== */
-$("#btnFinishOrder").onclick=finishOrder;
+$("#btnFinishOrder")?.addEventListener("click", finishOrder);
 function finishOrder(){
+  if(!currentOrder){ toast("No order to finish","warn"); return; }
   if(!doneAll()){ if(!confirm("Not all items handled. Continue anyway?")) return; }
   window.print();
   toast("Order completed (mock) and sent to courier 🚚","ok");
   celebrate();
   user.shiftOrdersDone+=1; user.xp+=rand(15,40);
   renderTop(); renderLeaders();
+
+  // Lock the weigh panel until a new order is assigned
+  setWeighControlsEnabled(false);
+  $("#btnFinishOrder")?.classList.add("hidden");
+  $("#weighSummary").textContent += "\n\n✅ Finished. Start a new order to continue.";
+  $("#miniSummary").textContent = "Finished. Use Quick start or toggle Active to get a new order.";
+
+  // Clear current order so weighing cannot proceed until new order
+  currentOrder=null; picked=[]; skipped=[]; routeOrder=[]; routeIndex=0;
+  checklist=[]; renderChecklist();
+
+  // Take user back to Dashboard (they can Quick start from stage)
+  goView("#view-dashboard");
 }
 
 /* ===================== Leaders & Wallet ===================== */
 function renderLeaders(){
-  const el=$("#leaders"); el.innerHTML="";
+  const el=$("#leaders"); if(!el) return;
+  el.innerHTML="";
   const base=Array.from({length:6}).map(()=>({
     name:choice(["Noa","Erez","Maya","Yosef","Tamar","Walaa","David","Reem","Sahar","Nir"]),
     score:rand(5,20),
@@ -470,9 +573,8 @@ function renderLeaders(){
     el.appendChild(d);
   });
 }
-
 function renderWallet(){
-  const w=$("#walletList"); w.innerHTML="";
+  const w=$("#walletList"); if(!w) return; w.innerHTML="";
   const tx=Array.from({length:6}).map(_=>({
     t:choice(["Speed bonus","Order","Penalty","Streak bonus","Quality bonus"]),
     v:(Math.random()<0.8?+1:-1)*rand(10,60)
@@ -495,17 +597,42 @@ function renderWallet(){
 }
 
 /* ===================== Stage CTA & interactions ===================== */
-$("#btnQuickStart").onclick=()=>{ goView("#view-queue"); toast("Pick an order to start!", "ok"); };
-
-// click to activate shelf
+$("#btnQuickStart").onclick=()=>{
+  if(!pickerIsActive){ toast("Inactive: toggle Active on Dashboard","warn"); goView("#view-dashboard"); return; }
+  autoAssignOrder();
+};
 document.addEventListener("click", (e)=>{
-  const g = e.target.closest("#circleMap .shelf-node");
+  const g = e.target.closest(`#${MAP_ID} .shelf-node`);
   if(!g) return;
-  $$('#circleMap .shelf-node').forEach(n=>n.classList.remove('active'));
+  $$('#'+MAP_ID+' .shelf-node').forEach(n=>n.classList.remove('active'));
   g.classList.add('active');
 });
 
-/* ===================== Views nav (guarded keyboard) ===================== */
+/* Start weigh button in Pick view */
+$("#btnStartWeighAlt")?.addEventListener("click", ()=>{
+  if(!pickerIsActive){ toast("Inactive – cannot start weigh","warn"); return; }
+  if(!currentOrder){ toast("No order assigned yet","warn"); return; }
+  goView("#view-weigh");
+  startWeighFlow();
+});
+
+/* ===================== Dashboard toggle ===================== */
+$("#pickerActive")?.addEventListener("change",(e)=>{
+  pickerIsActive = e.target.checked;
+  renderTop();
+  if(pickerIsActive){ autoAssignOrder(); } else { renderPickLock(); }
+});
+function renderPickLock(){
+  $("#pickOrderId").textContent="—";
+  $("#startShelf").textContent="—";
+  $("#pickItems").innerHTML="";
+  $("#routeList").innerHTML="";
+  $("#routeDebug").textContent="";
+  const lock = $("#pickLockMessage");
+  if(lock) lock.textContent = "Inactive: no orders will be assigned.";
+}
+
+/* ===================== Views nav ===================== */
 function goView(sel){
   $$(".view").forEach(v=>v.classList.remove("active"));
   $(sel).classList.add("active");
@@ -515,20 +642,16 @@ function goView(sel){
 $$(".stab").forEach(b=>b.addEventListener("click",()=>goView(b.dataset.target)));
 
 document.addEventListener("keydown",(e)=>{
-  // ignore global shortcuts while typing in inputs/selects/textarea
   if (isTyping(document.activeElement) && !e.ctrlKey && !e.metaKey && !e.altKey) return;
-
   const key=e.key;
-  if(/^[1-6]$/.test(key)){
+  if(/^[1-5]$/.test(key)){
     const index=Number(key)-1; const btn=$$(".stab")[index];
     if(btn){ btn.click(); e.preventDefault(); }
     return;
   }
   if(key==="Enter"){
     if($("#view-pick").classList.contains("active")){
-      const startBtn = $("#btnStartWeigh") || $("#btnStartWeighAlt");
-      if (startBtn) startBtn.click();
-      e.preventDefault();
+      startWeighFlow(); e.preventDefault();
     }
     return;
   }
@@ -564,10 +687,11 @@ function init(){
   renderTop();
   buildStageMap();
   renderDashboardViews();
-  renderQueue();
   renderLeaders();
   renderWallet();
   goView("#view-dashboard");
+
+  if(pickerIsActive){ autoAssignOrder(); }
 
   if (window.matchMedia("(max-width: 960px)").matches) {
     document.body.classList.remove("sidebar-open");

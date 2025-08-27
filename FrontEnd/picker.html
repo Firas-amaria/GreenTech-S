@@ -19,17 +19,16 @@
 
     <nav class="side-tabs">
       <button class="stab active" data-target="#view-dashboard"><span>1</span> Dashboard</button>
-      <button class="stab" data-target="#view-queue"><span>2</span> Orders Queue</button>
-      <button class="stab" data-target="#view-pick"><span>3</span> Picking</button>
-      <button class="stab" data-target="#view-weigh"><span>4</span> Weigh</button>
-      <button class="stab" data-target="#view-leaderboard"><span>5</span> Competition</button>
-      <button class="stab" data-target="#view-wallet"><span>6</span> Wallet</button>
+      <button class="stab" data-target="#view-pick"><span>2</span> Picking</button>
+      <button class="stab" data-target="#view-weigh"><span>3</span> Weigh</button>
+      <button class="stab" data-target="#view-leaderboard"><span>4</span> Competition</button>
+      <button class="stab" data-target="#view-wallet"><span>5</span> Wallet</button>
     </nav>
 
     <div class="help">
       <div class="k">⌨️ Shortcuts</div>
       <ul>
-        <li><b>1–6</b> switch views</li>
+        <li><b>1–5</b> switch views</li>
         <li><b>Enter</b> start weigh</li>
         <li><b>W</b> finish order</li>
         <li><b>Ctrl+B</b> toggle sidebar</li>
@@ -65,7 +64,7 @@
   <!-- Stage + HUD -->
   <main class="stage-wrap">
     <section class="stage" id="gameStage">
-      <!-- JS injects the circular SVG map here -->
+      <!-- JS injects the RACETRACK map here -->
       <div class="stage-map" id="stageMap"></div>
       <div class="route-overlay" id="routeOverlay"></div>
       <div class="stage-cta"><button class="btn" id="btnQuickStart">Quick start</button></div>
@@ -78,6 +77,21 @@
         <div class="hero-stat"><div class="v" id="statRecords">0</div><div class="l">Records today</div></div>
       </div>
 
+      <!-- Picker Status -->
+      <div class="card">
+        <h3>Picker Status</h3>
+        <div class="row spread">
+          <div class="row">
+            <label class="switch">
+              <input type="checkbox" id="pickerActive" checked>
+              <span class="slider"></span>
+            </label>
+            <span id="pickerActiveLabel" class="chip">Active</span>
+          </div>
+          <small class="muted">When Active, orders are auto-assigned by system.</small>
+        </div>
+      </div>
+
       <div class="card">
         <h3>Badges</h3>
         <div class="badges" id="badges"></div>
@@ -85,8 +99,17 @@
 
       <div class="card">
         <h3>Mini Summary</h3>
-        <pre class="summary" id="miniSummary">Pick an order to start.</pre>
+        <pre class="summary" id="miniSummary">Toggle Active to get a random order.</pre>
       </div>
+      <div class="card">
+  <h3>Checklist</h3>
+  <div class="row spread">
+    <span class="muted small">Progress</span>
+    <span class="chip" id="checklistProgress">0 / 0</span>
+  </div>
+  <ul class="checklist" id="checklistList"></ul>
+</div>
+
     </section>
   </main>
 
@@ -110,39 +133,10 @@
       </div>
     </div>
 
-    <div id="view-queue" class="view">
-      <div class="card">
-        <div class="row spread">
-          <h2>Orders Queue 📦</h2>
-          <div class="row">
-            <label>Show:</label>
-            <input type="range" id="queueCount" min="3" max="12" value="8" />
-            <span class="chip" id="queueCountVal">8</span>
-          </div>
-        </div>
-        <div class="row">
-          <label>Select order:</label>
-          <select id="orderSelect" class="select"></select>
-          <button class="btn" id="btnWorkOnSelected">Work on it</button>
-        </div>
-        <div class="queue" id="orderQueue"></div>
-      </div>
-    </div>
+    <!-- Removed Orders Queue view -->
 
     <div id="view-pick" class="view">
       <div class="grid-2">
-        <!-- Route Settings hidden for now -->
-        <div class="card" style="display:none">
-          <h2>Route Settings</h2>
-          <div class="row"><label>Angle weight</label><input type="range" id="wAngle" min="0" max="2" step="0.1" value="1"><span class="chip" id="wAngleVal">1.0</span></div>
-          <div class="row"><label>Radius weight</label><input type="range" id="wRadius" min="0" max="2" step="0.1" value="0.9"><span class="chip" id="wRadiusVal">0.9</span></div>
-          <div class="row"><label>Turn penalty</label><input type="range" id="turnPenalty" min="0" max="1.5" step="0.1" value="0.5"><span class="chip" id="turnPenaltyVal">0.5</span></div>
-          <div class="row">
-            <button class="btn" id="btnPlan">Plan route</button>
-            <button class="btn outline" id="btnStartWeigh">Enter • Start weigh</button>
-          </div>
-        </div>
-
         <div class="card">
           <h2>Current Order</h2>
           <div class="row wrap">
@@ -153,6 +147,10 @@
           <div class="row">
             <button class="btn" id="btnStartWeighAlt">Start weigh</button>
           </div>
+        </div>
+        <div class="card">
+          <h2>Status</h2>
+          <p id="pickLockMessage" class="muted">—</p>
         </div>
       </div>
 
@@ -190,7 +188,8 @@
           <div class="list" id="weighAccum"></div>
           <div class="divider"></div>
           <div class="row wrap">
-            <button class="btn" id="btnFinishOrder">W • Finish & print</button>
+            <!-- Finish hidden by default; JS shows it when all items handled -->
+            <button class="btn hidden" id="btnFinishOrder">W • Finish & print</button>
             <span class="muted small">Finishing increases your competition score automatically.</span>
           </div>
           <pre class="summary" id="weighSummary">—</pre>
@@ -218,6 +217,6 @@
   </section>
 
   <div id="confetti"></div>
-  <script src="./js/picker/picker.js" defer></script>
+  <script type="module" src="./js/picker/main.js" ></script>
 </body>
 </html>
