@@ -88,32 +88,6 @@ const RolesTable = [
         min: "1",
         required: true,
       },
-
-      // Pricing (optional — leave blank to use backend defaults)
-      {
-        label: "Cost Fixed",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-      {
-        label: "Cost per Km",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-      {
-        label: "Cost per Stop",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-
-      // Notes (optional)
-      { label: "Notes", type: "text", required: false },
     ],
   },
   {
@@ -174,29 +148,6 @@ const RolesTable = [
         required: true,
       },
 
-      {
-        label: "Cost Fixed",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-      {
-        label: "Cost per Km",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-      {
-        label: "Cost per Stop",
-        type: "number",
-        step: "0.01",
-        min: "0",
-        required: false,
-      },
-
-      { label: "Notes", type: "text", required: false },
       // If you still want “Refrigerated”, add it back here; schedule snapshot won’t store it.
       // { label: "Refrigerated", type: "checkbox", required: false },
     ],

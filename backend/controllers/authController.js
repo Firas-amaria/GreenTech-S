@@ -82,7 +82,6 @@ const getUserRole = async (req, res) => {
   }
 };
 
-// --- replace your validateExtraFields with this ---
 const validateExtraFields = (position, fields) => {
   const isString = (v) => typeof v === "string" && v.trim() !== "";
   const isBoolean = (v) => typeof v === "boolean";
@@ -92,70 +91,135 @@ const validateExtraFields = (position, fields) => {
 
   const toStr = (v) => (typeof v === "number" ? String(v) : v);
 
-  // schedule is required for deliverer / industrialDriver
   const sched = fields?.scheduleBitmask;
   const scheduleValid = Array.isArray(sched) && sched.every(Number.isInteger);
 
   // Farmer (unchanged)
   if (position === "farmer") {
-    return (
-      Array.isArray(fields.lands) && isBoolean(fields.agriculturalInsurance)
-    );
+    if (!Array.isArray(fields.lands)) {
+      console.error("[validateExtraFields] farmer: missing lands array");
+      return false;
+    }
+    if (!isBoolean(fields.agriculturalInsurance)) {
+      console.error(
+        "[validateExtraFields] farmer: missing/invalid agriculturalInsurance"
+      );
+      return false;
+    }
+    return true;
   }
 
-  // DELIVERER & INDUSTRIAL DRIVER (new nested shape)
+  // DELIVERER & INDUSTRIAL DRIVER
   if (position === "deliverer" || position === "industrialDriver") {
-    // license & driver ids
-    if (!isString(fields.licenseType)) return false;
-    if (!isString(toStr(fields.driverLicenseNumber))) return false;
-
-    // vehicle
-    const v = fields.vehicle;
-    if (!isObject(v)) return false;
-    if (!isString(v.make) || !isString(v.model) || !isString(v.type))
+    if (!isString(fields.licenseType)) {
+      console.error(
+        "[validateExtraFields] deliverer: missing/invalid licenseType"
+      );
       return false;
-    if (!isNumber(v.year)) return false;
-    if (!isString(toStr(v.registrationNumber))) return false;
-    if (!isBoolean(v.insured)) return false;
-    // optional: refrigerated (if present must be boolean)
-    if (v.refrigerated !== undefined && !isBoolean(v.refrigerated))
+    }
+    if (!isString(toStr(fields.driverLicenseNumber))) {
+      console.error(
+        "[validateExtraFields] deliverer: missing/invalid driverLicenseNumber"
+      );
       return false;
-
-    // cargo dimensions (cm)
-    const c = fields.cargoDimensionsCm;
-    if (!isObject(c)) return false;
-    if (!isNumber(c.width) || c.width <= 0) return false;
-    if (!isNumber(c.height) || c.height <= 0) return false;
-    if (!isNumber(c.length) || c.length <= 0) return false;
-
-    // payload & speed
-    if (!isNumber(fields.limitKg) || fields.limitKg <= 0) return false;
-    if (!isNumber(fields.speedKmH) || fields.speedKmH <= 0) return false;
-
-    // cost (optional, but if present must be numbers >= 0)
-    if (fields.cost !== undefined) {
-      const cost = fields.cost;
-      if (!isObject(cost)) return false;
-      if (cost.fixed !== undefined && (!isNumber(cost.fixed) || cost.fixed < 0))
-        return false;
-      if (cost.perKm !== undefined && (!isNumber(cost.perKm) || cost.perKm < 0))
-        return false;
-      if (
-        cost.perStop !== undefined &&
-        (!isNumber(cost.perStop) || cost.perStop < 0)
-      )
-        return false;
     }
 
-    // notes (optional string)
-    if (fields.notes !== undefined && typeof fields.notes !== "string")
+    const v = fields.vehicle;
+    if (!isObject(v)) {
+      console.error("[validateExtraFields] deliverer: vehicle object missing");
       return false;
+    }
+    if (!isString(v.make)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.make missing/invalid"
+      );
+      return false;
+    }
+    if (!isString(v.model)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.model missing/invalid"
+      );
+      return false;
+    }
+    if (!isString(v.type)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.type missing/invalid"
+      );
+      return false;
+    }
+    if (!isNumber(v.year)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.year missing/invalid"
+      );
+      return false;
+    }
+    if (!isString(toStr(v.registrationNumber))) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.registrationNumber missing/invalid"
+      );
+      return false;
+    }
+    if (!isBoolean(v.insured)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.insured missing/invalid"
+      );
+      return false;
+    }
+    if (v.refrigerated !== undefined && !isBoolean(v.refrigerated)) {
+      console.error(
+        "[validateExtraFields] deliverer: vehicle.refrigerated invalid"
+      );
+      return false;
+    }
 
-    // schedule required
-    return scheduleValid;
+    const c = fields.cargoDimensionsCm;
+    if (!isObject(c)) {
+      console.error(
+        "[validateExtraFields] deliverer: cargoDimensionsCm object missing"
+      );
+      return false;
+    }
+    if (!isNumber(c.width) || c.width <= 0) {
+      console.error(
+        "[validateExtraFields] deliverer: cargoDimensionsCm.width missing/invalid"
+      );
+      return false;
+    }
+    if (!isNumber(c.height) || c.height <= 0) {
+      console.error(
+        "[validateExtraFields] deliverer: cargoDimensionsCm.height missing/invalid"
+      );
+      return false;
+    }
+    if (!isNumber(c.length) || c.length <= 0) {
+      console.error(
+        "[validateExtraFields] deliverer: cargoDimensionsCm.length missing/invalid"
+      );
+      return false;
+    }
+
+    if (!isNumber(fields.limitKg) || fields.limitKg <= 0) {
+      console.error("[validateExtraFields] deliverer: limitKg missing/invalid");
+      return false;
+    }
+    if (!isNumber(fields.speedKmH) || fields.speedKmH <= 0) {
+      console.error(
+        "[validateExtraFields] deliverer: speedKmH missing/invalid"
+      );
+      return false;
+    }
+
+    if (!scheduleValid) {
+      console.error(
+        "[validateExtraFields] deliverer: scheduleBitmask missing/invalid"
+      );
+      return false;
+    }
+
+    return true;
   }
 
-  // Default for other roles (picker, sorting, warehouse-worker, etc.)
+  // Default for other roles
   return true;
 };
 
