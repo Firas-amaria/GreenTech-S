@@ -204,6 +204,7 @@ function renderSummaryByLocation(data) {
               <td>${esc(o.id)}</td>
               <td>${esc(extractHouseNumber(o.address))}</td>
               <td>${Number(o.totalKg)}</td>
+              <td>add package</td>
             </tr>`).join("")}
         </tbody>
       </table>
