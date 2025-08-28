@@ -391,6 +391,7 @@ async function renderApplicationForm() {
         // refrigerated: !!flat.refrigerated, // uncomment if you add the field back
       };
 
+      //TODO this is the error fix it it returns Null
       const cargoDimensionsCm = {
         width: numOrNull(flat.cargoWidthCm),
         height: numOrNull(flat.cargoHeightCm),
