@@ -82,60 +82,84 @@ const getUserRole = async (req, res) => {
   }
 };
 
+// --- replace your validateExtraFields with this ---
 const validateExtraFields = (position, fields) => {
-  const isString = (v) => typeof v === "string";
+  const isString = (v) => typeof v === "string" && v.trim() !== "";
   const isBoolean = (v) => typeof v === "boolean";
-  const isNumber = (v) => typeof v === "number";
+  const isNumber = (v) => typeof v === "number" && !Number.isNaN(v);
   const isObject = (v) =>
     v !== null && typeof v === "object" && !Array.isArray(v);
 
-  const sched = fields.scheduleBitmask;
+  const toStr = (v) => (typeof v === "number" ? String(v) : v);
+
+  // schedule is required for deliverer / industrialDriver
+  const sched = fields?.scheduleBitmask;
   const scheduleValid = Array.isArray(sched) && sched.every(Number.isInteger);
 
-  // Coerce numbers to string where needed
-  const toStr = (v) => (typeof v === "number" ? v.toString() : v);
-
-  switch (position) {
-    case "farmer":
-      return (
-        Array.isArray(fields.lands) && isBoolean(fields.agriculturalInsurance)
-      );
-
-    case "deliverer":
-      return (
-        isString(fields.licenseType) &&
-        isString(fields.vehicleMake) &&
-        isString(fields.vehicleModel) &&
-        isString(fields.vehicleType) &&
-        isNumber(fields.vehicleYear) &&
-        isNumber(fields.vehicleCapacity) &&
-        isString(toStr(fields.driverLicenseNumber)) &&
-        isString(toStr(fields.vehicleRegistrationNumber)) &&
-        isBoolean(fields.vehicleInsurance) &&
-        scheduleValid
-      );
-
-    case "industrialDriver":
-      return (
-        isString(fields.licenseType) &&
-        isString(fields.vehicleMake) &&
-        isString(fields.vehicleModel) &&
-        isString(fields.vehicleType) &&
-        isNumber(fields.vehicleYear) &&
-        isNumber(fields.vehicleCapacity) &&
-        isString(toStr(fields.driverLicenseNumber)) &&
-        isString(toStr(fields.vehicleRegistrationNumber)) &&
-        isBoolean(fields.vehicleInsurance) &&
-        isBoolean(fields.refrigerated) &&
-        scheduleValid
-      );
-
-    default:
-      return true; // warehouse, picker, etc.
+  // Farmer (unchanged)
+  if (position === "farmer") {
+    return (
+      Array.isArray(fields.lands) && isBoolean(fields.agriculturalInsurance)
+    );
   }
+
+  // DELIVERER & INDUSTRIAL DRIVER (new nested shape)
+  if (position === "deliverer" || position === "industrialDriver") {
+    // license & driver ids
+    if (!isString(fields.licenseType)) return false;
+    if (!isString(toStr(fields.driverLicenseNumber))) return false;
+
+    // vehicle
+    const v = fields.vehicle;
+    if (!isObject(v)) return false;
+    if (!isString(v.make) || !isString(v.model) || !isString(v.type))
+      return false;
+    if (!isNumber(v.year)) return false;
+    if (!isString(toStr(v.registrationNumber))) return false;
+    if (!isBoolean(v.insured)) return false;
+    // optional: refrigerated (if present must be boolean)
+    if (v.refrigerated !== undefined && !isBoolean(v.refrigerated))
+      return false;
+
+    // cargo dimensions (cm)
+    const c = fields.cargoDimensionsCm;
+    if (!isObject(c)) return false;
+    if (!isNumber(c.width) || c.width <= 0) return false;
+    if (!isNumber(c.height) || c.height <= 0) return false;
+    if (!isNumber(c.length) || c.length <= 0) return false;
+
+    // payload & speed
+    if (!isNumber(fields.limitKg) || fields.limitKg <= 0) return false;
+    if (!isNumber(fields.speedKmH) || fields.speedKmH <= 0) return false;
+
+    // cost (optional, but if present must be numbers >= 0)
+    if (fields.cost !== undefined) {
+      const cost = fields.cost;
+      if (!isObject(cost)) return false;
+      if (cost.fixed !== undefined && (!isNumber(cost.fixed) || cost.fixed < 0))
+        return false;
+      if (cost.perKm !== undefined && (!isNumber(cost.perKm) || cost.perKm < 0))
+        return false;
+      if (
+        cost.perStop !== undefined &&
+        (!isNumber(cost.perStop) || cost.perStop < 0)
+      )
+        return false;
+    }
+
+    // notes (optional string)
+    if (fields.notes !== undefined && typeof fields.notes !== "string")
+      return false;
+
+    // schedule required
+    return scheduleValid;
+  }
+
+  // Default for other roles (picker, sorting, warehouse-worker, etc.)
+  return true;
 };
 
-// Request employment: save in role-specific, in employmentApplications AND in users
+// --- replace your requestEmployment with this ---
 const requestEmployment = async (req, res) => {
   const { role, extraFields, certifyAccuracy, submittedAt } = req.body;
   const authHeader = req.headers.authorization;
@@ -145,23 +169,63 @@ const requestEmployment = async (req, res) => {
   }
   const token = authHeader.split(" ")[1];
 
+  // known roles only
   const col = roleCollectionMap[role];
   if (!col) {
     return res.status(400).send({ error: "Unknown Role" });
   }
-  // ─── End Validation ──────────────────────────────────────────────────────
 
   if (!certifyAccuracy) {
     return res.status(400).send({ error: "All agreements must be accepted." });
   }
-
   if (!extraFields || typeof extraFields !== "object") {
     return res
       .status(400)
       .send({ error: "Extra fields are missing or invalid." });
   }
 
-  if (!validateExtraFields(role, extraFields)) {
+  // Server-side defaults & coercions BEFORE validation
+  const ef = { ...extraFields };
+
+  // Ensure nested containers exist for deliverer-like roles
+  if (role === "deliverer" || role === "industrialDriver") {
+    ef.vehicle = ef.vehicle || {};
+    ef.cargoDimensionsCm = ef.cargoDimensionsCm || {};
+
+    // Coerce numerics
+    if (ef.vehicle.year != null) ef.vehicle.year = Number(ef.vehicle.year);
+    if (ef.cargoDimensionsCm.width != null)
+      ef.cargoDimensionsCm.width = Number(ef.cargoDimensionsCm.width);
+    if (ef.cargoDimensionsCm.height != null)
+      ef.cargoDimensionsCm.height = Number(ef.cargoDimensionsCm.height);
+    if (ef.cargoDimensionsCm.length != null)
+      ef.cargoDimensionsCm.length = Number(ef.cargoDimensionsCm.length);
+    if (ef.limitKg != null) ef.limitKg = Number(ef.limitKg);
+    if (ef.speedKmH != null) ef.speedKmH = Number(ef.speedKmH);
+
+    // Booleans
+    if (ef.vehicle.insured != null)
+      ef.vehicle.insured = Boolean(ef.vehicle.insured);
+    if (ef.vehicle.refrigerated != null)
+      ef.vehicle.refrigerated = Boolean(ef.vehicle.refrigerated);
+
+    // Cost defaults (apply if missing OR partially provided)
+    const defaultCost = { fixed: 30, perKm: 1, perStop: 1 };
+    if (
+      ef.cost == null ||
+      ef.cost.fixed == null ||
+      ef.cost.perKm == null ||
+      ef.cost.perStop == null
+    ) {
+      ef.cost = { ...defaultCost, ...(ef.cost || {}) };
+      if (ef.cost.fixed != null) ef.cost.fixed = Number(ef.cost.fixed);
+      if (ef.cost.perKm != null) ef.cost.perKm = Number(ef.cost.perKm);
+      if (ef.cost.perStop != null) ef.cost.perStop = Number(ef.cost.perStop);
+    }
+  }
+
+  // Validate FINAL shape
+  if (!validateExtraFields(role, ef)) {
     return res.status(400).send({
       error: `Invalid or missing extra fields for position '${role}'. Check required inputs.`,
     });
@@ -170,6 +234,7 @@ const requestEmployment = async (req, res) => {
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
     const uid = decodedToken.uid;
+
     // Prevent duplicate application
     const existing = await db
       .collection("employmentApplications")
@@ -179,20 +244,27 @@ const requestEmployment = async (req, res) => {
       return res.status(400).send({ error: "Application already submitted." });
     }
 
-    // Save in role-specific sub-collection
-    await db.collection("employmentApplications").doc(uid).set({
-      role,
-      extraFields,
-      status: "pending",
-      submittedAt,
-    });
+    const now = admin.firestore.FieldValue.serverTimestamp();
 
-    res.status(201).send({
+    // Persist application (do NOT compute capacity here)
+    await db
+      .collection("employmentApplications")
+      .doc(uid)
+      .set({
+        role,
+        extraFields: ef,
+        status: "pending",
+        submittedAt: submittedAt || now,
+        updatedAt: now,
+      });
+
+    return res.status(201).send({
       success: true,
       message: "Application submitted. We will contact you shortly.",
     });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    console.error("requestEmployment error:", error);
+    return res.status(400).send({ error: error.message });
   }
 };
 

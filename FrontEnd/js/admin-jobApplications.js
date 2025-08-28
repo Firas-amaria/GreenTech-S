@@ -2,6 +2,7 @@ import { getCurrentUserToken } from "../js/firebase-init.js";
 import { renderScheduleTable } from "./schedule.js";
 
 // ====== Local Role Definitions ======
+// ====== Local Role Definitions ======
 const RolesTable = [
   {
     name: "deliverer",
@@ -9,15 +10,34 @@ const RolesTable = [
     includeSchedule: true,
     includeLand: false,
     fields: [
+      // Identity / legal
       { label: "License Type", type: "text" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
+
+      // Vehicle details
       { label: "Vehicle Make", type: "text" },
       { label: "Vehicle Model", type: "text" },
       { label: "Vehicle Type", type: "text" },
       { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
       { label: "Vehicle Insurance", type: "checkbox" },
+
+      // Cargo dimensions (cm)
+      { label: "Cargo Width (cm)", type: "number" },
+      { label: "Cargo Height (cm)", type: "number" },
+      { label: "Cargo Length (cm)", type: "number" },
+
+      // Limits & speed
+      { label: "Payload Limit (kg)", type: "number" },
+      { label: "Speed (km/h)", type: "number" },
+
+      // Pricing (optional)
+      { label: "Cost Fixed", type: "number" },
+      { label: "Cost per Km", type: "number" },
+      { label: "Cost per Stop", type: "number" },
+
+      // Notes
+      { label: "Notes", type: "text" },
     ],
   },
   {
@@ -33,15 +53,36 @@ const RolesTable = [
     includeSchedule: true,
     includeLand: false,
     fields: [
+      // Identity / legal
       { label: "License Type", type: "text" },
+      { label: "Driver License Number", type: "text" },
+      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
+
+      // Vehicle details
       { label: "Vehicle Make", type: "text" },
       { label: "Vehicle Model", type: "text" },
       { label: "Vehicle Type", type: "text" },
       { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
       { label: "Vehicle Insurance", type: "checkbox" },
+
+      // Cargo dimensions (cm)
+      { label: "Cargo Width (cm)", type: "number" },
+      { label: "Cargo Height (cm)", type: "number" },
+      { label: "Cargo Length (cm)", type: "number" },
+
+      // Limits & speed
+      { label: "Payload Limit (kg)", type: "number" },
+      { label: "Speed (km/h)", type: "number" },
+
+      // Pricing (optional)
+      { label: "Cost Fixed", type: "number" },
+      { label: "Cost per Km", type: "number" },
+      { label: "Cost per Stop", type: "number" },
+
+      // Notes
+      { label: "Notes", type: "text" },
+
+      // If you still want to collect refrigerated flag, keep this:
       { label: "Refrigerated", type: "checkbox" },
     ],
   },
@@ -223,9 +264,11 @@ async function renderDynamicApplicationCard(app) {
       <tr><td><strong>Contact Info</strong></td><td>${app.email || "-"}<br>${
     app.phone || "-"
   }</td></tr>
-      <tr><td><strong>Personal Info</strong></td><td>${app.address || "-"}<br>${
+      <tr><td><strong>Personal Info</strong></td>
+   <td>${app.address && app.address.address ? app.address.address : "-"}<br>${
     app.birthDate || "-"
-  }</td></tr>
+  }</td>
+ </tr>
     </table>
   `;
 

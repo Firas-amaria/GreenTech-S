@@ -1,4 +1,4 @@
-/* employmentApplication.js - Optimized Version */
+/* employmentApplication.js — Updated for deliverer nested fields & schedule */
 
 import { initSchedule, getScheduleBitmaskArray } from "./schedule.js";
 import {
@@ -7,7 +7,6 @@ import {
   onAuthStateChanged,
   signOut,
 } from "./firebase-init.js";
-
 import { initMapPicker, openMapPicker } from "./mapPicker.js";
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -21,6 +20,12 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+/** ========= ROLE DEFINITIONS =========
+ *  - deliverer & industrialDriver now collect:
+ *      vehicle.* , cargoDimensionsCm(width/height/length in cm),
+ *      limitKg, speedKmH, optional cost(fixed/perKm/perStop), notes
+ *  - cost is OPTIONAL; backend will default when omitted
+ */
 const RolesTable = [
   {
     name: "deliverer",
@@ -28,15 +33,87 @@ const RolesTable = [
     includeSchedule: true,
     includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
-      { label: "Vehicle Insurance", type: "checkbox" },
+      // Identity / legal
+      { label: "License Type", type: "text", required: true },
+      { label: "Driver License Number", type: "text", required: true },
+      {
+        label: "Vehicle Registration Number",
+        type: "text",
+        pattern: "[0-9]+",
+        required: true,
+      },
+
+      // Vehicle details
+      { label: "Vehicle Make", type: "text", required: true },
+      { label: "Vehicle Model", type: "text", required: true },
+      { label: "Vehicle Type", type: "text", required: true }, // e.g. Hatchback, Small Van
+      { label: "Vehicle Year", type: "number", required: true },
+      { label: "Vehicle Insurance", type: "checkbox", required: true },
+
+      // Cargo dimensions (cm)
+      {
+        label: "Cargo Width (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Cargo Height (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Cargo Length (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+
+      // Limits & speed
+      {
+        label: "Payload Limit (kg)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Speed (km/h)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+
+      // Pricing (optional — leave blank to use backend defaults)
+      {
+        label: "Cost Fixed",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+      {
+        label: "Cost per Km",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+      {
+        label: "Cost per Stop",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+
+      // Notes (optional)
+      { label: "Notes", type: "text", required: false },
     ],
   },
   {
@@ -45,16 +122,83 @@ const RolesTable = [
     includeSchedule: true,
     includeLand: false,
     fields: [
-      { label: "License Type", type: "text" },
-      { label: "Vehicle Make", type: "text" },
-      { label: "Vehicle Model", type: "text" },
-      { label: "Vehicle Type", type: "text" },
-      { label: "Vehicle Year", type: "number" },
-      { label: "Vehicle Capacity (t)", type: "number", step: "0.1", min: "0" },
-      { label: "Driver License Number", type: "text" },
-      { label: "Vehicle Registration Number", type: "text", pattern: "[0-9]+" },
-      { label: "Vehicle Insurance", type: "checkbox" },
-      { label: "Refrigerated", type: "checkbox" },
+      { label: "License Type", type: "text", required: true },
+      { label: "Driver License Number", type: "text", required: true },
+      {
+        label: "Vehicle Registration Number",
+        type: "text",
+        pattern: "[0-9]+",
+        required: true,
+      },
+
+      { label: "Vehicle Make", type: "text", required: true },
+      { label: "Vehicle Model", type: "text", required: true },
+      { label: "Vehicle Type", type: "text", required: true },
+      { label: "Vehicle Year", type: "number", required: true },
+      { label: "Vehicle Insurance", type: "checkbox", required: true },
+
+      {
+        label: "Cargo Width (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Cargo Height (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Cargo Length (cm)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+
+      {
+        label: "Payload Limit (kg)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+      {
+        label: "Speed (km/h)",
+        type: "number",
+        step: "1",
+        min: "1",
+        required: true,
+      },
+
+      {
+        label: "Cost Fixed",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+      {
+        label: "Cost per Km",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+      {
+        label: "Cost per Stop",
+        type: "number",
+        step: "0.01",
+        min: "0",
+        required: false,
+      },
+
+      { label: "Notes", type: "text", required: false },
+      // If you still want “Refrigerated”, add it back here; schedule snapshot won’t store it.
+      // { label: "Refrigerated", type: "checkbox", required: false },
     ],
   },
   {
@@ -63,8 +207,8 @@ const RolesTable = [
     includeSchedule: false,
     includeLand: true,
     fields: [
-      { label: "Agricultural Insurance", type: "checkbox" },
-      { label: "Farm Name", type: "text" },
+      { label: "Agricultural Insurance", type: "checkbox", required: true },
+      { label: "Farm Name", type: "text", required: true },
     ],
   },
   {
@@ -72,7 +216,7 @@ const RolesTable = [
     description: "Packages and labels containers before shipping.",
     includeSchedule: false,
     includeLand: false,
-    fields: [{ label: "Years of Experience", type: "text" }],
+    fields: [{ label: "Years of Experience", type: "text", required: true }],
   },
   {
     name: "warehouse-worker",
@@ -99,7 +243,7 @@ async function renderApplicationForm() {
 
   const userRaw = localStorage.getItem("user");
   if (userRaw) {
-    const user = JSON.parse(userRaw); // convert back to object
+    const user = JSON.parse(userRaw);
     const Urole = user.role;
     if (Urole !== "customer") {
       alert("You already submitted for a role.");
@@ -120,6 +264,7 @@ async function renderApplicationForm() {
     <p>Ensure your personal details are up to date. If not, sign up again with correct information.</p>
     <p>We will contact you using the details below.</p>
   `;
+
   // Load Google Maps only if farmer
   if (role.name === "farmer") {
     fetch("http://localhost:4000/api/maps/google-maps-script")
@@ -133,72 +278,67 @@ async function renderApplicationForm() {
       })
       .catch((err) => console.error("Failed to load Google Maps script", err));
 
-    // Make window callback for Google Maps to call
     window.initMap = () => {
       console.log("✅ Google Maps callback fired on farmer application");
-      initMapPicker(); // safely initializes your mapPicker.js
+      initMapPicker();
     };
   }
 
   const form = document.createElement("form");
   form.id = "application-form";
-
   form.innerHTML += `<input type="hidden" name="role" value="${role.name}" />`;
+
   const extraFields = document.createElement("div");
   extraFields.id = "extra-fields";
   form.appendChild(extraFields);
 
-  // Role-specific fields
+  // Render role-specific fields
   role.fields.forEach((field) => {
     const wrapper = document.createElement("div");
     wrapper.className = "form-group";
 
     const label = document.createElement("label");
     label.textContent = field.label;
+
     const input = document.createElement("input");
     input.type = field.type;
     input.name = toCamelCase(field.label);
-    input.required = true;
-
+    if (field.required !== false) input.required = true; // default required=true unless explicitly false
     if (field.step) input.step = field.step;
     if (field.min) input.min = field.min;
     if (field.pattern) input.pattern = field.pattern;
 
-    field.type === "checkbox" ? label.prepend(input) : label.appendChild(input);
+    if (field.type === "checkbox") label.prepend(input);
+    else label.appendChild(input);
+
     wrapper.appendChild(label);
     extraFields.appendChild(wrapper);
   });
 
-  // Land section
+  // Land section (farmer only)
   if (role.includeLand) {
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.id = "add-land-btn";
-    addBtn.textContent = "Add Land";
-    addBtn.style.cssText = "background-color : #28a745;";
-
-    // Create section first
     const landsSection = document.createElement("div");
     landsSection.id = "lands-section";
     landsSection.innerHTML = `<h4>Lands</h4>`;
     extraFields.appendChild(landsSection);
 
-    // Append button after section
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.id = "add-land-btn";
+    addBtn.textContent = "Add Land";
+    addBtn.style.cssText = "background-color:#28a745;";
     extraFields.appendChild(addBtn);
 
-    //  Attach event listener after DOM is fully updated
     setTimeout(() => {
       const section = document.getElementById("lands-section");
       const button = document.getElementById("add-land-btn");
       if (section && button) {
         button.addEventListener("click", () => addLand(section));
-      } else {
-        console.warn("❌ Button or section not found at timeout");
       }
     }, 0);
   }
 
-  // Schedule
+  // Schedule (for roles with includeSchedule)
   if (role.includeSchedule) {
     const sched = document.createElement("div");
     sched.id = "schedule-container";
@@ -211,20 +351,25 @@ async function renderApplicationForm() {
     await initSchedule(sched);
   }
 
+  // Agreement
   extraFields.innerHTML += `
     <div class="agreement">
       <label><input type="checkbox" name="agreement" required /> I certify that all information is accurate.</label>
     </div>
   `;
 
-  form.innerHTML += `<button type="submit" style= "background-color :rgb(46, 164, 73);";>Submit Application</button>`;
+  form.innerHTML += `<button type="submit" style="background-color:rgb(46, 164, 73);">Submit Application</button>`;
   container.appendChild(form);
 
+  // ===== Submit =====
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const token = await getCurrentUserToken();
     const formData = new FormData(form);
+
     const reserved = ["role", "submittedAt", "agreement"];
 
+    // Base request body
     const ReqBody = {
       certifyAccuracy: formData.get("agreement") === "on",
       submittedAt: new Date().toISOString(),
@@ -232,65 +377,115 @@ async function renderApplicationForm() {
       extraFields: {},
     };
 
+    // ScheduleBitmask if present
     if (document.getElementById("schedule-container")) {
       ReqBody.extraFields.scheduleBitmask = await getScheduleBitmaskArray(
         document.getElementById("schedule-container")
       );
     }
 
+    // Farmer lands
     if (role.includeLand) {
       const lands = [];
-
       document.querySelectorAll(".land-block").forEach((block, i) => {
         const get = (name) =>
           block.querySelector(`[name="land[${i}][${name}]"]`)?.value;
         lands.push({
           landName: get("customName") || `Land ${i + 1}`,
           ownership: get("ownership"),
-          acres: get("acres"),
+          acres: numOrNull(get("acres")),
           pickupAddress: get("pickupAddress"),
-          pickupLat: get("pickupLat"),
-          pickupLng: get("pickupLng"),
+          pickupLat: numOrNull(get("pickupLat")),
+          pickupLng: numOrNull(get("pickupLng")),
           location: get("location"),
-          locLat: get("locLat"),
-          locLng: get("locLng"),
+          locLat: numOrNull(get("locLat")),
+          locLng: numOrNull(get("locLng")),
         });
       });
       ReqBody.extraFields.lands = lands;
       ReqBody.extraFields.agreementPercentage = 60;
     }
 
+    // === Gather ALL inputs into a temp flat object ===
+    const flat = {};
     for (let [key, val] of formData.entries()) {
-      if (!reserved.includes(key) && !key.startsWith("land[")) {
-        if (val === "on") ReqBody.extraFields[key] = true;
-        else if (!isNaN(val) && val.trim() !== "")
-          ReqBody.extraFields[key] = Number(val);
-        else if (val.startsWith("{") || val.startsWith("[")) {
-          try {
-            ReqBody.extraFields[key] = JSON.parse(val);
-          } catch {
-            ReqBody.extraFields[key] = val;
-          }
-        } else {
-          ReqBody.extraFields[key] = val;
+      if (reserved.includes(key) || key.startsWith("land[")) continue;
+      if (val === "on") flat[key] = true;
+      else if (val.trim() === "")
+        flat[key] = ""; // keep empty for optional handling
+      else if (!isNaN(val)) flat[key] = Number(val);
+      else if (val.startsWith("{") || val.startsWith("[")) {
+        try {
+          flat[key] = JSON.parse(val);
+        } catch {
+          flat[key] = val;
         }
+      } else {
+        flat[key] = val;
       }
     }
 
-    // Optional renaming
-    const mapKeys = {
-      "Vehicle_Capacity_(t)": "vehicleCapacity",
-    };
+    // === Build NESTED extraFields for deliverer-like roles ===
+    if (
+      role.includeSchedule &&
+      (role.name === "deliverer" || role.name === "industrialDriver")
+    ) {
+      const vehicle = {
+        make: strOrNull(flat.vehicleMake),
+        model: strOrNull(flat.vehicleModel),
+        type: strOrNull(flat.vehicleType),
+        year: numOrNull(flat.vehicleYear),
+        registrationNumber: strOrNull(flat.vehicleRegistrationNumber),
+        insured: !!flat.vehicleInsurance,
+        // refrigerated: !!flat.refrigerated, // uncomment if you add the field back
+      };
 
-    Object.entries(mapKeys).forEach(([oldK, newK]) => {
-      if (oldK in ReqBody.extraFields) {
-        ReqBody.extraFields[newK] = ReqBody.extraFields[oldK];
-        delete ReqBody.extraFields[oldK];
-      }
-    });
+      const cargoDimensionsCm = {
+        width: numOrNull(flat.cargoWidthCm),
+        height: numOrNull(flat.cargoHeightCm),
+        length: numOrNull(flat.cargoLengthCm),
+      };
 
-    // Remove leftover raw weekday shift fields from extraFields
-    const rawDays = [
+      const limitKg = numOrNull(flat.payloadLimitKg);
+      const speedKmH = numOrNull(flat.speedKmh); // note: name from "Speed (km/h)" → speedKmh
+
+      // Only include cost if user filled at least one field; backend will default otherwise
+      const costFilled =
+        flat.costFixed !== "" ||
+        flat.costPerKm !== "" ||
+        flat.costPerStop !== "";
+      const cost = costFilled
+        ? {
+            fixed: numOrNull(flat.costFixed),
+            perKm: numOrNull(flat.costPerKm),
+            perStop: numOrNull(flat.costPerStop),
+          }
+        : undefined;
+
+      const notes = strOrNull(flat.notes);
+
+      ReqBody.extraFields = {
+        ...ReqBody.extraFields, // preserve lands/scheduleBitmask if any
+        licenseType: strOrNull(flat.licenseType),
+        driverLicenseNumber: strOrNull(flat.driverLicenseNumber),
+        vehicle,
+        cargoDimensionsCm,
+        limitKg,
+        speedKmH,
+        ...(cost ? { cost } : {}),
+        ...(notes ? { notes } : {}),
+      };
+    } else {
+      // Non-deliverer roles: keep flat extras (minus reserved & land)
+      Object.entries(flat).forEach(([k, v]) => {
+        // skip empty optional cost fields if someone navigated roles back/forth
+        if (k.startsWith("cost") && v === "") return;
+        ReqBody.extraFields[k] = v;
+      });
+    }
+
+    // Remove raw weekday keys if any leaked (defensive)
+    [
       "Sunday",
       "Monday",
       "Tuesday",
@@ -298,11 +493,11 @@ async function renderApplicationForm() {
       "Thursday",
       "Friday",
       "Saturday",
-    ];
-    rawDays.forEach((day) => {
+    ].forEach((day) => {
       delete ReqBody.extraFields[day];
     });
 
+    // Submit
     const response = await fetch(
       "http://localhost:4000/api/auth/register-employee",
       {
@@ -327,14 +522,15 @@ async function renderApplicationForm() {
 
 function toCamelCase(label) {
   return label
-    .replace(/\(.*?\)/g, "") // Remove anything in parentheses (e.g., "(t)")
-    .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters (keep letters/numbers/spaces)
+    .replace(/\(.*?\)/g, "") // Remove anything in parentheses (e.g., "(kg)")
+    .replace(/[^a-zA-Z0-9 ]/g, "") // Remove special characters
     .trim()
-    .split(/\s+/) // Split by space
-    .map((word, index) => {
-      if (index === 0) return word.toLowerCase();
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    })
+    .split(/\s+/)
+    .map((word, index) =>
+      index === 0
+        ? word.toLowerCase()
+        : (word[0]?.toUpperCase() || "") + word.slice(1).toLowerCase()
+    )
     .join("");
 }
 
@@ -342,21 +538,18 @@ let landIndex = 0;
 window.addLand = function (landsSection) {
   if (!landsSection) return;
 
-  const index = landIndex++; // use current index, then increment
+  const index = landIndex++;
   const block = document.createElement("div");
   block.className = "land-block";
-
   block.innerHTML = `
     <h5>Land ${index + 1}</h5>
 
-    <!-- Custom Name -->
     <label>Custom Name:
       <input type="text" name="land[${index}][customName]" placeholder="Land ${
     index + 1
   }" />
     </label><br/>
 
-    <!-- Ownership Dropdown -->
     <label>Ownership:
       <select name="land[${index}][ownership]">
         <option value="Owned">Owned</option>
@@ -364,39 +557,33 @@ window.addLand = function (landsSection) {
       </select>
     </label><br/>
 
-    <!-- Acres -->
     <label>Acres:
       <input type="number" step="any" name="land[${index}][acres]" />
     </label><br/>
 
-    <!-- Pickup Address -->
     <label>Pickup Address:
       <input type="text" name="land[${index}][pickupAddress]" placeholder="Click to pick on map" readonly style="cursor:pointer; background:#f9f9f9;" />
     </label>
     <input type="hidden" name="land[${index}][pickupLat]" />
     <input type="hidden" name="land[${index}][pickupLng]" /><br/>
 
-    <!-- Location -->
     <label>Location:
       <input type="text" name="land[${index}][location]" placeholder="Click to pick on map" readonly style="cursor:pointer; background:#f9f9f9;" />
     </label>
     <input type="hidden" name="land[${index}][locLat]" />
     <input type="hidden" name="land[${index}][locLng]" /><br/>
 
-    <!-- Delete button -->
     <button type="button" class="delete-land-btn" style="margin-top:5px; background:#d9534f; color:white; border:none; padding:5px 10px; cursor:pointer;">Delete Land</button>
     <hr/>
   `;
 
   landsSection.appendChild(block);
 
-  // Bind delete button
   block.querySelector(".delete-land-btn").addEventListener("click", () => {
     landsSection.removeChild(block);
   });
 
-  // === MAP BINDINGS ===
-  // Pickup address click
+  // Map bindings
   const pickupInput = block.querySelector(
     `[name="land[${index}][pickupAddress]"]`
   );
@@ -406,7 +593,6 @@ window.addLand = function (landsSection) {
   const pickupLngInput = block.querySelector(
     `[name="land[${index}][pickupLng]"]`
   );
-
   pickupInput.addEventListener("click", () => {
     openMapPicker((location) => {
       pickupInput.value = location.address;
@@ -415,11 +601,9 @@ window.addLand = function (landsSection) {
     });
   });
 
-  // Location click
   const locInput = block.querySelector(`[name="land[${index}][location]"]`);
   const locLatInput = block.querySelector(`[name="land[${index}][locLat]"]`);
   const locLngInput = block.querySelector(`[name="land[${index}][locLng]"]`);
-
   locInput.addEventListener("click", () => {
     openMapPicker((location) => {
       locInput.value = location.address;
@@ -428,5 +612,9 @@ window.addLand = function (landsSection) {
     });
   });
 };
+
+// Small helpers for shaping values
+const numOrNull = (v) => (v === "" || v == null ? null : Number(v));
+const strOrNull = (v) => (v === "" || v == null ? null : String(v));
 
 const capitalize = (w) => w && w[0].toUpperCase() + w.slice(1);
