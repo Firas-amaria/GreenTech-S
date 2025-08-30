@@ -264,58 +264,135 @@ async function renderDynamicApplicationCard(app) {
       <tr><td><strong>Contact Info</strong></td><td>${app.email || "-"}<br>${
     app.phone || "-"
   }</td></tr>
-      <tr><td><strong>Personal Info</strong></td>
-   <td>${app.address && app.address.address ? app.address.address : "-"}<br>${
-    app.birthDate || "-"
-  }</td>
- </tr>
+      <tr>
+        <td><strong>Personal Info</strong></td>
+        <td>${
+          app.address && app.address.address ? app.address.address : "-"
+        }<br>${app.birthDate || "-"}</td>
+      </tr>
     </table>
   `;
 
-  if (hasRoleDetails(app, roleDef)) {
+  // === Role Requirements / Extra Fields ===
+  if (roleDef && app.extraFields) {
     detailHTML += `<h4>Role Requirement</h4>`;
-    detailHTML += `
-  <table class="details-table">
-    <thead>
-      <tr>
-        <th>Field</th>
-        <th>Value</th>
-        <th>Checked</th>
-      </tr>
-    </thead>
-    <tbody>
-`;
 
-    roleDef.fields.forEach((field) => {
-      const key = toCamelCase(field.label);
-      const val = app.extraFields?.[key];
+    if (app.role === "deliverer" || app.role === "industrialDriver") {
+      // ---- Custom, nested rendering for drivers ----
+      const ef = app.extraFields;
+      const v = ef.vehicle || {};
+      const c = ef.cargoDimensionsCm || {};
+      const cost = ef.cost || {};
+
+      const vehicleTable = `
+        <table class="details-table">
+          <tr><td colspan="2"><strong>Vehicle</strong></td></tr>
+          <tr><td>Make</td><td>${formatValue(v.make)}</td></tr>
+          <tr><td>Model</td><td>${formatValue(v.model)}</td></tr>
+          <tr><td>Type</td><td>${formatValue(v.type)}</td></tr>
+          <tr><td>Year</td><td>${formatValue(v.year)}</td></tr>
+          <tr><td>Registration #</td><td>${formatValue(
+            v.registrationNumber
+          )}</td></tr>
+          <tr><td>Insured</td><td>${formatValue(v.insured)}</td></tr>
+        </table>
+      `;
+
+      const cargoTable = `
+        <table class="details-table">
+          <tr><td colspan="2"><strong>Cargo Dimensions (cm)</strong></td></tr>
+          <tr><td>Width</td><td>${formatValue(c.width)}</td></tr>
+          <tr><td>Height</td><td>${formatValue(c.height)}</td></tr>
+          <tr><td>Length</td><td>${formatValue(c.length)}</td></tr>
+        </table>
+      `;
+
+      const perfTable = `
+        <table class="details-table">
+          <tr><td colspan="2"><strong>Limits & Speed</strong></td></tr>
+          <tr><td>Payload Limit (kg)</td><td>${formatValue(
+            ef.limitKg
+          )}</td></tr>
+          <tr><td>Speed (km/h)</td><td>${formatValue(ef.speedKmH)}</td></tr>
+        </table>
+      `;
+
+      const costTable = `
+        <table class="details-table">
+          <tr><td colspan="2"><strong>Cost</strong></td></tr>
+          <tr><td>Fixed</td><td>${formatValue(cost.fixed)}</td></tr>
+          <tr><td>Per Km</td><td>${formatValue(cost.perKm)}</td></tr>
+          <tr><td>Per Stop</td><td>${formatValue(cost.perStop)}</td></tr>
+        </table>
+      `;
+
+      const notesTable = ef.notes
+        ? `
+        <table class="details-table">
+          <tr><td><strong>Notes</strong></td><td>${formatValue(
+            ef.notes
+          )}</td></tr>
+        </table>`
+        : "";
+
+      let scheduleRow = "";
+      if (Array.isArray(ef.scheduleBitmask)) {
+        scheduleRow = `
+          <table class="details-table">
+            <tr>
+              <td><strong>Schedule</strong></td>
+              <td>${await renderScheduleTable(ef.scheduleBitmask)}</td>
+            </tr>
+          </table>
+        `;
+      }
+
+      detailHTML +=
+        vehicleTable +
+        cargoTable +
+        perfTable +
+        costTable +
+        notesTable +
+        scheduleRow;
+    } else {
+      // ---- Generic rendering for non-driver roles (existing behavior) ----
       detailHTML += `
-    <tr>
-      <td>${field.label}</td>
-      <td>${formatValue(val)}</td>
-      <td><input type="checkbox" class="review-checkbox" /></td>
-    </tr>`;
-    });
+        <table class="details-table">
+          <thead>
+            <tr><th>Field</th><th>Value</th><th>Checked</th></tr>
+          </thead>
+          <tbody>
+      `;
+      roleDef.fields.forEach((field) => {
+        const key = toCamelCase(field.label);
+        const val = app.extraFields?.[key];
+        detailHTML += `
+          <tr>
+            <td>${field.label}</td>
+            <td>${formatValue(val)}</td>
+            <td><input type="checkbox" class="review-checkbox" /></td>
+          </tr>
+        `;
+      });
 
-    if (roleDef.includeLand && Array.isArray(app.extraFields?.lands)) {
-      detailHTML += `<tr><td>Lands</td><td>${formatLands(
-        app.extraFields.lands
-      )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
+      if (roleDef.includeLand && Array.isArray(app.extraFields?.lands)) {
+        detailHTML += `<tr><td>Lands</td><td>${formatLands(
+          app.extraFields.lands
+        )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
+      }
+
+      if (
+        roleDef.includeSchedule &&
+        Array.isArray(app.extraFields?.scheduleBitmask)
+      ) {
+        detailHTML += `<tr><td>Schedule</td><td>${await renderScheduleTable(
+          app.extraFields.scheduleBitmask
+        )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
+      }
+
+      detailHTML += `</tbody></table>`;
     }
-
-    if (
-      roleDef.includeSchedule &&
-      Array.isArray(app.extraFields?.scheduleBitmask)
-    ) {
-      detailHTML += `<tr><td>Schedule</td><td>${await renderScheduleTable(
-        app.extraFields.scheduleBitmask
-      )}</td><td><input type="checkbox" class="review-checkbox" /></td></tr>`;
-    }
-
-    detailHTML += `</table>`;
   }
-
-  // === Role Requirement Section ===
 
   // === Submitted At ===
   const shortTime = app.submittedAt
@@ -366,7 +443,7 @@ async function renderDynamicApplicationCard(app) {
     expandBtn.textContent = visible ? "+" : "−";
   });
 
-  // === Save button (placeholder) ===
+  // === Save button (approval/rejection) ===
   const saveBtn = detailsDiv.querySelector(".save-status-btn");
   saveBtn.addEventListener("click", async () => {
     const newStatus = detailsDiv.querySelector(".status-select").value;
@@ -385,7 +462,7 @@ async function renderDynamicApplicationCard(app) {
           },
           body: JSON.stringify({
             status: newStatus,
-            role: app.role || app.position, // ensure role is passed (needed for acceptance)
+            role: app.role || app.position,
             firstName: app.firstName,
             lastName: app.lastName,
             phone: app.phone,
@@ -410,6 +487,33 @@ async function renderDynamicApplicationCard(app) {
 function hasRoleDetails(app, roleDef) {
   if (!roleDef) return false;
 
+  // If deliverer/industrialDriver, check nested objects too
+  if (
+    (app.role === "deliverer" || app.role === "industrialDriver") &&
+    app.extraFields
+  ) {
+    const ef = app.extraFields;
+    const hasVehicle =
+      ef.vehicle &&
+      (ef.vehicle.make || ef.vehicle.type || ef.vehicle.registrationNumber);
+    const hasCargo =
+      ef.cargoDimensionsCm &&
+      (ef.cargoDimensionsCm.width ||
+        ef.cargoDimensionsCm.height ||
+        ef.cargoDimensionsCm.length);
+    const hasPerf = ef.limitKg || ef.speedKmH;
+    const hasCost =
+      ef.cost &&
+      (ef.cost.fixed != null ||
+        ef.cost.perKm != null ||
+        ef.cost.perStop != null);
+    const hasSched =
+      Array.isArray(ef.scheduleBitmask) &&
+      ef.scheduleBitmask.some((v) => v !== 0);
+    if (hasVehicle || hasCargo || hasPerf || hasCost || hasSched) return true;
+  }
+
+  // Fallback to generic check for other roles
   const fieldsHaveData = roleDef.fields.some((field) => {
     const key = toCamelCase(field.label);
     return app.extraFields?.[key] != null && app.extraFields[key] !== "";

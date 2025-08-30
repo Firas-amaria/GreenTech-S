@@ -377,6 +377,7 @@ async function renderApplicationForm() {
     }
 
     // === Build NESTED extraFields for deliverer-like roles ===
+    // === Build NESTED extraFields for deliverer-like roles ===
     if (
       role.includeSchedule &&
       (role.name === "deliverer" || role.name === "industrialDriver")
@@ -388,24 +389,26 @@ async function renderApplicationForm() {
         year: numOrNull(flat.vehicleYear),
         registrationNumber: strOrNull(flat.vehicleRegistrationNumber),
         insured: !!flat.vehicleInsurance,
-        // refrigerated: !!flat.refrigerated, // uncomment if you add the field back
+        // refrigerated: !!flat.refrigerated, // keep if you add it to the form
       };
 
-      //TODO this is the error fix it it returns Null
+      // NOTE: toCamelCase removes "(cm)" and "(kg)" etc., so keys are cargoWidth, payloadLimit, speed, etc.
       const cargoDimensionsCm = {
-        width: numOrNull(flat.cargoWidthCm),
-        height: numOrNull(flat.cargoHeightCm),
-        length: numOrNull(flat.cargoLengthCm),
+        width: numOrNull(flat.cargoWidth),
+        height: numOrNull(flat.cargoHeight),
+        length: numOrNull(flat.cargoLength),
       };
 
-      const limitKg = numOrNull(flat.payloadLimitKg);
-      const speedKmH = numOrNull(flat.speedKmh); // note: name from "Speed (km/h)" → speedKmh
+      const limitKg = numOrNull(flat.payloadLimit);
+      const speedKmH = numOrNull(flat.speed); // "Speed (km/h)" -> "speed"
 
-      // Only include cost if user filled at least one field; backend will default otherwise
-      const costFilled =
-        flat.costFixed !== "" ||
-        flat.costPerKm !== "" ||
-        flat.costPerStop !== "";
+      // Include cost only if at least one field is actually filled (not undefined/empty)
+      const hasVal = (v) => v != null && String(v).trim() !== "";
+      const costFilled = [
+        flat.costFixed,
+        flat.costPerKm,
+        flat.costPerStop,
+      ].some(hasVal);
       const cost = costFilled
         ? {
             fixed: numOrNull(flat.costFixed),

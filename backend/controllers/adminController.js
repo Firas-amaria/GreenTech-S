@@ -340,11 +340,9 @@ async function updateApplicationStatus(req, res) {
       if (isDriver) {
         capacity = computeCapacity(ef.cargoDimensionsCm, ef.limitKg);
         if (!capacity) {
-          return res
-            .status(400)
-            .send({
-              error: "Invalid cargo dimensions or limitKg; cannot approve.",
-            });
+          return res.status(400).send({
+            error: "Invalid cargo dimensions or limitKg; cannot approve.",
+          });
         }
       }
 
@@ -761,6 +759,82 @@ async function getShipments(req, res) {
   }
 }
 
+const SHIFT_BITS = { morning: 8, afternoon: 4, evening: 2, night: 1 };
+
+function buildShiftMask(input) {
+  // Accept: "morning"  OR  ["morning","afternoon"]
+  if (!input) return 0;
+  const arr = Array.isArray(input) ? input : [input];
+  return arr.reduce((mask, name) => {
+    const bit = SHIFT_BITS[String(name).toLowerCase()];
+    return bit ? mask | bit : mask;
+  }, 0);
+}
+
+// POST /api/admin/activeDeliverers
+// Body: { date: "YYYY-MM-DD", shift: "morning" }
+async function getActiveDeliverersForShift(req, res) {
+  try {
+    // auth disabled for testing
+    const { date, shifts, shift } = req.body || {};
+    if (!date || (!shifts && !shift)) {
+      return res.status(400).json({
+        error:
+          "Missing required fields: date (YYYY-MM-DD), and shift or shifts",
+      });
+    }
+
+    // 1) Build the combined shift mask (OR of all requested shifts)
+    const shiftMask = buildShiftMask(shifts ?? shift);
+    if (shiftMask === 0) {
+      return res.status(400).json({ error: "Unknown or empty shift(s)" });
+    }
+
+    // 2) Parse date → month/day
+    const [Y, M, D] = String(date).split("-").map(Number);
+    if (!Y || !M || !D) {
+      return res
+        .status(400)
+        .json({ error: "Invalid date format. Use YYYY-MM-DD." });
+    }
+    const dayIndex = D - 1; // 0-based index
+    const monthNum = M;
+
+    // 3) Query delivererSchedule for this month
+    const schedSnap = await db
+      .collection("delivererSchedule")
+      .where("currentMonth", "==", monthNum)
+      .get();
+
+    const active = [];
+    schedSnap.forEach((doc) => {
+      const s = { uid: doc.id, ...doc.data() };
+      const mask = Array.isArray(s.activeSchedule)
+        ? s.activeSchedule[dayIndex]
+        : 0;
+
+      // Match ANY of the requested shifts
+      if ((mask & shiftMask) !== 0) {
+        active.push({
+          uid: s.uid,
+          cargoDimensionsCm: s.cargoDimensionsCm || null,
+          limitKg: s.limitKg ?? null,
+          speedKmH: s.speedKmH ?? null,
+          notes: s.notes ?? null,
+          cost: s.cost || null,
+          vehicleType: s.vehicleType || null,
+          capacity: s.capacity || null,
+        });
+      }
+    });
+
+    return res.json(active);
+  } catch (err) {
+    console.error("[getActiveDeliverersForShift] error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 module.exports = {
   updateApplicationStatus,
   setRole,
@@ -775,4 +849,5 @@ module.exports = {
   getOrdersForShift,
   getOrdersWithSummaryForShift,
   getShipments,
+  getActiveDeliverersForShift,
 };

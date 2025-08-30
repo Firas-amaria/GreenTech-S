@@ -14,6 +14,7 @@ const {
   getOrdersForShift,
   getOrdersWithSummaryForShift,
   getShipments,
+  getActiveDeliverersForShift,
 } = require("../controllers/adminController");
 
 // router.post("/import-json", importJsonToFirestore);
@@ -58,5 +59,6 @@ router.get(
 ); // get all employment applications
 router.put("/users/:id", authenticate, requireRole("admin"), updateUser);
 router.delete("/users/:id", authenticate, requireRole("admin"), deleteUser);
+router.post("/activeDeliverers", getActiveDeliverersForShift);
 
 module.exports = router;
