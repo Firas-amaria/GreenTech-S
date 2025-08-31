@@ -1,6 +1,8 @@
 // Transportation Manager • Packages & Containers
-// Uses ONLY the fields your backend returns on cards; schema is used in the editor modal.
-// Initial load = real DB (no align). Manual "Sync defaults (align)" available.
+// - Cards show only REAL DB fields: Bold name, Dimensions, Max weight
+// - "View / Edit" opens a separate editor window with all fields + Save
+// - Delete works via /packages/:id
+// - Existing modals remain for create/edit via schema if you want them
 
 import { auth, onAuthStateChanged } from "./firebase-init.js";
 
@@ -24,15 +26,21 @@ onAuthStateChanged(auth, async (user) => {
 // ===== API =====
 const API_BASE = "http://localhost:4000/api/tm-packages";
 const ENDPOINTS = {
+  // package schema & packages
   pkgSchema:        ()            => `${API_BASE}/package-schema`,
   addPkgField:      ()            => `${API_BASE}/package-schema/fields`,
+  updatePkgField:   (id)          => `${API_BASE}/package-schema/fields/${encodeURIComponent(id)}`,
+  deletePkgField:   (id)          => `${API_BASE}/package-schema/fields/${encodeURIComponent(id)}`,
   listPackages:     (align=false) => `${API_BASE}/packages${align ? "?align=true":""}`,
   createPackage:    ()            => `${API_BASE}/packages`,
   upsertPackage:    (id)          => `${API_BASE}/packages/${encodeURIComponent(id)}`,
   deletePackage:    (id)          => `${API_BASE}/packages/${encodeURIComponent(id)}`,
 
+  // container schema & containers
   ctrSchema:        ()            => `${API_BASE}/container-schema`,
   addCtrField:      ()            => `${API_BASE}/container-schema/fields`,
+  updateCtrField:   (id)          => `${API_BASE}/container-schema/fields/${encodeURIComponent(id)}`,
+  deleteCtrField:   (id)          => `${API_BASE}/container-schema/fields/${encodeURIComponent(id)}`,
   listContainers:   (align=false) => `${API_BASE}/containers${align ? "?align=true":""}`,
   createContainer:  ()            => `${API_BASE}/containers`,
   upsertContainer:  (id)          => `${API_BASE}/containers/${encodeURIComponent(id)}`,
@@ -50,50 +58,68 @@ async function apiFetch(url, { method = "GET", body, headers = {} } = {}) {
     },
     body: body ? JSON.stringify(body) : undefined,
   };
-  console.log(`%c[TM][FETCH ➜] ${method} ${url}`, "color:#0a84ff", { body });
+//  console.log(`%c[TM][FETCH ➜] ${method} ${url}`, "color:#0a84ff", { body });
   const res = await fetch(url, opts);
-  let data = null;
-  try { data = await res.json(); } catch { /* ignore */ }
+  let data = null; try { data = await res.json(); } catch {}
   if (!res.ok) {
     const msg = data?.error || `${res.status} ${res.statusText}`;
     console.error(`[TM][FETCH ✖] ${method} ${url} ->`, res.status, msg, data);
     throw new Error(msg);
   }
-  console.log(`%c[TM][FETCH ✓] ${method} ${url} -> ${res.status}`, "color:#34c759", data);
+//  console.log(`%c[TM][FETCH ✓] ${method} ${url} -> ${res.status}`, "color:#34c759", data);
   return data;
 }
 
 // ===== State =====
-let packageSchema = []; // used only in modal
-let packages = [];      // raw from backend
+let packageSchema = []; // used by modal & editor
+let packages = [];      // raw (Firest—via backend)
 let containerSchema = [];
 let containers = [];
 
 // ===== Helpers =====
 const q  = (sel, root=document) => root.querySelector(sel);
-const qa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = (n, d=0) => (Number.isFinite(+n) ? Number(n).toFixed(d) : "—");
-const asDate = (ts) => {
-  // Firestore Timestamp-like: { _seconds, _nanoseconds }
-  if (ts && typeof ts._seconds === "number") {
-    const ms = ts._seconds * 1000 + Math.floor((ts._nanoseconds || 0) / 1e6);
-    return new Date(ms).toLocaleString();
+
+// map by label from schema (for fallbacks)
+const fieldByLabel = (label) => packageSchema.find(f => String(f.label).toLowerCase() === String(label).toLowerCase());
+const valByLabel   = (values, label) => {
+  const f = fieldByLabel(label);
+  return f ? values?.[f.id] : undefined;
+};
+
+// prefer top-level maxWeightKg; fallback to schema "Max Kg"
+function extractMaxWeight(pkg) {
+  if (Number.isFinite(pkg?.maxWeightKg)) return pkg.maxWeightKg;
+  const fromValues = valByLabel(pkg?.values, "Max Kg");
+  return Number.isFinite(Number(fromValues)) ? Number(fromValues) : null;
+}
+
+// prefer innerDimsCm; else fallback to Length/Width/Height from schema values
+function extractDimsString(pkg) {
+  if (pkg?.innerDimsCm && [pkg.innerDimsCm.l, pkg.innerDimsCm.w, pkg.innerDimsCm.h].every(Number.isFinite)) {
+    const { l, w, h } = pkg.innerDimsCm;
+    return `${l}×${w}×${h} cm`;
   }
+  const L = valByLabel(pkg?.values, "Length (cm)");
+  const W = valByLabel(pkg?.values, "Width (cm)");
+  const H = valByLabel(pkg?.values, "Height (cm)");
+  if ([L, W, H].every(v => Number.isFinite(Number(v)))) return `${Number(L)}×${Number(W)}×${Number(H)} cm`;
   return "—";
-};
-const nominalLitersFromInner = (innerDimsCm) => {
-  if (!innerDimsCm) return null;
-  const { l, w, h } = innerDimsCm;
-  if (![l,w,h].every(Number.isFinite)) return null;
-  return (l * w * h) / 1000; // cm^3 -> L
-};
+}
+
+// open editor window
+function openPackageEditorWindow(id) {
+  // place tm-package-editor.html next to this HTML file; adjust path if needed
+  const url = `./tm-package-editor.html?id=${encodeURIComponent(id)}`;
+  const win = window.open(url, "tmPackageEditor", "width=980,height=720,noopener");
+  if (!win) window.location.href = url; // popup blocked
+}
 
 // ===== Init =====
 async function init() {
-  console.log("[TM] init() starting…");
-  await loadAll(false); // REAL DB ONLY on initial load
-  console.log("[TM] loaded; rendering…");
+  //console.log("[TM] init() starting…");
+  await loadAll(false); // real DB only
   renderPackages();
   renderContainers();
   wireGlobalListeners();
@@ -102,24 +128,21 @@ async function init() {
 
 // ===== Load =====
 async function loadAll(align=false) {
-  console.log("[TM] loadAll(align=%s)…", align);
+  //console.log("[TM] loadAll(align=%s)…", align);
   const [pkgSchema, pkgs, ctrSchema, ctrs] = await Promise.all([
     apiFetch(ENDPOINTS.pkgSchema()),
     apiFetch(ENDPOINTS.listPackages(align)),
     apiFetch(ENDPOINTS.ctrSchema()),
     apiFetch(ENDPOINTS.listContainers(align)),
   ]);
-
   packageSchema   = Array.isArray(pkgSchema) ? pkgSchema : [];
   packages        = Array.isArray(pkgs) ? pkgs : [];
   containerSchema = Array.isArray(ctrSchema) ? ctrSchema : [];
   containers      = Array.isArray(ctrs) ? ctrs : [];
-
-  console.log("[TM] Packages:", packages.length, packages);
-  console.log("[TM] Containers:", containers.length, containers);
+  //console.log("[TM] pkgs:", packages.length, packages);
 }
 
-// ===== Render: Packages (only real DB fields on cards) =====
+// ===== Render: Packages (bold name, dims, max weight, buttons) =====
 function renderPackages() {
   const grid = q("#package-grid");
   if (!grid) return;
@@ -137,50 +160,22 @@ function renderPackages() {
   }
 
   packages.forEach(pkg => {
-    const {
-      id, key, innerDimsCm, headroomPct, usableLiters,
-      derived, maxWeightKg, tareWeightKg, maxSkusPerBox,
-      mixingAllowed, vented, createdAt, updatedAt
-    } = pkg;
-
-    // Prefer top-level usableLiters, else derived.usableLiters
-    const usable = Number.isFinite(usableLiters) ? usableLiters :
-                   (Number.isFinite(derived?.usableLiters) ? derived.usableLiters : null);
-
-    const nominal = nominalLitersFromInner(innerDimsCm);
-    const dims = innerDimsCm
-      ? `${innerDimsCm.l}×${innerDimsCm.w}×${innerDimsCm.h} cm`
-      : "—";
-
-    const subTitle = [
-      key && `Key: ${escapeHtml(key)}`,
-      typeof mixingAllowed === "boolean" ? (mixingAllowed ? "Mixing: Yes" : "Mixing: No") : null,
-      typeof vented === "boolean" ? (vented ? "Vented" : "Not vented") : null,
-      Number.isFinite(maxSkusPerBox) ? `Max SKUs: ${maxSkusPerBox}` : null,
-    ].filter(Boolean).join(" • ") || "&nbsp;";
+    const dims = extractDimsString(pkg);
+    const maxW = extractMaxWeight(pkg);
 
     const card = document.createElement("div");
     card.className = "pkg-card";
     card.innerHTML = `
-      <div class="pkg-card__title">${escapeHtml(id ?? key ?? "Untitled")}</div>
+      <div class="pkg-card__title"><strong>${escapeHtml(pkg.id ?? pkg.key ?? "Untitled")}</strong></div>
       <div class="pkg-card__kv">
-        <span class="pkg-card__kv-item"><strong>Inner dims:</strong> ${escapeHtml(dims)}</span>
-        <span class="pkg-card__kv-item"><strong>Headroom %:</strong> ${Number.isFinite(headroomPct) ? fmt(headroomPct*100, 0) : "—"}</span>
-        <span class="pkg-card__kv-item"><strong>Usable (L):</strong> ${usable != null ? fmt(usable, 2) : "—"}</span>
-        <span class="pkg-card__kv-item"><strong>Nominal (L, calc):</strong> ${nominal != null ? fmt(nominal, 2) : "—"}</span>
-        <span class="pkg-card__kv-item"><strong>Max Weight (kg):</strong> ${Number.isFinite(maxWeightKg) ? fmt(maxWeightKg, 2) : "—"}</span>
-        <span class="pkg-card__kv-item"><strong>Tare (kg):</strong> ${Number.isFinite(tareWeightKg) ? fmt(tareWeightKg, 2) : "—"}</span>
+        <span class="pkg-card__kv-item"><strong>Dimensions:</strong> ${escapeHtml(dims)}</span>
       </div>
       <div class="pkg-card__kv">
-        <span class="pkg-card__kv-item">${subTitle}</span>
-      </div>
-      <div class="pkg-card__kv">
-        <span class="pkg-card__kv-item"><strong>Created:</strong> ${escapeHtml(asDate(createdAt))}</span>
-        <span class="pkg-card__kv-item"><strong>Updated:</strong> ${escapeHtml(asDate(updatedAt))}</span>
+        <span class="pkg-card__kv-item"><strong>Max weight:</strong> ${Number.isFinite(maxW) ? `${fmt(maxW,2)} kg` : "—"}</span>
       </div>
       <div class="pkg-card__actions">
-        <button class="btn" data-edit-package="${escapeHtml(id)}">Edit</button>
-        <button class="btn danger" data-delete-package="${escapeHtml(id)}">Delete</button>
+        <button class="btn" data-view-edit="${escapeHtml(pkg.id)}">View / Edit</button>
+        <button class="btn danger" data-delete-package="${escapeHtml(pkg.id)}">Delete</button>
       </div>
     `;
     grid.appendChild(card);
@@ -197,7 +192,7 @@ function renderPackages() {
   grid.appendChild(add);
 }
 
-// ===== Render: Containers (kept simple, real fields only) =====
+// ===== Render: Containers (simple preview) =====
 function renderContainers() {
   const grid = q("#container-grid");
   if (!grid) return;
@@ -215,18 +210,14 @@ function renderContainers() {
   }
 
   containers.forEach(ctr => {
-    const title = ctr.name ?? ctr.id ?? "Container";
-    // Show first two schema fields if present for quick glance
     const vals = ctr.values || {};
-    const summary = containerSchema.slice(0, 2).map(f => `${f.label}: ${escapeHtml(vals[f.id] ?? "—")}`).join(" • ");
+    const summary = containerSchema.slice(0, 2).map(f => `${f.label}: ${vals[f.id] ?? "—"}`).join(" • ");
 
     const card = document.createElement("div");
     card.className = "pkg-card";
     card.innerHTML = `
-      <div class="pkg-card__title">${escapeHtml(title)}</div>
-      <div class="pkg-card__kv">
-        <span class="pkg-card__kv-item">${summary || "&nbsp;"}</span>
-      </div>
+      <div class="pkg-card__title">${escapeHtml(ctr.name ?? ctr.id ?? "Container")}</div>
+      <div class="pkg-card__kv"><span class="pkg-card__kv-item">${escapeHtml(summary || "")}</span></div>
       <div class="pkg-card__actions">
         <button class="btn" data-edit-container="${escapeHtml(ctr.id)}">Edit</button>
         <button class="btn danger" data-delete-container="${escapeHtml(ctr.id)}">Delete</button>
@@ -235,6 +226,7 @@ function renderContainers() {
     grid.appendChild(card);
   });
 
+  // Add card
   const add = document.createElement("div");
   add.className = "pkg-card pkg-card--add";
   add.innerHTML = `
@@ -245,7 +237,7 @@ function renderContainers() {
   grid.appendChild(add);
 }
 
-// ===== Modals — Packages (schema-driven editor) =====
+// ===== Package modal (quick create/edit via schema; optional) =====
 let editingPackageId = null;
 let draftValues = {};
 let draftName = "";
@@ -262,14 +254,9 @@ function openPackageModalForEdit(id) {
   const pkg = packages.find(p => p.id === id);
   if (!pkg) return;
   editingPackageId = id;
-
-  // Name: prefer explicit name, else id/key
   draftName = pkg.name ?? pkg.id ?? pkg.key ?? "";
-
-  // Start from defaults, overlay doc.values (schema-driven fields)
   const base = Object.fromEntries(packageSchema.map(f => [f.id, f.defaultValue ?? null]));
   draftValues = { ...base, ...(pkg.values || {}) };
-
   renderPackageModal();
   showModal("#package-modal");
 }
@@ -278,7 +265,6 @@ function renderPackageModal() {
   const nameEl = q("#pkg-name");
   const listEl = q("#pkg-fields-list");
   if (!nameEl || !listEl) return;
-
   nameEl.value = draftName;
   listEl.innerHTML = "";
 
@@ -286,7 +272,6 @@ function renderPackageModal() {
     const row = document.createElement("div");
     row.className = "field-row";
     row.dataset.fieldId = field.id;
-
     const current = draftValues[field.id];
     row.innerHTML = `
       <div class="field-row__label">${escapeHtml(field.label)}</div>
@@ -309,7 +294,6 @@ function renderPackageModal() {
       ? (e.target.value === "" ? null : Number(e.target.value))
       : e.target.value;
   };
-
   nameEl.oninput = (e) => { draftName = e.target.value; };
 }
 
@@ -346,7 +330,7 @@ async function deleteCurrentPackage() {
   }
 }
 
-// ===== Modals — Containers =====
+// ===== Container modal (kept minimal) =====
 let editingContainerId = null;
 let ctrDraftValues = {};
 let ctrDraftName = "";
@@ -358,7 +342,6 @@ function openContainerModalForCreate() {
   renderContainerModal();
   showModal("#container-modal");
 }
-
 function openContainerModalForEdit(id) {
   const ctr = containers.find(c => c.id === id);
   if (!ctr) return;
@@ -369,20 +352,16 @@ function openContainerModalForEdit(id) {
   renderContainerModal();
   showModal("#container-modal");
 }
-
 function renderContainerModal() {
   const nameEl = q("#ctr-name");
   const listEl = q("#ctr-fields-list");
   if (!nameEl || !listEl) return;
-
   nameEl.value = ctrDraftName;
   listEl.innerHTML = "";
-
   containerSchema.forEach(field => {
     const row = document.createElement("div");
     row.className = "field-row";
     row.dataset.fieldId = field.id;
-
     const current = ctrDraftValues[field.id];
     row.innerHTML = `
       <div class="field-row__label">${escapeHtml(field.label)}</div>
@@ -394,7 +373,6 @@ function renderContainerModal() {
     `;
     listEl.appendChild(row);
   });
-
   listEl.oninput = (e) => {
     const row = e.target.closest(".field-row");
     if (!row || !e.target.classList.contains("fld-value")) return;
@@ -405,10 +383,8 @@ function renderContainerModal() {
       ? (e.target.value === "" ? null : Number(e.target.value))
       : e.target.value;
   };
-
   nameEl.oninput = (e) => { ctrDraftName = e.target.value; };
 }
-
 async function saveContainerFromModal() {
   try {
     const body = { name: (ctrDraftName || "").trim() || "New Container", values: { ...ctrDraftValues } };
@@ -426,7 +402,6 @@ async function saveContainerFromModal() {
     alert(`Could not save container: ${err.message}`);
   }
 }
-
 async function deleteCurrentContainer() {
   if (!editingContainerId) { hideModal("#container-modal"); return; }
   if (!confirm("Delete this container?")) return;
@@ -442,96 +417,57 @@ async function deleteCurrentContainer() {
   }
 }
 
-// ===== Schema: inline add =====
-async function addPackageFieldInline() {
-  const labelEl   = q("#new-field-label");
-  const typeEl    = q("#new-field-type");
-  const defaultEl = q("#new-field-default");
-  const label = (labelEl?.value || "").trim();
-  const type  = typeEl?.value === "number" ? "number" : "text";
-  const defRaw = defaultEl?.value ?? "";
-  if (!label) { alert("Please enter a field label."); return; }
-  const body = {
-    label,
-    type,
-    defaultValue: type === "number" ? (defRaw === "" ? null : Number(defRaw)) : defRaw,
-  };
-  await apiFetch(ENDPOINTS.addPkgField(), { method: "POST", body });
-  await loadAll(true); // align to apply defaults everywhere
-  renderPackageModal();
-  renderPackages();
-}
-
-async function addContainerFieldInline() {
-  const labelEl   = q("#ctr-new-field-label");
-  const typeEl    = q("#ctr-new-field-type");
-  const defaultEl = q("#ctr-new-field-default");
-  const label = (labelEl?.value || "").trim();
-  const type  = typeEl?.value === "number" ? "number" : "text";
-  const defRaw = defaultEl?.value ?? "";
-  if (!label) { alert("Please enter a field label."); return; }
-  const body = {
-    label,
-    type,
-    defaultValue: type === "number" ? (defRaw === "" ? null : Number(defRaw)) : defRaw,
-  };
-  await apiFetch(ENDPOINTS.addCtrField(), { method: "POST", body });
-  await loadAll(true);
-  renderContainerModal();
-  renderContainers();
-}
-
-// ===== Modal helpers & listeners =====
+// ===== Modal helpers =====
 function showModal(sel) { q(sel)?.setAttribute("aria-hidden", "false"); }
 function hideModal(sel) { q(sel)?.setAttribute("aria-hidden", "true"); }
 
+// ===== Global events =====
 function wireGlobalListeners() {
-  // Toolbar
-  q("#btn-refresh")?.addEventListener("click", async () => {
-    await loadAll(false);
-    renderPackages();
-    renderContainers();
-  });
+  // toolbar
+  q("#btn-refresh")?.addEventListener("click", async () => { await loadAll(false); renderPackages(); renderContainers(); });
   q("#btn-sync")?.addEventListener("click", async () => {
-    q("#btn-sync").disabled = true;
-    try {
-      await loadAll(true); // align=true on demand
-      renderPackages();
-      renderContainers();
-    } finally {
-      q("#btn-sync").disabled = false;
-    }
+    const b = q("#btn-sync"); if (b) b.disabled = true;
+    try { await loadAll(true); renderPackages(); renderContainers(); }
+    finally { if (b) b.disabled = false; }
   });
 
-  // Header "Add New"
+  // header add
   q("#btn-new-package")?.addEventListener("click", () => openPackageModalForCreate());
   q("#btn-new-container")?.addEventListener("click", () => openContainerModalForCreate());
 
-  // Card actions (delegate)
+  // delegate: view/edit, delete, modal close, container actions
   document.body.addEventListener("click", (e) => {
-    const editPkg = e.target.closest("[data-edit-package]");
-    if (editPkg) { openPackageModalForEdit(editPkg.getAttribute("data-edit-package")); return; }
+    const viewEdit = e.target.closest("[data-view-edit]");
+    if (viewEdit) { openPackageEditorWindow(viewEdit.getAttribute("data-view-edit")); return; }
+
     const delPkg = e.target.closest("[data-delete-package]");
-    if (delPkg) { editingPackageId = delPkg.getAttribute("data-delete-package"); deleteCurrentPackage(); return; }
+    if (delPkg) {
+      const id = delPkg.getAttribute("data-delete-package");
+      if (confirm("Delete this package?")) {
+        apiFetch(ENDPOINTS.deletePackage(id), { method: "DELETE" })
+          .then(()=> loadAll(false).then(()=>{ renderPackages(); }))
+          .catch(err => { console.error(err); alert(`Delete failed: ${err.message}`); });
+      }
+      return;
+    }
 
     const editCtr = e.target.closest("[data-edit-container]");
     if (editCtr) { openContainerModalForEdit(editCtr.getAttribute("data-edit-container")); return; }
     const delCtr = e.target.closest("[data-delete-container]");
-    if (delCtr) { editingContainerId = delCtr.getAttribute("data-delete-container"); deleteCurrentContainer(); return; }
+    if (delCtr) {
+      const id = delCtr.getAttribute("data-delete-container");
+      if (confirm("Delete this container?")) {
+        apiFetch(ENDPOINTS.deleteContainer(id), { method: "DELETE" })
+          .then(()=> loadAll(false).then(()=>{ renderContainers(); }))
+          .catch(err => { console.error(err); alert(`Delete failed: ${err.message}`); });
+      }
+      return;
+    }
 
     if (e.target.hasAttribute("data-close-modal")) {
       hideModal("#package-modal");
       hideModal("#container-modal");
+      return;
     }
   });
-
-  // Modal buttons — packages
-  q("#btn-save-package")?.addEventListener("click", savePackageFromModal);
-  q("#btn-delete-package")?.addEventListener("click", deleteCurrentPackage);
-  q("#btn-add-field")?.addEventListener("click", addPackageFieldInline);
-
-  // Modal buttons — containers
-  q("#btn-save-container")?.addEventListener("click", saveContainerFromModal);
-  q("#btn-delete-container")?.addEventListener("click", deleteCurrentContainer);
-  q("#ctr-btn-add-field")?.addEventListener("click", addContainerFieldInline);
 }

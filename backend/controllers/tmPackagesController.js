@@ -342,7 +342,7 @@ async function listTmPackages(req, res) {
   try {
     await ensurePackageSchemaExists();
     const fields = await getAllFields(COLLECTIONS.pkgFields);
-    console.log("[TM] listTmPackages() with", fields.length, "fields");
+   // console.log("[TM] listTmPackages() with", fields.length, "fields");
     const align = toSafeBool(req.query.align);
     if (align) {
       await alignDocsWithFields({
@@ -354,7 +354,7 @@ async function listTmPackages(req, res) {
 
     const snap = await db.collection(COLLECTIONS.packages).get();
     const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    console.log("[TM] listTmPackages() got", data.length, "packages");
+    //console.log("[TM] listTmPackages() got", data.length, "packages");
     const withDerived = data.map(p => {
       const usableLiters = computeUsableLitersFromValues(p.values || {}, fields);
       return usableLiters == null ? p : { ...p, derived: { ...(p.derived || {}), usableLiters } };

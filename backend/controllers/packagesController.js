@@ -1,3 +1,6 @@
+
+//DELETE AFTER MAKING SURE SEED DONE PROPERLY
+
 // controllers/packagesController.js
 const { admin, db } = require("../firebaseConfig");
 

@@ -81,3 +81,7 @@ main{padding:20px 24px}
 .modal h2{margin:0 0 8px 0}
 .modal .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .modal .grid .cell{border:1px solid var(--border);border-radius:12px;padding:12px}
+
+/* === Packages page additions === */
+.pkg-card__title strong { font-weight: 800; }
+.pkg-card__kv { margin: 2px 0; }
