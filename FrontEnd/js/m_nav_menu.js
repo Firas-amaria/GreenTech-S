@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("logout-link").addEventListener("click", (e) => {
     e.preventDefault();
     signOut(auth)
-      .then(() => (window.location.href = "../login.html"))
+      .then(() => (window.location.href = ".../login.html"))
       .catch((err) => console.error("Logout failed:", err));
   });
 });

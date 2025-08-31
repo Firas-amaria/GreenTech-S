@@ -4,22 +4,31 @@
   <meta charset="UTF-8" />
   <title>Transportation Manager • Packages & Containers</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Your shared global styles -->
+  <!-- Global styles -->
   <link rel="stylesheet" href="../css/styles.css" />
-  <!-- Page-specific styles -->
   <link rel="stylesheet" href="../css/tm-packages.css" />
 </head>
 <body>
   <header>
-    <nav id="main-nav"></nav> <!-- your role-based nav injector will fill this -->
-<script src="../js/m_nav_menu.js" type="module"></script>
-</header>
+    <nav id="main-nav"></nav>
+    <script src="../js/m_nav_menu.js" type="module"></script>
+  </header>
 
   <main>
     <div class="page-title">
       <h1>Packages & Containers</h1>
       <span class="subtle">Manage standardized package types and container specs</span>
     </div>
+
+    <!-- Toolbar -->
+    <section class="section" style="margin-top:6px;">
+      <div class="section-header">
+        <div class="section-actions" style="gap:8px">
+          <button class="btn" id="btn-refresh">Refresh</button>
+          <button class="btn" id="btn-sync">Sync defaults (align)</button>
+        </div>
+      </div>
+    </section>
 
     <!-- ======= PACKAGES (cards) ======= -->
     <section class="section" id="packages-section">
@@ -64,7 +73,7 @@
         <div class="fields-head">
           <h4>Shared Fields</h4>
           <small class="muted">
-            Editing a field’s <b>label</b> or <b>type</b> affects <b>all packages</b>.  
+            Editing a field’s <b>label</b> or <b>type</b> affects <b>all packages</b>.
             Adding a field here adds it to <b>all packages</b>.
           </small>
           <div class="field-add-inline">
@@ -108,7 +117,7 @@
         <div class="fields-head">
           <h4>Container Fields</h4>
           <small class="muted">
-            Editing a field’s label/type affects all containers (only one type now, but future-proof).
+            Editing a field’s label/type affects all containers (future-proof).
           </small>
           <div class="field-add-inline">
             <input type="text" id="ctr-new-field-label" placeholder="New field label" />
@@ -132,7 +141,6 @@
       </div>
     </div>
   </div>
-  
 
   <script src="../js/tm-packages.js" type="module"></script>
 </body>

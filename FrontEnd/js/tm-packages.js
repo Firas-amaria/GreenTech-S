@@ -1,627 +1,537 @@
-// tm-package.js
-// Page logic for Packages & Containers (cards + modal editing)
-// All data persisted to localStorage for now.
-// Replace with API calls later (placeholders added).
+// Transportation Manager • Packages & Containers
+// Uses ONLY the fields your backend returns on cards; schema is used in the editor modal.
+// Initial load = real DB (no align). Manual "Sync defaults (align)" available.
 
-// ====== CONFIG (mock now, API later) ======
-const LS_KEYS = {
-  PACKAGE_SCHEMA: "tm_sharedFields_v1",   // array of {id,label,type,defaultValue}
-  PACKAGES: "tm_packages_v1",            // array of {id,name,values:{[fieldId]: any}}
-  CONTAINER_SCHEMA: "tm_containerFields_v1",
-  CONTAINERS: "tm_containers_v1"
+import { auth, onAuthStateChanged } from "./firebase-init.js";
+
+// ===== Auth token =====
+let ID_TOKEN = null;
+onAuthStateChanged(auth, async (user) => {
+  try {
+    if (!user) {
+      alert("Please log in.");
+      window.location.href = "login.html";
+      return;
+    }
+    ID_TOKEN = await user.getIdToken(false);
+    await init();
+  } catch (err) {
+    console.error("Auth/init error:", err);
+    alert("Authentication failed. Please try again.");
+  }
+});
+
+// ===== API =====
+const API_BASE = "http://localhost:4000/api/tm-packages";
+const ENDPOINTS = {
+  pkgSchema:        ()            => `${API_BASE}/package-schema`,
+  addPkgField:      ()            => `${API_BASE}/package-schema/fields`,
+  listPackages:     (align=false) => `${API_BASE}/packages${align ? "?align=true":""}`,
+  createPackage:    ()            => `${API_BASE}/packages`,
+  upsertPackage:    (id)          => `${API_BASE}/packages/${encodeURIComponent(id)}`,
+  deletePackage:    (id)          => `${API_BASE}/packages/${encodeURIComponent(id)}`,
+
+  ctrSchema:        ()            => `${API_BASE}/container-schema`,
+  addCtrField:      ()            => `${API_BASE}/container-schema/fields`,
+  listContainers:   (align=false) => `${API_BASE}/containers${align ? "?align=true":""}`,
+  createContainer:  ()            => `${API_BASE}/containers`,
+  upsertContainer:  (id)          => `${API_BASE}/containers/${encodeURIComponent(id)}`,
+  deleteContainer:  (id)          => `${API_BASE}/containers/${encodeURIComponent(id)}`,
 };
 
-// const API_BASE = "http://localhost:4000";
-// import { getCurrentUserToken } from "./firebase-init.js";
-
-// ====== UTIL ======
-const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-const coerce = (val, type) => {
-  if (type === "number") {
-    if (val === "" || val === null || val === undefined) return null;
-    const n = Number(val);
-    return Number.isFinite(n) ? n : null;
+async function apiFetch(url, { method = "GET", body, headers = {} } = {}) {
+  if (!ID_TOKEN) throw new Error("Missing auth token");
+  const opts = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ID_TOKEN}`,
+      ...headers,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  };
+  console.log(`%c[TM][FETCH ➜] ${method} ${url}`, "color:#0a84ff", { body });
+  const res = await fetch(url, opts);
+  let data = null;
+  try { data = await res.json(); } catch { /* ignore */ }
+  if (!res.ok) {
+    const msg = data?.error || `${res.status} ${res.statusText}`;
+    console.error(`[TM][FETCH ✖] ${method} ${url} ->`, res.status, msg, data);
+    throw new Error(msg);
   }
-  return String(val ?? "");
+  console.log(`%c[TM][FETCH ✓] ${method} ${url} -> ${res.status}`, "color:#34c759", data);
+  return data;
+}
+
+// ===== State =====
+let packageSchema = []; // used only in modal
+let packages = [];      // raw from backend
+let containerSchema = [];
+let containers = [];
+
+// ===== Helpers =====
+const q  = (sel, root=document) => root.querySelector(sel);
+const qa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (n, d=0) => (Number.isFinite(+n) ? Number(n).toFixed(d) : "—");
+const asDate = (ts) => {
+  // Firestore Timestamp-like: { _seconds, _nanoseconds }
+  if (ts && typeof ts._seconds === "number") {
+    const ms = ts._seconds * 1000 + Math.floor((ts._nanoseconds || 0) / 1e6);
+    return new Date(ms).toLocaleString();
+  }
+  return "—";
+};
+const nominalLitersFromInner = (innerDimsCm) => {
+  if (!innerDimsCm) return null;
+  const { l, w, h } = innerDimsCm;
+  if (![l,w,h].every(Number.isFinite)) return null;
+  return (l * w * h) / 1000; // cm^3 -> L
 };
 
-// Simple modal helpers
-const openModal = (id) => document.getElementById(id).setAttribute("aria-hidden", "false");
-const closeModal = (id) => document.getElementById(id).setAttribute("aria-hidden", "true");
-
-// ====== STATE ======
-let packageSchema = [];   // fields for all packages
-let packages = [];        // packages list
-let containerSchema = []; // fields for all containers
-let containers = [];      // containers list
-
-let editingPackageId = null;
-let editingContainerId = null;
-
-// ====== SEED DEFAULTS (first load only) ======
-function seedDefaultsIfNeeded() {
-  const hasSchema = localStorage.getItem(LS_KEYS.PACKAGE_SCHEMA);
-  const hasPackages = localStorage.getItem(LS_KEYS.PACKAGES);
-  const hasCSchema = localStorage.getItem(LS_KEYS.CONTAINER_SCHEMA);
-  const hasContainers = localStorage.getItem(LS_KEYS.CONTAINERS);
-
-  if (!hasSchema) {
-    packageSchema = [
-      { id: uid(), label: "Length (cm)", type: "number", defaultValue: 40 },
-      { id: uid(), label: "Width (cm)",  type: "number", defaultValue: 30 },
-      { id: uid(), label: "Height (cm)", type: "number", defaultValue: 25 },
-      { id: uid(), label: "Max Kg",      type: "number", defaultValue: 20 },
-    ];
-    localStorage.setItem(LS_KEYS.PACKAGE_SCHEMA, JSON.stringify(packageSchema));
-  }
-
-  if (!hasPackages) {
-    // create three standard packages: Small, Medium, Large
-    const [len, wid, hei, max] = packageSchema;
-    packages = [
-      {
-        id: uid(),
-        name: "Small",
-        values: {
-          [len.id]: 30, [wid.id]: 20, [hei.id]: 20, [max.id]: 12
-        }
-      },
-      {
-        id: uid(),
-        name: "Medium",
-        values: {
-          [len.id]: 40, [wid.id]: 30, [hei.id]: 25, [max.id]: 20
-        }
-      },
-      {
-        id: uid(),
-        name: "Large",
-        values: {
-          [len.id]: 50, [wid.id]: 40, [hei.id]: 35, [max.id]: 28
-        }
-      }
-    ];
-    localStorage.setItem(LS_KEYS.PACKAGES, JSON.stringify(packages));
-  }
-
-  if (!hasCSchema) {
-    containerSchema = [
-      { id: uid(), label: "Material",    type: "text",   defaultValue: "Plastic" },
-      { id: uid(), label: "Capacity Kg", type: "number", defaultValue: 25 },
-      { id: uid(), label: "Notes",       type: "text",   defaultValue: "" },
-    ];
-    localStorage.setItem(LS_KEYS.CONTAINER_SCHEMA, JSON.stringify(containerSchema));
-  }
-
-  if (!hasContainers) {
-    containers = [
-      {
-        id: uid(),
-        name: "Plastic Crate",
-        values: Object.fromEntries(containerSchema.map(f => [f.id, f.defaultValue ?? null]))
-      }
-    ];
-    localStorage.setItem(LS_KEYS.CONTAINERS, JSON.stringify(containers));
-  }
-}
-
-// ====== LOAD / SAVE ======
-function loadAll() {
-  packageSchema = JSON.parse(localStorage.getItem(LS_KEYS.PACKAGE_SCHEMA) || "[]");
-  packages = JSON.parse(localStorage.getItem(LS_KEYS.PACKAGES) || "[]");
-  containerSchema = JSON.parse(localStorage.getItem(LS_KEYS.CONTAINER_SCHEMA) || "[]");
-  containers = JSON.parse(localStorage.getItem(LS_KEYS.CONTAINERS) || "[]");
-}
-
-function savePackages() {
-  localStorage.setItem(LS_KEYS.PACKAGES, JSON.stringify(packages));
-  // Example API:
-  // const token = await getCurrentUserToken();
-  // await fetch(`${API_BASE}/api/tm/packages/bulk`, {
-  //   method: "PUT",
-  //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  //   body: JSON.stringify(packages)
-  // });
-}
-
-function savePackageSchema() {
-  localStorage.setItem(LS_KEYS.PACKAGE_SCHEMA, JSON.stringify(packageSchema));
-  // Example API to upsert schema:
-  // await fetch(`${API_BASE}/api/tm/package-schema`, { method: "PUT", body: JSON.stringify(packageSchema) })
-}
-
-function saveContainers() {
-  localStorage.setItem(LS_KEYS.CONTAINERS, JSON.stringify(containers));
-}
-
-function saveContainerSchema() {
-  localStorage.setItem(LS_KEYS.CONTAINER_SCHEMA, JSON.stringify(containerSchema));
-}
-
-// Keep every package aligned with schema (add missing fields, drop removed)
-function alignPackagesWithSchema() {
-  const schemaIds = new Set(packageSchema.map(f => f.id));
-  packages.forEach(p => {
-    // add missing
-    packageSchema.forEach(f => {
-      if (!(f.id in p.values)) p.values[f.id] = f.defaultValue ?? null;
-    });
-    // remove extras
-    Object.keys(p.values).forEach(fid => {
-      if (!schemaIds.has(fid)) delete p.values[fid];
-    });
-  });
-}
-
-// Align containers with their schema
-function alignContainersWithSchema() {
-  const schemaIds = new Set(containerSchema.map(f => f.id));
-  containers.forEach(c => {
-    containerSchema.forEach(f => {
-      if (!(f.id in c.values)) c.values[f.id] = f.defaultValue ?? null;
-    });
-    Object.keys(c.values).forEach(fid => {
-      if (!schemaIds.has(fid)) delete c.values[fid];
-    });
-  });
-}
-
-// ====== RENDER ======
-function render() {
+// ===== Init =====
+async function init() {
+  console.log("[TM] init() starting…");
+  await loadAll(false); // REAL DB ONLY on initial load
+  console.log("[TM] loaded; rendering…");
   renderPackages();
   renderContainers();
+  wireGlobalListeners();
+  window.TM = { reload: async () => { await loadAll(false); renderPackages(); renderContainers(); } };
 }
 
+// ===== Load =====
+async function loadAll(align=false) {
+  console.log("[TM] loadAll(align=%s)…", align);
+  const [pkgSchema, pkgs, ctrSchema, ctrs] = await Promise.all([
+    apiFetch(ENDPOINTS.pkgSchema()),
+    apiFetch(ENDPOINTS.listPackages(align)),
+    apiFetch(ENDPOINTS.ctrSchema()),
+    apiFetch(ENDPOINTS.listContainers(align)),
+  ]);
+
+  packageSchema   = Array.isArray(pkgSchema) ? pkgSchema : [];
+  packages        = Array.isArray(pkgs) ? pkgs : [];
+  containerSchema = Array.isArray(ctrSchema) ? ctrSchema : [];
+  containers      = Array.isArray(ctrs) ? ctrs : [];
+
+  console.log("[TM] Packages:", packages.length, packages);
+  console.log("[TM] Containers:", containers.length, containers);
+}
+
+// ===== Render: Packages (only real DB fields on cards) =====
 function renderPackages() {
-  const grid = document.getElementById("package-grid");
+  const grid = q("#package-grid");
+  if (!grid) return;
   grid.innerHTML = "";
+
+  if (!packages.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.innerHTML = `
+      <div class="empty-state__icon">📦</div>
+      <div class="empty-state__title">No packages yet</div>
+      <div class="empty-state__hint">Click “Add New” to create your first package.</div>
+    `;
+    grid.appendChild(empty);
+  }
 
   packages.forEach(pkg => {
-    const dims = getDimsText(pkg);
-    const maxKg = getFieldValueByLabel(pkg, "Max Kg");
+    const {
+      id, key, innerDimsCm, headroomPct, usableLiters,
+      derived, maxWeightKg, tareWeightKg, maxSkusPerBox,
+      mixingAllowed, vented, createdAt, updatedAt
+    } = pkg;
+
+    // Prefer top-level usableLiters, else derived.usableLiters
+    const usable = Number.isFinite(usableLiters) ? usableLiters :
+                   (Number.isFinite(derived?.usableLiters) ? derived.usableLiters : null);
+
+    const nominal = nominalLitersFromInner(innerDimsCm);
+    const dims = innerDimsCm
+      ? `${innerDimsCm.l}×${innerDimsCm.w}×${innerDimsCm.h} cm`
+      : "—";
+
+    const subTitle = [
+      key && `Key: ${escapeHtml(key)}`,
+      typeof mixingAllowed === "boolean" ? (mixingAllowed ? "Mixing: Yes" : "Mixing: No") : null,
+      typeof vented === "boolean" ? (vented ? "Vented" : "Not vented") : null,
+      Number.isFinite(maxSkusPerBox) ? `Max SKUs: ${maxSkusPerBox}` : null,
+    ].filter(Boolean).join(" • ") || "&nbsp;";
+
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "pkg-card";
     card.innerHTML = `
-      <div class="card-title">${escapeHtml(pkg.name)}</div>
-      <div class="kv">
-        <span>Dimensions: ${escapeHtml(dims)}</span>
-        <span>Max Kg: ${maxKg ?? "-"}</span>
+      <div class="pkg-card__title">${escapeHtml(id ?? key ?? "Untitled")}</div>
+      <div class="pkg-card__kv">
+        <span class="pkg-card__kv-item"><strong>Inner dims:</strong> ${escapeHtml(dims)}</span>
+        <span class="pkg-card__kv-item"><strong>Headroom %:</strong> ${Number.isFinite(headroomPct) ? fmt(headroomPct*100, 0) : "—"}</span>
+        <span class="pkg-card__kv-item"><strong>Usable (L):</strong> ${usable != null ? fmt(usable, 2) : "—"}</span>
+        <span class="pkg-card__kv-item"><strong>Nominal (L, calc):</strong> ${nominal != null ? fmt(nominal, 2) : "—"}</span>
+        <span class="pkg-card__kv-item"><strong>Max Weight (kg):</strong> ${Number.isFinite(maxWeightKg) ? fmt(maxWeightKg, 2) : "—"}</span>
+        <span class="pkg-card__kv-item"><strong>Tare (kg):</strong> ${Number.isFinite(tareWeightKg) ? fmt(tareWeightKg, 2) : "—"}</span>
       </div>
-      <div class="card-actions">
-        <button class="btn" data-edit-package="${pkg.id}">Edit</button>
+      <div class="pkg-card__kv">
+        <span class="pkg-card__kv-item">${subTitle}</span>
+      </div>
+      <div class="pkg-card__kv">
+        <span class="pkg-card__kv-item"><strong>Created:</strong> ${escapeHtml(asDate(createdAt))}</span>
+        <span class="pkg-card__kv-item"><strong>Updated:</strong> ${escapeHtml(asDate(updatedAt))}</span>
+      </div>
+      <div class="pkg-card__actions">
+        <button class="btn" data-edit-package="${escapeHtml(id)}">Edit</button>
+        <button class="btn danger" data-delete-package="${escapeHtml(id)}">Delete</button>
       </div>
     `;
     grid.appendChild(card);
   });
 
-  // Add New card (secondary option, in addition to top button)
+  // Add card
   const add = document.createElement("div");
-  add.className = "card add-card";
-  add.innerHTML = `<div><div class="card-title">+ Add Package</div><div class="kv"><span>Define dimensions & max load</span></div></div>`;
-  add.addEventListener("click", onAddNewPackage);
+  add.className = "pkg-card pkg-card--add";
+  add.innerHTML = `
+    <div class="pkg-card__title">+ Add Package</div>
+    <div class="pkg-card__kv"><span>Create a new package with schema defaults</span></div>
+  `;
+  add.addEventListener("click", () => openPackageModalForCreate());
   grid.appendChild(add);
 }
 
+// ===== Render: Containers (kept simple, real fields only) =====
 function renderContainers() {
-  const grid = document.getElementById("container-grid");
+  const grid = q("#container-grid");
+  if (!grid) return;
   grid.innerHTML = "";
 
+  if (!containers.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.innerHTML = `
+      <div class="empty-state__icon">🧰</div>
+      <div class="empty-state__title">No containers yet</div>
+      <div class="empty-state__hint">Click “Add New” to create your first container.</div>
+    `;
+    grid.appendChild(empty);
+  }
+
   containers.forEach(ctr => {
-    const capLabel = findSchemaLabel(containerSchema, "Capacity Kg") || "Capacity Kg";
-    const capacity = getContainerValueByLabel(ctr, capLabel);
-    const materialLabel = findSchemaLabel(containerSchema, "Material") || "Material";
-    const material = getContainerValueByLabel(ctr, materialLabel);
+    const title = ctr.name ?? ctr.id ?? "Container";
+    // Show first two schema fields if present for quick glance
+    const vals = ctr.values || {};
+    const summary = containerSchema.slice(0, 2).map(f => `${f.label}: ${escapeHtml(vals[f.id] ?? "—")}`).join(" • ");
 
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "pkg-card";
     card.innerHTML = `
-      <div class="card-title">${escapeHtml(ctr.name)}</div>
-      <div class="kv">
-        <span>${materialLabel}: ${escapeHtml(material ?? "-")}</span>
-        <span>${capLabel}: ${capacity ?? "-"}</span>
+      <div class="pkg-card__title">${escapeHtml(title)}</div>
+      <div class="pkg-card__kv">
+        <span class="pkg-card__kv-item">${summary || "&nbsp;"}</span>
       </div>
-      <div class="card-actions">
-        <button class="btn" data-edit-container="${ctr.id}">Edit</button>
+      <div class="pkg-card__actions">
+        <button class="btn" data-edit-container="${escapeHtml(ctr.id)}">Edit</button>
+        <button class="btn danger" data-delete-container="${escapeHtml(ctr.id)}">Delete</button>
       </div>
     `;
     grid.appendChild(card);
   });
 
   const add = document.createElement("div");
-  add.className = "card add-card";
-  add.innerHTML = `<div><div class="card-title">+ Add Container</div><div class="kv"><span>Define properties</span></div></div>`;
-  add.addEventListener("click", onAddNewContainer);
+  add.className = "pkg-card pkg-card--add";
+  add.innerHTML = `
+    <div class="pkg-card__title">+ Add Container</div>
+    <div class="pkg-card__kv"><span>Create a new container with schema defaults</span></div>
+  `;
+  add.addEventListener("click", () => openContainerModalForCreate());
   grid.appendChild(add);
 }
 
-// Helpers to display dims from (Length/Width/Height cm)
-function getDimsText(pkg) {
-  const map = indexSchemaByLabel(packageSchema);
-  const L = pkg.values[map.get("Length (cm)")?.id] ?? "-";
-  const W = pkg.values[map.get("Width (cm)")?.id] ?? "-";
-  const H = pkg.values[map.get("Height (cm)")?.id] ?? "-";
-  return `${L}×${W}×${H} cm`;
+// ===== Modals — Packages (schema-driven editor) =====
+let editingPackageId = null;
+let draftValues = {};
+let draftName = "";
+
+function openPackageModalForCreate() {
+  editingPackageId = null;
+  draftName = "New Package";
+  draftValues = Object.fromEntries(packageSchema.map(f => [f.id, f.defaultValue ?? null]));
+  renderPackageModal();
+  showModal("#package-modal");
 }
 
-function getFieldValueByLabel(pkg, label) {
-  const field = indexSchemaByLabel(packageSchema).get(label);
-  return field ? pkg.values[field.id] : null;
-}
-function getContainerValueByLabel(ctr, label) {
-  const field = indexSchemaByLabel(containerSchema).get(label);
-  return field ? ctr.values[field.id] : null;
-}
-
-function indexSchemaByLabel(schema) {
-  const m = new Map();
-  schema.forEach(f => m.set(f.label, f));
-  return m;
-}
-function findSchemaLabel(schema, needle) {
-  // exact match first, else try case-insensitive
-  const exact = schema.find(f => f.label === needle);
-  if (exact) return exact.label;
-  const ci = schema.find(f => f.label.toLowerCase() === needle.toLowerCase());
-  return ci?.label;
-}
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ====== EVENT HANDLERS (PACKAGES) ======
-function onAddNewPackage() {
-  const defaults = Object.fromEntries(packageSchema.map(f => [f.id, f.defaultValue ?? null]));
-  const newPkg = { id: uid(), name: "New Package", values: defaults };
-  packages.push(newPkg);
-  savePackages();
-  render();
-  openEditPackage(newPkg.id);
-}
-
-function openEditPackage(id) {
-  editingPackageId = id;
+function openPackageModalForEdit(id) {
   const pkg = packages.find(p => p.id === id);
   if (!pkg) return;
+  editingPackageId = id;
 
-  document.getElementById("pkg-name").value = pkg.name;
-  renderPackageFieldsList(pkg);
-  openModal("package-modal");
+  // Name: prefer explicit name, else id/key
+  draftName = pkg.name ?? pkg.id ?? pkg.key ?? "";
+
+  // Start from defaults, overlay doc.values (schema-driven fields)
+  const base = Object.fromEntries(packageSchema.map(f => [f.id, f.defaultValue ?? null]));
+  draftValues = { ...base, ...(pkg.values || {}) };
+
+  renderPackageModal();
+  showModal("#package-modal");
 }
 
-function renderPackageFieldsList(pkg) {
-  const wrap = document.getElementById("pkg-fields-list");
-  wrap.innerHTML = "";
+function renderPackageModal() {
+  const nameEl = q("#pkg-name");
+  const listEl = q("#pkg-fields-list");
+  if (!nameEl || !listEl) return;
+
+  nameEl.value = draftName;
+  listEl.innerHTML = "";
 
   packageSchema.forEach(field => {
     const row = document.createElement("div");
     row.className = "field-row";
     row.dataset.fieldId = field.id;
 
+    const current = draftValues[field.id];
     row.innerHTML = `
-      <input class="fld-label" type="text" value="${escapeHtml(field.label)}" title="Field label (global)" />
-      <select class="fld-type">
-        <option value="number" ${field.type === "number" ? "selected":""}>Number</option>
-        <option value="text" ${field.type === "text" ? "selected":""}>Text</option>
-      </select>
-      <input class="fld-default" type="${field.type === "number" ? "number":"text"}" value="${escapeHtml(field.defaultValue ?? "")}" placeholder="Default (global)" />
-      <input class="fld-value" type="${field.type === "number" ? "number":"text"}" value="${escapeHtml(pkg.values[field.id] ?? "")}" placeholder="Value for '${escapeHtml(pkg.name)}'" />
-      <button class="btn danger fld-remove" title="Remove field (all packages)">Remove</button>
+      <div class="field-row__label">${escapeHtml(field.label)}</div>
+      <div class="field-row__control">
+        <input class="fld-value"
+               type="${field.type === 'number' ? 'number' : 'text'}"
+               value="${current ?? ""}" />
+      </div>
     `;
-    wrap.appendChild(row);
+    listEl.appendChild(row);
   });
 
-  // Delegate change handlers
-  wrap.oninput = (e) => {
+  listEl.oninput = (e) => {
     const row = e.target.closest(".field-row");
-    if (!row) return;
+    if (!row || !e.target.classList.contains("fld-value")) return;
     const fieldId = row.dataset.fieldId;
     const field = packageSchema.find(f => f.id === fieldId);
     if (!field) return;
-
-    if (e.target.classList.contains("fld-label")) {
-      const newLabel = e.target.value.trim();
-      if (!newLabel) return;
-      // Disallow duplicate labels (global)
-      if (packageSchema.some(f => f.id !== fieldId && f.label.toLowerCase() === newLabel.toLowerCase())) {
-        e.target.setCustomValidity("Label already exists");
-        e.target.reportValidity();
-        return;
-      } else {
-        e.target.setCustomValidity("");
-      }
-      field.label = newLabel;
-      savePackageSchema();
-      render(); // update visible labels in cards
-    }
-
-    if (e.target.classList.contains("fld-type")) {
-      field.type = e.target.value;
-      // Coerce default
-      const defEl = row.querySelector(".fld-default");
-      defEl.type = field.type === "number" ? "number" : "text";
-      field.defaultValue = coerce(defEl.value, field.type);
-      // Coerce package value
-      const valEl = row.querySelector(".fld-value");
-      valEl.type = field.type === "number" ? "number" : "text";
-      pkg.values[fieldId] = coerce(valEl.value, field.type);
-      savePackageSchema();
-      savePackages();
-      render();
-    }
-
-    if (e.target.classList.contains("fld-default")) {
-      field.defaultValue = coerce(e.target.value, field.type);
-      savePackageSchema();
-    }
-
-    if (e.target.classList.contains("fld-value")) {
-      pkg.values[fieldId] = coerce(e.target.value, field.type);
-      savePackages();
-      render();
-    }
+    draftValues[fieldId] = (field.type === "number")
+      ? (e.target.value === "" ? null : Number(e.target.value))
+      : e.target.value;
   };
 
-  wrap.onclick = (e) => {
-    if (e.target.classList.contains("fld-remove")) {
-      const row = e.target.closest(".field-row");
-      const fieldId = row.dataset.fieldId;
-      if (!confirm("Remove this field from ALL packages?")) return;
-      // Remove from schema and from every package
-      packageSchema = packageSchema.filter(f => f.id !== fieldId);
-      packages.forEach(p => delete p.values[fieldId]);
-      savePackageSchema();
-      savePackages();
-      alignPackagesWithSchema();
-      renderPackageFieldsList(pkg);
-      render();
+  nameEl.oninput = (e) => { draftName = e.target.value; };
+}
+
+async function savePackageFromModal() {
+  try {
+    const body = { name: (draftName || "").trim() || "New Package", values: { ...draftValues } };
+    if (editingPackageId) {
+      await apiFetch(ENDPOINTS.upsertPackage(editingPackageId), { method: "PUT", body });
+    } else {
+      await apiFetch(ENDPOINTS.createPackage(), { method: "POST", body });
     }
-  };
+    await loadAll(false);
+    renderPackages();
+    renderContainers();
+    hideModal("#package-modal");
+  } catch (err) {
+    console.error("Save package failed:", err);
+    alert(`Could not save package: ${err.message}`);
+  }
 }
 
-// Buttons in modal
-document.getElementById("btn-add-field").addEventListener("click", () => {
-  const label = document.getElementById("new-field-label").value.trim();
-  const type = document.getElementById("new-field-type").value;
-  const defRaw = document.getElementById("new-field-default").value;
-  if (!label) return alert("Please provide a field label.");
-  if (packageSchema.some(f => f.label.toLowerCase() === label.toLowerCase()))
-    return alert("A field with this label already exists.");
-
-  const field = { id: uid(), label, type, defaultValue: coerce(defRaw, type) };
-  packageSchema.push(field);
-  packages.forEach(p => { p.values[field.id] = field.defaultValue ?? null; });
-  savePackageSchema();
-  savePackages();
-  alignPackagesWithSchema();
-
-  // refresh current editor
-  const pkg = packages.find(p => p.id === editingPackageId);
-  if (pkg) renderPackageFieldsList(pkg);
-  render();
-
-  // clear inputs
-  document.getElementById("new-field-label").value = "";
-  document.getElementById("new-field-default").value = "";
-});
-
-document.getElementById("btn-save-package").addEventListener("click", () => {
-  const pkg = packages.find(p => p.id === editingPackageId);
-  if (!pkg) return;
-  pkg.name = document.getElementById("pkg-name").value.trim() || pkg.name;
-  savePackages();
-  render();
-  closeModal("package-modal");
-});
-
-document.getElementById("btn-delete-package").addEventListener("click", () => {
-  const pkg = packages.find(p => p.id === editingPackageId);
-  if (!pkg) return;
-  if (!confirm(`Delete package "${pkg.name}"?`)) return;
-  packages = packages.filter(p => p.id !== pkg.id);
-  savePackages();
-  render();
-  closeModal("package-modal");
-});
-
-// ====== EVENT HANDLERS (CONTAINERS) ======
-function onAddNewContainer() {
-  const defaults = Object.fromEntries(containerSchema.map(f => [f.id, f.defaultValue ?? null]));
-  const newCtr = { id: uid(), name: "New Container", values: defaults };
-  containers.push(newCtr);
-  saveContainers();
-  render();
-  openEditContainer(newCtr.id);
+async function deleteCurrentPackage() {
+  if (!editingPackageId) { hideModal("#package-modal"); return; }
+  if (!confirm("Delete this package?")) return;
+  try {
+    await apiFetch(ENDPOINTS.deletePackage(editingPackageId), { method: "DELETE" });
+    await loadAll(false);
+    renderPackages();
+    renderContainers();
+    hideModal("#package-modal");
+  } catch (err) {
+    console.error("Delete package failed:", err);
+    alert(`Could not delete package: ${err.message}`);
+  }
 }
 
-function openEditContainer(id) {
-  editingContainerId = id;
+// ===== Modals — Containers =====
+let editingContainerId = null;
+let ctrDraftValues = {};
+let ctrDraftName = "";
+
+function openContainerModalForCreate() {
+  editingContainerId = null;
+  ctrDraftName = "New Container";
+  ctrDraftValues = Object.fromEntries(containerSchema.map(f => [f.id, f.defaultValue ?? null]));
+  renderContainerModal();
+  showModal("#container-modal");
+}
+
+function openContainerModalForEdit(id) {
   const ctr = containers.find(c => c.id === id);
   if (!ctr) return;
-
-  document.getElementById("ctr-name").value = ctr.name;
-  renderContainerFieldsList(ctr);
-  openModal("container-modal");
+  editingContainerId = id;
+  ctrDraftName = ctr.name ?? ctr.id ?? "";
+  const base = Object.fromEntries(containerSchema.map(f => [f.id, f.defaultValue ?? null]));
+  ctrDraftValues = { ...base, ...(ctr.values || {}) };
+  renderContainerModal();
+  showModal("#container-modal");
 }
 
-function renderContainerFieldsList(ctr) {
-  const wrap = document.getElementById("ctr-fields-list");
-  wrap.innerHTML = "";
+function renderContainerModal() {
+  const nameEl = q("#ctr-name");
+  const listEl = q("#ctr-fields-list");
+  if (!nameEl || !listEl) return;
+
+  nameEl.value = ctrDraftName;
+  listEl.innerHTML = "";
 
   containerSchema.forEach(field => {
     const row = document.createElement("div");
     row.className = "field-row";
     row.dataset.fieldId = field.id;
 
+    const current = ctrDraftValues[field.id];
     row.innerHTML = `
-      <input class="ctr-fld-label" type="text" value="${escapeHtml(field.label)}" title="Field label (global)" />
-      <select class="ctr-fld-type">
-        <option value="number" ${field.type === "number" ? "selected":""}>Number</option>
-        <option value="text" ${field.type === "text" ? "selected":""}>Text</option>
-      </select>
-      <input class="ctr-fld-default" type="${field.type === "number" ? "number":"text"}" value="${escapeHtml(field.defaultValue ?? "")}" placeholder="Default (global)" />
-      <input class="ctr-fld-value" type="${field.type === "number" ? "number":"text"}" value="${escapeHtml(ctr.values[field.id] ?? "")}" placeholder="Value for '${escapeHtml(ctr.name)}'" />
-      <button class="btn danger ctr-fld-remove" title="Remove field (all containers)">Remove</button>
+      <div class="field-row__label">${escapeHtml(field.label)}</div>
+      <div class="field-row__control">
+        <input class="fld-value"
+               type="${field.type === 'number' ? 'number' : 'text'}"
+               value="${current ?? ""}" />
+      </div>
     `;
-    wrap.appendChild(row);
+    listEl.appendChild(row);
   });
 
-  wrap.oninput = (e) => {
+  listEl.oninput = (e) => {
     const row = e.target.closest(".field-row");
-    if (!row) return;
+    if (!row || !e.target.classList.contains("fld-value")) return;
     const fieldId = row.dataset.fieldId;
     const field = containerSchema.find(f => f.id === fieldId);
     if (!field) return;
-
-    if (e.target.classList.contains("ctr-fld-label")) {
-      const newLabel = e.target.value.trim();
-      if (!newLabel) return;
-      if (containerSchema.some(f => f.id !== fieldId && f.label.toLowerCase() === newLabel.toLowerCase())) {
-        e.target.setCustomValidity("Label already exists");
-        e.target.reportValidity();
-        return;
-      } else {
-        e.target.setCustomValidity("");
-      }
-      field.label = newLabel;
-      saveContainerSchema();
-      render();
-    }
-
-    if (e.target.classList.contains("ctr-fld-type")) {
-      field.type = e.target.value;
-      const defEl = row.querySelector(".ctr-fld-default");
-      defEl.type = field.type === "number" ? "number" : "text";
-      field.defaultValue = coerce(defEl.value, field.type);
-      const valEl = row.querySelector(".ctr-fld-value");
-      valEl.type = field.type === "number" ? "number" : "text";
-      ctr.values[fieldId] = coerce(valEl.value, field.type);
-      saveContainerSchema();
-      saveContainers();
-      render();
-    }
-
-    if (e.target.classList.contains("ctr-fld-default")) {
-      field.defaultValue = coerce(e.target.value, field.type);
-      saveContainerSchema();
-    }
-
-    if (e.target.classList.contains("ctr-fld-value")) {
-      ctr.values[fieldId] = coerce(e.target.value, field.type);
-      saveContainers();
-      render();
-    }
+    ctrDraftValues[fieldId] = (field.type === "number")
+      ? (e.target.value === "" ? null : Number(e.target.value))
+      : e.target.value;
   };
 
-  wrap.onclick = (e) => {
-    if (e.target.classList.contains("ctr-fld-remove")) {
-      const row = e.target.closest(".field-row");
-      const fieldId = row.dataset.fieldId;
-      if (!confirm("Remove this field from ALL containers?")) return;
-      containerSchema = containerSchema.filter(f => f.id !== fieldId);
-      containers.forEach(p => delete p.values[fieldId]);
-      saveContainerSchema();
-      saveContainers();
-      alignContainersWithSchema();
-      renderContainerFieldsList(ctr);
-      render();
-    }
-  };
+  nameEl.oninput = (e) => { ctrDraftName = e.target.value; };
 }
 
-document.getElementById("ctr-btn-add-field").addEventListener("click", () => {
-  const label = document.getElementById("ctr-new-field-label").value.trim();
-  const type = document.getElementById("ctr-new-field-type").value;
-  const defRaw = document.getElementById("ctr-new-field-default").value;
-  if (!label) return alert("Please provide a field label.");
-  if (containerSchema.some(f => f.label.toLowerCase() === label.toLowerCase()))
-    return alert("A field with this label already exists.");
-
-  const field = { id: uid(), label, type, defaultValue: coerce(defRaw, type) };
-  containerSchema.push(field);
-  containers.forEach(c => { c.values[field.id] = field.defaultValue ?? null; });
-  saveContainerSchema();
-  saveContainers();
-  alignContainersWithSchema();
-
-  const ctr = containers.find(c => c.id === editingContainerId);
-  if (ctr) renderContainerFieldsList(ctr);
-  render();
-
-  document.getElementById("ctr-new-field-label").value = "";
-  document.getElementById("ctr-new-field-default").value = "";
-});
-
-document.getElementById("btn-save-container").addEventListener("click", () => {
-  const ctr = containers.find(c => c.id === editingContainerId);
-  if (!ctr) return;
-  ctr.name = document.getElementById("ctr-name").value.trim() || ctr.name;
-  saveContainers();
-  render();
-  closeModal("container-modal");
-});
-
-document.getElementById("btn-delete-container").addEventListener("click", () => {
-  const ctr = containers.find(c => c.id === editingContainerId);
-  if (!ctr) return;
-  if (!confirm(`Delete container "${ctr.name}"?`)) return;
-  containers = containers.filter(c => c.id !== ctr.id);
-  saveContainers();
-  render();
-  closeModal("container-modal");
-});
-
-// ====== GLOBAL LISTENERS ======
-document.body.addEventListener("click", (e) => {
-  // open editors
-  const pkgBtn = e.target.closest("[data-edit-package]");
-  if (pkgBtn) openEditPackage(pkgBtn.getAttribute("data-edit-package"));
-
-  const ctrBtn = e.target.closest("[data-edit-container]");
-  if (ctrBtn) openEditContainer(ctrBtn.getAttribute("data-edit-container"));
-
-  // modal close
-  if (e.target.hasAttribute("data-close-modal")) {
-    const modal = e.target.closest(".modal");
-    if (modal) modal.setAttribute("aria-hidden", "true");
+async function saveContainerFromModal() {
+  try {
+    const body = { name: (ctrDraftName || "").trim() || "New Container", values: { ...ctrDraftValues } };
+    if (editingContainerId) {
+      await apiFetch(ENDPOINTS.upsertContainer(editingContainerId), { method: "PUT", body });
+    } else {
+      await apiFetch(ENDPOINTS.createContainer(), { method: "POST", body });
+    }
+    await loadAll(false);
+    renderContainers();
+    renderPackages();
+    hideModal("#container-modal");
+  } catch (err) {
+    console.error("Save container failed:", err);
+    alert(`Could not save container: ${err.message}`);
   }
-});
-
-document.getElementById("btn-new-package").addEventListener("click", onAddNewPackage);
-document.getElementById("btn-new-container").addEventListener("click", onAddNewContainer);
-
-// ====== INIT ======
-seedDefaultsIfNeeded();
-loadAll();
-alignPackagesWithSchema();
-alignContainersWithSchema();
-render();
-
-// ====== BACKEND API EXAMPLES (commented) ======
-/*
-// Fetch all on page load
-async function fetchAllFromAPI() {
-  const token = await getCurrentUserToken();
-  const [schemaRes, pkgsRes, csRes, ctrsRes] = await Promise.all([
-    fetch(`${API_BASE}/api/tm/package-schema`, { headers: { Authorization: `Bearer ${token}` }}),
-    fetch(`${API_BASE}/api/tm/packages`, { headers: { Authorization: `Bearer ${token}` }}),
-    fetch(`${API_BASE}/api/tm/container-schema`, { headers: { Authorization: `Bearer ${token}` }}),
-    fetch(`${API_BASE}/api/tm/containers`, { headers: { Authorization: `Bearer ${token}` }}),
-  ]);
-  packageSchema = await schemaRes.json();
-  packages = await pkgsRes.json();
-  containerSchema = await csRes.json();
-  containers = await ctrsRes.json();
-  render();
 }
 
-// Rename a field globally
-async function renamePackageField(fieldId, newLabel) {
-  const token = await getCurrentUserToken();
-  await fetch(`${API_BASE}/api/tm/package-fields/${fieldId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ label: newLabel })
+async function deleteCurrentContainer() {
+  if (!editingContainerId) { hideModal("#container-modal"); return; }
+  if (!confirm("Delete this container?")) return;
+  try {
+    await apiFetch(ENDPOINTS.deleteContainer(editingContainerId), { method: "DELETE" });
+    await loadAll(false);
+    renderContainers();
+    renderPackages();
+    hideModal("#container-modal");
+  } catch (err) {
+    console.error("Delete container failed:", err);
+    alert(`Could not delete container: ${err.message}`);
+  }
+}
+
+// ===== Schema: inline add =====
+async function addPackageFieldInline() {
+  const labelEl   = q("#new-field-label");
+  const typeEl    = q("#new-field-type");
+  const defaultEl = q("#new-field-default");
+  const label = (labelEl?.value || "").trim();
+  const type  = typeEl?.value === "number" ? "number" : "text";
+  const defRaw = defaultEl?.value ?? "";
+  if (!label) { alert("Please enter a field label."); return; }
+  const body = {
+    label,
+    type,
+    defaultValue: type === "number" ? (defRaw === "" ? null : Number(defRaw)) : defRaw,
+  };
+  await apiFetch(ENDPOINTS.addPkgField(), { method: "POST", body });
+  await loadAll(true); // align to apply defaults everywhere
+  renderPackageModal();
+  renderPackages();
+}
+
+async function addContainerFieldInline() {
+  const labelEl   = q("#ctr-new-field-label");
+  const typeEl    = q("#ctr-new-field-type");
+  const defaultEl = q("#ctr-new-field-default");
+  const label = (labelEl?.value || "").trim();
+  const type  = typeEl?.value === "number" ? "number" : "text";
+  const defRaw = defaultEl?.value ?? "";
+  if (!label) { alert("Please enter a field label."); return; }
+  const body = {
+    label,
+    type,
+    defaultValue: type === "number" ? (defRaw === "" ? null : Number(defRaw)) : defRaw,
+  };
+  await apiFetch(ENDPOINTS.addCtrField(), { method: "POST", body });
+  await loadAll(true);
+  renderContainerModal();
+  renderContainers();
+}
+
+// ===== Modal helpers & listeners =====
+function showModal(sel) { q(sel)?.setAttribute("aria-hidden", "false"); }
+function hideModal(sel) { q(sel)?.setAttribute("aria-hidden", "true"); }
+
+function wireGlobalListeners() {
+  // Toolbar
+  q("#btn-refresh")?.addEventListener("click", async () => {
+    await loadAll(false);
+    renderPackages();
+    renderContainers();
   });
+  q("#btn-sync")?.addEventListener("click", async () => {
+    q("#btn-sync").disabled = true;
+    try {
+      await loadAll(true); // align=true on demand
+      renderPackages();
+      renderContainers();
+    } finally {
+      q("#btn-sync").disabled = false;
+    }
+  });
+
+  // Header "Add New"
+  q("#btn-new-package")?.addEventListener("click", () => openPackageModalForCreate());
+  q("#btn-new-container")?.addEventListener("click", () => openContainerModalForCreate());
+
+  // Card actions (delegate)
+  document.body.addEventListener("click", (e) => {
+    const editPkg = e.target.closest("[data-edit-package]");
+    if (editPkg) { openPackageModalForEdit(editPkg.getAttribute("data-edit-package")); return; }
+    const delPkg = e.target.closest("[data-delete-package]");
+    if (delPkg) { editingPackageId = delPkg.getAttribute("data-delete-package"); deleteCurrentPackage(); return; }
+
+    const editCtr = e.target.closest("[data-edit-container]");
+    if (editCtr) { openContainerModalForEdit(editCtr.getAttribute("data-edit-container")); return; }
+    const delCtr = e.target.closest("[data-delete-container]");
+    if (delCtr) { editingContainerId = delCtr.getAttribute("data-delete-container"); deleteCurrentContainer(); return; }
+
+    if (e.target.hasAttribute("data-close-modal")) {
+      hideModal("#package-modal");
+      hideModal("#container-modal");
+    }
+  });
+
+  // Modal buttons — packages
+  q("#btn-save-package")?.addEventListener("click", savePackageFromModal);
+  q("#btn-delete-package")?.addEventListener("click", deleteCurrentPackage);
+  q("#btn-add-field")?.addEventListener("click", addPackageFieldInline);
+
+  // Modal buttons — containers
+  q("#btn-save-container")?.addEventListener("click", saveContainerFromModal);
+  q("#btn-delete-container")?.addEventListener("click", deleteCurrentContainer);
+  q("#ctr-btn-add-field")?.addEventListener("click", addContainerFieldInline);
 }
-*/
