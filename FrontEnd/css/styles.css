@@ -1,90 +1,124 @@
 /* Placeholder CSS. Adapt as needed. */
 
 /* ===== MAIN HEADER ===== */
+/* ===== MAIN HEADER (kept simple + sticky) ===== */
 header {
-  background-color: #2c3e50;
-  /* Dark blue-gray */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #2c3e50; /* same brand color */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
 
 /* ===== MAIN NAV BAR ===== */
 #main-nav {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
+/* one horizontal row; scroll instead of wrapping when crowded */
 #main-nav ul {
   list-style: none;
   display: flex;
   align-items: center;
+  gap: 10px;
   margin: 0;
   padding: 10px 0;
-  gap: 20px;
+  overflow-x: auto;            /* << allows many items without breaking layout */
+  scrollbar-width: none;       /* firefox hide scrollbar */
 }
+#main-nav ul::-webkit-scrollbar { display: none; } /* chrome hide scrollbar */
 
-#main-nav li {
-  position: relative;
-}
+#main-nav li { position: relative; }
 
+/* default link style = compact pill */
 #main-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: #ecf0f1;
-  /* Off-white */
   text-decoration: none;
-  font-size: 1rem;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  font-size: 0.95rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-#main-nav a:hover,
+/* hover + active underline */
+#main-nav a:hover { background-color: #34495e; }
 #main-nav a.active {
-  background-color: #34495e;
-  /* Slightly lighter than header */
+  background: transparent;
+  color: #ffffff;
+}
+#main-nav a.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: #1abc9c; /* accent underline */
 }
 
-#main-nav li.logout {
-  margin-left: auto;
-  /* Push “Logout” to far right */
+/* greeting on the far left — looks like text, not a button */
+#main-nav .user-greeting a {
+  pointer-events: none;
+  background: transparent;
+  color: #cfd6db;
+  font-weight: 600;
+  padding-left: 0;
 }
 
+/* push logout to the far right */
+#main-nav li.logout { margin-left: auto; }
 #logout-link {
-  font-weight: bold;
+  font-weight: 700;
+  background: #1abc9c;
+  color: #0e2a33;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+#logout-link:hover { background: #16a085; color: #062026; }
+
+/* graceful sizing on smaller screens (keeps it compact) */
+@media (max-width: 900px) {
+  #main-nav a { font-size: 0.9rem; padding: 6px 8px; }
+  #logout-link { padding: 6px 10px; }
 }
 
-/* ===== RESPONSIVE (collapse into flex-wrap) ===== */
-@media (max-width: 800px) {
-  #main-nav ul {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-  }
-}
-
-/* ===== Sub-Navigation Bar ===== */
+/* ===== SUB-NAV (page-level tabs under the title) ===== */
 #sub-nav {
   background-color: #34495e;
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 #sub-nav ul {
   list-style: none;
   display: flex;
-  gap: 20px;
+  gap: 8px;
   margin: 0;
-  padding: 8px 20px;
+  padding: 8px 16px;
+  overflow-x: auto;      /* scroll horizontally if too many tabs */
+  scrollbar-width: none;
 }
+#sub-nav ul::-webkit-scrollbar { display: none; }
 
 #sub-nav a {
-  color: #ecf0f1;
+  color: #e9f1f5;
   text-decoration: none;
-  font-size: 0.95rem;
-  padding: 6px 12px;
-  border-radius: 4px;
+  font-size: 0.92rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
 }
+#sub-nav a:hover { background: rgba(255,255,255,0.08); }
 
 #sub-nav a.sub-active {
-  background-color: #2c3e50;
+  background: #2c3e50;
+  color: #ffffff;
+  box-shadow: inset 0 -2px 0 #1abc9c; /* subtle active cue */
 }
 
 
@@ -95,26 +129,6 @@ body {
   padding: 0;
 }
 
-#main-nav {
-  background-color: #2c3e50;
-  padding: 10px;
-}
-
-#main-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 20px;
-}
-
-#main-nav a {
-  color: #ecf0f1;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-#main-nav a:hover {
-  text-decoration: underline;
-}
 
 main {
   padding: 20px;

@@ -51,25 +51,32 @@ body {
 }
 
 
-
-/* Main */
+/* === MAIN LAYOUT === */
 main {
- padding: 20px;
+  padding: 20px;
 }
 
-/* Stats cards */
+/* === SECTION TITLES === */
+.section h2 {
+  font-size: 1.2rem;   /* smaller than default */
+  margin-bottom: 12px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* === STATS CARDS === */
 .stats-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 12px; /* smaller gap */
 }
 
 .stat-card {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 12px; /* smaller padding */
   border-radius: 10px;
-  flex: 1 1 calc(25% - 20px);
-  min-width: 220px;
+  flex: 1 1 calc(20% - 12px); /* 5 in a row if space allows */
+  min-width: 160px; /* smaller min size */
   box-shadow: 0 2px 5px rgba(0,0,0,0.08);
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -80,32 +87,53 @@ main {
 }
 
 .stat-card .card-icon {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 1.4rem; /* smaller icon */
+  margin-bottom: 6px;
 }
 
 .stat-card h3 {
-  margin: 0 0 8px;
-  font-size: 1.2rem;
+  margin: 0 0 6px;
+  font-size: 1rem; /* smaller title */
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 1.2rem; /* smaller number */
   font-weight: bold;
   color: var(--primary-color);
 }
 
-/* Order summaries */
+/* === ORDER SUMMARIES === */
+#orders-summary {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+#orders-summary .stat-card {
+  padding: 12px;
+  min-width: 180px;
+  flex: 1 1 calc(25% - 12px); /* slightly larger than stats above */
+}
+
+#orders-summary h3 {
+  font-size: 1rem;
+}
+
+#orders-summary .stat-value {
+  font-size: 1rem;
+}
+
 #order-summaries-list {
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 .summary-item {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 12px;
+  margin-bottom: 12px;
   transition: box-shadow 0.2s, transform 0.2s;
   cursor: pointer;
 }
@@ -120,15 +148,16 @@ main {
   justify-content: space-between;
   font-weight: bold;
   color: var(--secondary-color);
+  font-size: 0.95rem;
 }
 
-/* Buttons */
+/* === BUTTONS === */
 .button-primary {
   background-color: var(--accent-color);
   border: none;
   color: white;
-  padding: 8px 16px;
-  font-size: 1rem;
+  padding: 6px 12px;
+  font-size: 0.9rem;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.2s;
@@ -138,6 +167,7 @@ main {
   background-color: #16a085;
   transform: translateY(-2px);
 }
+
 
 /* Orders table */
 #orders-table {
