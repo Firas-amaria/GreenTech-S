@@ -251,8 +251,66 @@ async function updateApplicationStatus(req, res) {
     if (!appSnap.exists) {
       return res.status(404).send({ error: "Application not found" });
     }
-
     const appData = appSnap.data();
+    const nowServerTs = admin.firestore.FieldValue.serverTimestamp();
+
+    // Helper: canonical package constants
+    const PACKAGE_MAX_KG = { Small: 6, Medium: 12, Large: 25 };
+    const STANDARD_PACKAGE_DIMS_CM = {
+      Small: { width: 20, height: 20, length: 20 },
+      Medium: { width: 30, height: 30, length: 30 },
+      Large: { width: 60, height: 60, length: 60 },
+    };
+    const sizes = ["Large", "Medium", "Small"]; // greedy order
+
+    // Helper: compute capacity
+    function computeCapacity(cargoDimensionsCm, limitKg) {
+      const { width: W, height: H, length: L } = cargoDimensionsCm || {};
+      if (
+        typeof W !== "number" ||
+        typeof H !== "number" ||
+        typeof L !== "number" ||
+        W <= 0 ||
+        H <= 0 ||
+        L <= 0 ||
+        typeof limitKg !== "number" ||
+        limitKg <= 0
+      ) {
+        return null; // invalid inputs; caller should guard
+      }
+
+      // Grid fit per size (axis-aligned, no rotations)
+      const gridFit = {};
+      ["Small", "Medium", "Large"].forEach((s) => {
+        const dims = STANDARD_PACKAGE_DIMS_CM[s];
+        const fit =
+          Math.floor(W / dims.width) *
+          Math.floor(H / dims.height) *
+          Math.floor(L / dims.length);
+        gridFit[s] = Math.max(0, fit);
+      });
+
+      // Weight cap per size (if loaded alone)
+      const weightCap = {};
+      ["Small", "Medium", "Large"].forEach((s) => {
+        weightCap[s] = Math.max(0, Math.floor(limitKg / PACKAGE_MAX_KG[s]));
+      });
+
+      // Recommended mix: greedy Large → Medium → Small under both caps
+      let remainingKg = limitKg;
+      const recommendedMix = { Small: 0, Medium: 0, Large: 0 };
+      for (const s of sizes) {
+        const byGrid = gridFit[s];
+        const byWeight = Math.floor(remainingKg / PACKAGE_MAX_KG[s]);
+        const take = Math.max(0, Math.min(byGrid, byWeight));
+        recommendedMix[s] = take;
+        remainingKg -= take * PACKAGE_MAX_KG[s];
+      }
+
+      const cargoVolumeLiters = Number(((W * H * L) / 1000).toFixed(2));
+
+      return { gridFit, weightCap, recommendedMix, cargoVolumeLiters };
+    }
 
     // If status is approved, do the full approval process
     if (status === "approved") {
@@ -261,24 +319,112 @@ async function updateApplicationStatus(req, res) {
         return res.status(400).send({ error: `Unknown role: ${role}` });
       }
 
-      // 1. Copy to the role-specific collection
+      // Pull user profile (for email if you want to include it)
+      const userDoc = await db.collection("users").doc(uid).get();
+      const userData = userDoc.exists ? userDoc.data() : {};
+
+      // Pull application fields
+      const ef = appData.extraFields || {};
+
+      // Ensure pricing defaults
+      const cost = {
+        fixed: typeof ef?.cost?.fixed === "number" ? ef.cost.fixed : 30,
+        perKm: typeof ef?.cost?.perKm === "number" ? ef.cost.perKm : 1,
+        perStop: typeof ef?.cost?.perStop === "number" ? ef.cost.perStop : 1,
+      };
+
+      // For deliverer-like roles, compute capacity & create schedule snapshot
+      const isDriver = role === "deliverer" || role === "industrialDriver";
+
+      let capacity = null;
+      if (isDriver) {
+        capacity = computeCapacity(ef.cargoDimensionsCm, ef.limitKg);
+        if (!capacity) {
+          return res.status(400).send({
+            error: "Invalid cargo dimensions or limitKg; cannot approve.",
+          });
+        }
+      }
+
+      // 1) Write to role-specific collection (source of truth)
       await db
         .collection(targetCol)
         .doc(uid)
-        .set({
-          //add name and phone number
-          ...appData,
-          firstName,
-          lastName,
-          phone,
-          approvedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        .set(
+          {
+            uid,
+            role,
+            firstName,
+            lastName,
+            phone,
+            email: userData?.email || null,
 
-      // 2. Update user's main role
+            // Flatten expected fields from application
+            licenseType: ef.licenseType ?? null,
+            driverLicenseNumber: ef.driverLicenseNumber ?? null,
+            vehicle: ef.vehicle ?? null, // { make, model, type, year, registrationNumber, insured, [refrigerated?] }
+            cargoDimensionsCm: ef.cargoDimensionsCm ?? null,
+            limitKg: ef.limitKg ?? null,
+            speedKmH: ef.speedKmH ?? null,
+            cost,
+            notes: ef.notes ?? null,
+            scheduleBitmask: ef.scheduleBitmask ?? null, // keep a copy for reference
+
+            // Computed capacity (for deliverers/industrial drivers)
+            ...(isDriver ? { capacity } : {}),
+
+            status: "active",
+            approvedAt: nowServerTs,
+            updatedAt: nowServerTs,
+          },
+          { merge: true }
+        );
+
+      // 2) Upsert delivererSchedule snapshot (drivers only)
+      if (isDriver) {
+        // Build month schedule from weekly bitmask
+        const weekly = Array.isArray(ef.scheduleBitmask)
+          ? ef.scheduleBitmask
+          : [];
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; // 1..12
+        const year = now.getFullYear(); // used only to compute days in month
+        const daysInMonth = new Date(year, currentMonth, 0).getDate();
+        const activeSchedule = [];
+        for (let d = 1; d <= daysInMonth; d++) {
+          const weekday = new Date(year, currentMonth - 1, d).getDay(); // 0=Sun..6=Sat
+          activeSchedule.push(weekly[weekday] ?? 0);
+        }
+
+        await db
+          .collection("delivererSchedule")
+          .doc(uid)
+          .set(
+            {
+              uid,
+              currentMonth,
+              activeSchedule,
+              nextSchedule: [],
+
+              vehicleType: ef?.vehicle?.type ?? null,
+              cargoDimensionsCm: ef.cargoDimensionsCm ?? null,
+              limitKg: ef.limitKg ?? null,
+              speedKmH: ef.speedKmH ?? null,
+              cost,
+              capacity, // same structure as role doc
+
+              createdAt: nowServerTs,
+              updatedAt: nowServerTs,
+            },
+            { merge: true }
+          );
+      }
+
+      // 3) Update user's main role
       await db.collection("users").doc(uid).set(
         {
           role,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: nowServerTs,
         },
         { merge: true }
       );
@@ -613,6 +759,82 @@ async function getShipments(req, res) {
   }
 }
 
+const SHIFT_BITS = { morning: 8, afternoon: 4, evening: 2, night: 1 };
+
+function buildShiftMask(input) {
+  // Accept: "morning"  OR  ["morning","afternoon"]
+  if (!input) return 0;
+  const arr = Array.isArray(input) ? input : [input];
+  return arr.reduce((mask, name) => {
+    const bit = SHIFT_BITS[String(name).toLowerCase()];
+    return bit ? mask | bit : mask;
+  }, 0);
+}
+
+// POST /api/admin/activeDeliverers
+// Body: { date: "YYYY-MM-DD", shift: "morning" }
+async function getActiveDeliverersForShift(req, res) {
+  try {
+    // auth disabled for testing
+    const { date, shifts, shift } = req.body || {};
+    if (!date || (!shifts && !shift)) {
+      return res.status(400).json({
+        error:
+          "Missing required fields: date (YYYY-MM-DD), and shift or shifts",
+      });
+    }
+
+    // 1) Build the combined shift mask (OR of all requested shifts)
+    const shiftMask = buildShiftMask(shifts ?? shift);
+    if (shiftMask === 0) {
+      return res.status(400).json({ error: "Unknown or empty shift(s)" });
+    }
+
+    // 2) Parse date → month/day
+    const [Y, M, D] = String(date).split("-").map(Number);
+    if (!Y || !M || !D) {
+      return res
+        .status(400)
+        .json({ error: "Invalid date format. Use YYYY-MM-DD." });
+    }
+    const dayIndex = D - 1; // 0-based index
+    const monthNum = M;
+
+    // 3) Query delivererSchedule for this month
+    const schedSnap = await db
+      .collection("delivererSchedule")
+      .where("currentMonth", "==", monthNum)
+      .get();
+
+    const active = [];
+    schedSnap.forEach((doc) => {
+      const s = { uid: doc.id, ...doc.data() };
+      const mask = Array.isArray(s.activeSchedule)
+        ? s.activeSchedule[dayIndex]
+        : 0;
+
+      // Match ANY of the requested shifts
+      if ((mask & shiftMask) !== 0) {
+        active.push({
+          uid: s.uid,
+          cargoDimensionsCm: s.cargoDimensionsCm || null,
+          limitKg: s.limitKg ?? null,
+          speedKmH: s.speedKmH ?? null,
+          notes: s.notes ?? null,
+          cost: s.cost || null,
+          vehicleType: s.vehicleType || null,
+          capacity: s.capacity || null,
+        });
+      }
+    });
+
+    return res.json(active);
+  } catch (err) {
+    console.error("[getActiveDeliverersForShift] error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 module.exports = {
   updateApplicationStatus,
   setRole,
@@ -627,4 +849,5 @@ module.exports = {
   getOrdersForShift,
   getOrdersWithSummaryForShift,
   getShipments,
+  getActiveDeliverersForShift,
 };
