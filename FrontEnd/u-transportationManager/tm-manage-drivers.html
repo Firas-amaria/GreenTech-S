@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TM · Manage Drivers</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Base styles (if you have one) -->
+  <link rel="stylesheet" href="../css/styles.css" />
+  <!-- Page styles -->
+  <link rel="stylesheet" href="../css/tm-manage-drivers.css" />
+</head>
+<body>
+  <header>
+    <nav id="main-nav"></nav>
+  </header>
+
+  <main class="tmmd-container">
+    <h1 class="page-title">Manage Drivers</h1>
+
+    <!-- Sub Nav -->
+    <div class="tmmd-subnav" role="tablist" aria-label="Driver Type">
+      <button class="tab active" data-role="deliverers" aria-selected="true" role="tab">Deliverers</button>
+      <button class="tab" data-role="industrial" aria-selected="false" role="tab">Industrial Drivers</button>
+
+    </div>
+
+    <!-- Controls -->
+    <div class="tmmd-controls">
+      <label for="filter-type" class="filter-label">Filter</label>
+      <select id="filter-type" class="filter-select">
+        <option value="all" selected>All</option>
+        <option value="active-now">Active now</option>
+        <option value="active-per-shift">Active per shift</option>
+      </select>
+    </div>
+
+    <!-- Cards Grid / Shift Stats -->
+    <section id="cards-grid" class="tmmd-grid" aria-live="polite"></section>
+
+    <!-- Empty State -->
+    <section id="empty-state" class="tmmd-empty hidden" aria-live="polite"></section>
+  </main>
+
+  <!-- Driver Edit/View Modal -->
+  <div id="driver-modal" class="tmmd-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="tmmd-modal__content">
+      <div class="tmmd-modal__header">
+        <h2 id="modal-title">Driver Details</h2>
+        <button class="icon-btn" id="modal-close" aria-label="Close modal">✕</button>
+      </div>
+
+      <form id="driver-form" class="tmmd-form">
+        <!-- Personal & Contact -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Personal & Contact</legend>
+          <div class="form-grid">
+            <label>UID
+              <input type="text" id="f-uid" name="uid" readonly />
+            </label>
+            <label>Status
+              <select id="f-status" name="status">
+                <option value="active">active</option>
+                <option value="standby">standby</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </label>
+            <label>First Name
+              <input type="text" id="f-firstName" name="firstName" />
+            </label>
+            <label>Last Name
+              <input type="text" id="f-lastName" name="lastName" />
+            </label>
+            <label>Email
+              <input type="email" id="f-email" name="email" />
+            </label>
+            <label>Phone
+              <input type="tel" id="f-phone" name="phone" />
+            </label>
+            <label>Driver License #
+              <input type="text" id="f-driverLicenseNumber" name="driverLicenseNumber" />
+            </label>
+            <label>License Type
+              <input type="text" id="f-licenseType" name="licenseType" />
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Vehicle -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Vehicle</legend>
+          <div class="form-grid">
+            <label>Type
+              <input type="text" id="f-vehicle-type" name="vehicle.type" />
+            </label>
+            <label>Make
+              <input type="text" id="f-vehicle-make" name="vehicle.make" />
+            </label>
+            <label>Model
+              <input type="text" id="f-vehicle-model" name="vehicle.model" />
+            </label>
+            <label>Year
+              <input type="number" id="f-vehicle-year" name="vehicle.year" />
+            </label>
+            <label>Registration #
+              <input type="text" id="f-vehicle-registrationNumber" name="vehicle.registrationNumber" />
+            </label>
+            <label class="checkbox">Insured
+              <input type="checkbox" id="f-vehicle-insured" name="vehicle.insured" />
+            </label>
+            <label>Speed (km/h)
+              <input type="number" id="f-speedKmH" name="speedKmH" />
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Capacity -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Capacity</legend>
+          <div class="form-grid">
+            <label>Limit (kg)
+              <input type="number" id="f-limitKg" name="limitKg" />
+            </label>
+            <label>Cargo Volume (L)
+              <input type="number" id="f-cargoVolumeLiters" name="cargoVolumeLiters" step="0.1" />
+            </label>
+            <label>Cargo Length (cm)
+              <input type="number" id="f-cargo-length" name="cargoDimensionsCm.length" />
+            </label>
+            <label>Cargo Width (cm)
+              <input type="number" id="f-cargo-width" name="cargoDimensionsCm.width" />
+            </label>
+            <label>Cargo Height (cm)
+              <input type="number" id="f-cargo-height" name="cargoDimensionsCm.height" />
+            </label>
+          </div>
+
+          <div class="form-grid three">
+            <div>
+              <h4>Grid Fit</h4>
+              <label>Small
+                <input type="number" id="f-gridFit-small" name="gridFit.Small" />
+              </label>
+              <label>Medium
+                <input type="number" id="f-gridFit-medium" name="gridFit.Medium" />
+              </label>
+              <label>Large
+                <input type="number" id="f-gridFit-large" name="gridFit.Large" />
+              </label>
+            </div>
+            <div>
+              <h4>Recommended Mix</h4>
+              <label>Small
+                <input type="number" id="f-recommendedMix-small" name="recommendedMix.Small" />
+              </label>
+              <label>Medium
+                <input type="number" id="f-recommendedMix-medium" name="recommendedMix.Medium" />
+              </label>
+              <label>Large
+                <input type="number" id="f-recommendedMix-large" name="recommendedMix.Large" />
+              </label>
+            </div>
+            <div>
+              <h4>Weight Cap (per box)</h4>
+              <label>Small
+                <input type="number" id="f-weightCap-small" name="weightCap.Small" />
+              </label>
+              <label>Medium
+                <input type="number" id="f-weightCap-medium" name="weightCap.Medium" />
+              </label>
+              <label>Large
+                <input type="number" id="f-weightCap-large" name="weightCap.Large" />
+              </label>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Pricing -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Pricing</legend>
+          <div class="form-grid">
+            <label>Fixed
+              <input type="number" id="f-cost-fixed" name="cost.fixed" step="0.01" />
+            </label>
+            <label>Per Km
+              <input type="number" id="f-cost-perKm" name="cost.perKm" step="0.01" />
+            </label>
+            <label>Per Stop
+              <input type="number" id="f-cost-perStop" name="cost.perStop" step="0.01" />
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Schedule (placeholder) -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Schedule (placeholder)</legend>
+          <div class="schedule-placeholder">
+            <em>Schedule editor coming soon — space reserved.</em>
+          </div>
+        </fieldset>
+
+        <!-- Notes -->
+        <fieldset class="tmmd-fieldset">
+          <legend>Notes</legend>
+          <textarea id="f-notes" name="notes" rows="4" placeholder="Add internal notes here…"></textarea>
+        </fieldset>
+
+        <div class="tmmd-modal__actions">
+          <button type="button" class="btn ghost" id="modal-cancel">Close</button>
+          <button type="submit" class="btn primary" id="modal-save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Nav injection (if you use one) -->
+  <script type="module" src="../js/m_nav_menu.js"></script>
+  <!-- Page logic -->
+  <script type="module" src="../js/tm-manage-drivers.js"></script>
+</body>
+</html>

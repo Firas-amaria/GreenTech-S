@@ -25,6 +25,7 @@ const ordersRoutes = require("./routes/ordersRoutes");
 const transporterRoutes = require("./routes/transporterRoutes");
 const managerRoutes = require("./routes/managerRoutes");
 const tmPackagesRoutes = require("./routes/tmPackagesRoutes");
+const tmRoutes=require("./routes/tmRoutes");
 //middlewares
 app.use(cors());
 app.use(express.json());
@@ -46,8 +47,9 @@ app.use("/api/maps", mapsRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/transporter", transporterRoutes);//check if we need
 app.use("/api/manager", managerRoutes);//check if we need it 
-app.use("/api/packages", require("./routes/packagesRoutes"));
+app.use("/api/packages", require("./routes/packagesRoutes"));//checkout the controller comments
 app.use("/api/tm-packages", tmPackagesRoutes);
+app.use("/api/tm", tmRoutes);
 
 const PORT = process.env.PORT || 4000;
 

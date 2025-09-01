@@ -18,37 +18,7 @@ body {
   margin: 0;
 }
 
-/* Navs */
-#main-nav, #sub-nav {
-  background-color: var(--primary-color);
-  color: #ecf0f1;
-  padding: 12px 20px;
-}
 
-#main-nav a, #sub-nav a {
-  color: #ecf0f1;
-  text-decoration: none;
-  margin-right: 15px;
-  transition: color 0.3s;
-}
-
-#main-nav a:hover, #sub-nav a:hover {
-  color: var(--accent-color);
-}
-
-/* Sub nav active link */
-#sub-nav a.sub-active {
-  background-color: var(--secondary-color);
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-#sub-nav ul {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
 
 
 /* === MAIN LAYOUT === */

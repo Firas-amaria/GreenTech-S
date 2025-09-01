@@ -1,125 +1,83 @@
-/* Placeholder CSS. Adapt as needed. */
-
-/* ===== MAIN HEADER ===== */
-/* ===== MAIN HEADER (kept simple + sticky) ===== */
-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background: #2c3e50; /* same brand color */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+:root{
+  --header-bg:#2c3e50; --hover:#34495e; --accent:#1abc9c; --text:#ecf0f1;
 }
 
-/* ===== MAIN NAV BAR ===== */
-#main-nav {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
+/* Header / Main nav container */
+header{position:sticky;top:0;z-index:1000;background:var(--header-bg);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+#main-nav{max-width:1200px;margin:0 auto;padding:0 12px;display:flex;align-items:center}
+
+/* Hamburger */
+#nav-toggle{display:none;margin-right:6px;border:0;background:transparent;cursor:pointer;color:var(--text);padding:6px;border-radius:6px}
+#nav-toggle:hover{background:var(--hover)}
+@media (max-width:900px){ #nav-toggle{display:inline-flex} }
+
+/* Top nav list */
+.nav-list{
+  list-style:none;display:flex;align-items:center;gap:10px;margin:0;padding:10px 0;
+  overflow:visible; /* allow dropdowns to escape */
+  scrollbar-width:none;
+}
+.nav-list::-webkit-scrollbar{display:none}
+.nav-list li{position:relative}
+.nav-list a{display:inline-flex;align-items:center;gap:6px;color:var(--text);text-decoration:none;font-size:.95rem;padding:6px 10px;border-radius:8px;transition:.2s}
+.nav-list a:hover{background:var(--hover)}
+.nav-list a.active{color:#fff}
+.nav-list a.active::after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:2px;border-radius:2px;background:var(--accent)}
+.user-greeting a{pointer-events:none;color:#cfd6db;font-weight:600;padding-left:0}
+
+/* Logout to right */
+.nav-list li.logout{margin-left:auto}
+#logout-link{font-weight:700;background:var(--accent);color:#0e2a33}
+#logout-link:hover{background:#16a085}
+
+/* Dropdown (top) */
+.has-sub > a::after{content:"▾";font-size:.75rem;margin-left:6px;transform:translateY(1px)}
+.has-sub .sub-menu{
+  position:absolute;left:0;top:calc(100% + 6px);
+  background:#273646;border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;min-width:180px;padding:6px;display:none;box-shadow:0 8px 22px rgba(0,0,0,.25);z-index:1200;
+}
+.has-sub .sub-menu a{display:block;padding:8px 10px;border-radius:6px;white-space:nowrap}
+.has-sub .sub-menu a:hover{background:rgba(255,255,255,.08)}
+.has-sub:hover .sub-menu,
+.has-sub:focus-within .sub-menu{display:block}
+.has-sub.open .sub-menu{display:block} /* click-open */
+
+/* Remove bullets everywhere in nav */
+.nav-list, .nav-list > li, .nav-list .sub-menu, .nav-list .sub-menu > li {
+  list-style:none; margin:0; padding:0;
 }
 
-/* one horizontal row; scroll instead of wrapping when crowded */
-#main-nav ul {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 10px 0;
-  overflow-x: auto;            /* << allows many items without breaking layout */
-  scrollbar-width: none;       /* firefox hide scrollbar */
+/* Side drawer */
+#side-drawer{
+  position:fixed;top:0;left:0;height:100vh;width:280px;background:#213142;color:var(--text);
+  transform:translateX(-100%);transition:transform .25s ease;z-index:1100;display:flex;flex-direction:column
 }
-#main-nav ul::-webkit-scrollbar { display: none; } /* chrome hide scrollbar */
+#side-drawer.open{transform:none}
+#drawer-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(1px);
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:1090
+}
+#drawer-backdrop.show{opacity:1;pointer-events:auto}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+#drawer-close{border:0;background:transparent;color:var(--text);font-size:1.6rem;cursor:pointer}
+.drawer-body{padding:10px}
 
-#main-nav li { position: relative; }
+/* Drawer lists: no bullets + white links */
+#side-drawer .drawer-body ul, #side-drawer .drawer-body li{list-style:none;margin:0;padding:0}
+#side-drawer .drawer-body a,
+#side-drawer .drawer-body a:link,
+#side-drawer .drawer-body a:visited{color:var(--text) !important;text-decoration:none;padding:10px;border-radius:8px;display:block}
+#side-drawer .drawer-body a:hover{background:rgba(255,255,255,.06)}
 
-/* default link style = compact pill */
-#main-nav a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #ecf0f1;
-  text-decoration: none;
-  font-size: 0.95rem;
-  padding: 6px 10px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* hover + active underline */
-#main-nav a:hover { background-color: #34495e; }
-#main-nav a.active {
-  background: transparent;
-  color: #ffffff;
-}
-#main-nav a.active::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: #1abc9c; /* accent underline */
-}
-
-/* greeting on the far left — looks like text, not a button */
-#main-nav .user-greeting a {
-  pointer-events: none;
-  background: transparent;
-  color: #cfd6db;
-  font-weight: 600;
-  padding-left: 0;
-}
-
-/* push logout to the far right */
-#main-nav li.logout { margin-left: auto; }
-#logout-link {
-  font-weight: 700;
-  background: #1abc9c;
-  color: #0e2a33;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-#logout-link:hover { background: #16a085; color: #062026; }
-
-/* graceful sizing on smaller screens (keeps it compact) */
-@media (max-width: 900px) {
-  #main-nav a { font-size: 0.9rem; padding: 6px 8px; }
-  #logout-link { padding: 6px 10px; }
-}
-
-/* ===== SUB-NAV (page-level tabs under the title) ===== */
-#sub-nav {
-  background-color: #34495e;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-#sub-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 8px;
-  margin: 0;
-  padding: 8px 16px;
-  overflow-x: auto;      /* scroll horizontally if too many tabs */
-  scrollbar-width: none;
-}
-#sub-nav ul::-webkit-scrollbar { display: none; }
-
-#sub-nav a {
-  color: #e9f1f5;
-  text-decoration: none;
-  font-size: 0.92rem;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
-}
-#sub-nav a:hover { background: rgba(255,255,255,0.08); }
-
-#sub-nav a.sub-active {
-  background: #2c3e50;
-  color: #ffffff;
-  box-shadow: inset 0 -2px 0 #1abc9c; /* subtle active cue */
-}
+/* Drawer submenu (hover + click open) */
+.drawer-has-sub > a{display:flex;align-items:center;justify-content:space-between}
+.drawer-has-sub > a::after{content:"▾";font-size:.85rem;opacity:.85;transition:transform .2s}
+.drawer-has-sub.open > a::after{transform:rotate(180deg)}
+.drawer-sub-menu{display:none;margin-left:8px;padding:6px 0 6px 8px}
+.drawer-sub-menu a{margin-left:6px}
+.drawer-has-sub:hover > .drawer-sub-menu{display:block}
+.drawer-has-sub.open > .drawer-sub-menu{display:block}
 
 
 
